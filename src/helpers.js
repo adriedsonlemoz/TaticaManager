@@ -11,7 +11,7 @@ import React from 'react';
 //   Meio:      VOL (Volante) · MC (Meio Central) · MEI (Meia Ofensivo)
 //   Ataque:    PD (Ponta Direita) · PE (Ponta Esquerda) · CA (Centroavante)
 export const FORMATION_SLOTS = {
-  '4-4-2':   { GOL:1, ZAG:2, LD:1, LE:1, VOL:2, MEI:2, CA:2 },
+  '4-4-2':   { GOL:1, ZAG:2, LD:1, LE:1, PD:1, VOL:2, PE:1, CA:2 },
   '4-3-3':   { GOL:1, ZAG:2, LD:1, LE:1, VOL:1, MC:1, MEI:1, PD:1, PE:1, CA:1 },
   '4-2-3-1': { GOL:1, ZAG:2, LD:1, LE:1, VOL:2, PD:1, MEI:1, PE:1, CA:1 },
   '3-5-2':   { GOL:1, ZAG:3, LD:1, LE:1, VOL:2, MC:1, CA:2 },

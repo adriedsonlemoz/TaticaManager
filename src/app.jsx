@@ -333,6 +333,8 @@ const Game = () => {
               showToast(newContract !== undefined ? 'Contrato renovado!' : 'Salário atualizado!');
             }}
             formatMoney={formatMoney}
+            showToast={showToast}
+            onSetGameData={setGameData}
           />
         )}
       </Box>

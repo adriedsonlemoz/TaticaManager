@@ -2,7 +2,7 @@
 
 **Tática Manager** é um manager de futebol feito em React e Vite. Assuma um clube, monte o elenco, escolha escalação e táticas, dispute ligas e copas e administre mercado, contratos, finanças, estádio e categoria de base.
 
-> **Status:** `1.0.0-beta.9` — beta com motor, mercado, setup, partida, pós-jogo e calendário modularizados, pronta para evolução contínua no GitHub.
+> **Status:** `1.0.0-beta.14` — beta com núcleo, mercado, setup, partidas, pós-jogo, calendário, finanças, escalação, copas e perfil de jogador modularizados, pronta para evolução contínua no GitHub.
 
 ## Principais recursos
 - Séries A, B, C e D, copas e temporadas completas.
@@ -33,7 +33,7 @@ A saída é gerada em `dist/`.
 O frontend pode ser publicado diretamente na Vercel. O repositório contém `vercel.json`, Node 22.x e GitHub Actions para validar o build. Veja [DEPLOY.md](./DEPLOY.md).
 
 ## Arquitetura
-O motor de partidas está em `src/engines/match/`; o núcleo do jogo foi dividido em `src/engines/core/`; o mercado é dividido entre `src/engines/market/` e `src/components/market/`; a criação de carreira fica em `src/components/setup/`; e a apresentação da partida ao vivo fica em `src/components/match/`; o pós-jogo em `src/components/postmatch/`; e calendário/histórico em `src/components/matches/` + `src/engines/matches/`. Veja [ARCHITECTURE.md](./ARCHITECTURE.md).
+O motor de partidas está em `src/engines/match/`; o núcleo do jogo foi dividido em `src/engines/core/`; o mercado é dividido entre `src/engines/market/` e `src/components/market/`; a criação de carreira fica em `src/components/setup/`; e a apresentação da partida ao vivo fica em `src/components/match/`; o pós-jogo em `src/components/postmatch/`; calendário/histórico em `src/components/matches/` + `src/engines/matches/`; finanças em `src/components/finances/` + `src/engines/finances/`; e escalação em `src/components/lineup/` + `src/engines/lineup/`; as regras de torneios ficam em `src/engines/cups/` com `cups_engine.js` preservado como fachada compatível; o perfil de atleta é dividido entre `src/components/player/` e `src/engines/player/playerProfileService.js`. Veja [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Compatibilidade de saves
 A mudança de identidade para **Tática Manager** não altera o banco IndexedDB legado (`BrasfootDB`) nem o `appId` do Capacitor nesta beta. Isso é intencional para preservar carreiras existentes.
@@ -48,6 +48,11 @@ A mudança de identidade para **Tática Manager** não altera o banco IndexedDB 
 - `1.0.0-beta.7` — tela de partida ao vivo dividida em campo, narração, banco, overlays, substituições e controles.
 - `1.0.0-beta.8` — pós-jogo dividido por abas, estatísticas persistentes e finanças/classificação alinhadas ao estado real.
 - `1.0.0-beta.9` — calendário de partidas modularizado, slots Liga/Copa normalizados e histórico de copas restaurado no calendário.
+- `1.0.0-beta.10` — finanças modularizadas, projeções centralizadas e resumo/histórico financeiro corrigidos.
+- `1.0.0-beta.11` — escalação modularizada, 4-4-2 unificado e fluxo de titulares/adaptados corrigido.
+- `1.0.0-beta.12` — motor de copas modularizado, calendários unificados e fases continentais corrigidas.
+- `1.0.0-beta.13` — interface de copas modularizada e apresentação de ida/volta corrigida.
+- `1.0.0-beta.14` — modal de jogador modularizado, listagem para venda e renovação contratual corrigidas.
 - `1.0.0` — futura primeira versão estável.
 
 ## Documentação

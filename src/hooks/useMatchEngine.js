@@ -219,7 +219,7 @@ const useMatchSimulation = (gameData, setGameData, setScreen, showToast, setLine
       const cupAwayGoals = result.awayGoals;
 
       if (cupKey === 'copaBrasil') {
-        newCups = { ...newCups, copaBrasil: CupsEngine.registerCupaLegResult(newCups.copaBrasil, calEntry.leg, cupHomeGoals, cupAwayGoals) };
+        newCups = { ...newCups, copaBrasil: CupsEngine.registerCopaLegResult(newCups.copaBrasil, calEntry.leg, cupHomeGoals, cupAwayGoals) };
         const after = newCups.copaBrasil;
         if (after.currentTie?.penalties && calEntry.leg === 'leg2') {
           const p = after.currentTie.penalties;
@@ -231,9 +231,9 @@ const useMatchSimulation = (gameData, setGameData, setScreen, showToast, setLine
       } else {
         const _isLeg2group = calEntry.leg === 'leg2';
         if (cupMatchInfo.isGroup) {
-          newCups = { ...newCups, [cupKey]: CupsEngine.registerGroupLegResult(newCups[cupKey], cupMatchInfo.matchId, cupHomeGoals, cupAwayGoals, cupMatchInfo.prizeMap, {}, _isLeg2group) };
+          newCups = { ...newCups, [cupKey]: CupsEngine.registerGroupLegResult(newCups[cupKey], cupMatchInfo.matchId, cupHomeGoals, cupAwayGoals, cupMatchInfo.prizeMap, cupMatchInfo.scheduleMap, _isLeg2group) };
         } else {
-          newCups = { ...newCups, [cupKey]: CupsEngine.registerKnockoutLegResult(newCups[cupKey], calEntry.leg, cupHomeGoals, cupAwayGoals, cupMatchInfo.prizeMap, {}) };
+          newCups = { ...newCups, [cupKey]: CupsEngine.registerKnockoutLegResult(newCups[cupKey], calEntry.leg, cupHomeGoals, cupAwayGoals, cupMatchInfo.prizeMap, cupMatchInfo.scheduleMap) };
         }
         const lb = cupMatchInfo.label;
         const aft = newCups[cupKey];

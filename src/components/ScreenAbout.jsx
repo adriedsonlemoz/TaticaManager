@@ -23,15 +23,60 @@ const ScreenAbout = ({ handleCopyPix, onBack }) => {
   const changelog = [
     {
       v: APP_VERSION_LABEL, tag: 'ATUAL', color: C.green,
-      title: 'Tática Manager · Calendário modular e consistente',
+      title: 'Tática Manager · Perfil de jogador modular',
+      items: [
+        '👤 PlayerModal reduzido de 627 para cerca de 84 linhas',
+        '🧩 Perfil, temporada, camisa, salário e disciplina separados em componentes próprios',
+        '📋 Listar para venda deixa de poder cair acidentalmente na venda imediata',
+        '🤝 Renovação por desempenho passa a atualizar também a duração do contrato',
+        '⚡ Fadiga, disciplina e JerseyBadge usam imports ES diretos em vez de window.*',
+        '🧪 Serviço de jogador validado com smoke tests de salário, potencial, camisas e mercado',
+        '🚀 Versão 1.0.0-beta.14 pronta para continuidade no GitHub',
+      ],
+    },
+    {
+      v: 'v1.0 beta.13', tag: '', color: C.teal,
+      title: 'Interface de Copas modular',
+      items: [
+        '🏆 ScreenCopas reduzida de 340 para cerca de 35 linhas',
+        '🧩 Status, confrontos, grupos, histórico e navegação separados em componentes próprios',
+        '🔁 Jogos de volta exibem o placar na mesma orientação visual do confronto',
+      ],
+    },
+    {
+      v: 'v1.0 beta.12', tag: '', color: C.teal,
+      title: 'Copas modulares e calendário unificado',
+      items: [
+        '🏆 cups_engine reduzido de 690 para cerca de 86 linhas',
+        '🌎 Grupos continentais completam os seis jogos de ida e volta',
+        '🥇 Finais continentais corrigidas para jogo único',
+      ],
+    },
+    {
+      v: 'v1.0 beta.11', tag: '', color: C.teal,
+      title: 'Escalação modular e consistente',
+      items: [
+        '📋 ScreenLineup reduzida de 663 para cerca de 167 linhas',
+        '🧠 Autoescala e regras de titulares/adaptados centralizadas',
+        '⚖️ 4-4-2 unificado entre campo visual e validação global',
+      ],
+    },
+    {
+      v: 'v1.0 beta.10', tag: '', color: C.teal,
+      title: 'Finanças modulares e consistentes',
+      items: [
+        '💰 ScreenFinances reduzida de 721 para cerca de 74 linhas',
+        '📊 Projeções e agregações centralizadas no financeViewModel',
+        '🧾 Histórico moderno e legado normalizado por uma única camada',
+      ],
+    },
+    {
+      v: 'v1.0 beta.9', tag: '', color: C.teal,
+      title: 'Calendário modular e consistente',
       items: [
         '📅 ScreenMatches reduzida de 930 para cerca de 112 linhas',
-        '🧩 Calendário, dia selecionado, próximos jogos, resultados e súmula viraram módulos próprios',
-        '🏆 Jogos de Copa encerrados permanecem visíveis no calendário mensal',
-        '🧭 Próximo jogo agora usa calendarSlot, evitando confusão entre rodada da Liga e slot de Copa',
-        '🔌 ScreenMatches não depende mais de window.TeamIcon, window.CupsEngine ou helpers globais',
-        '🗓️ Datas reutilizam matchDateUtils como fonte única',
-        '🚀 Versão 1.0.0-beta.9 pronta para continuidade no GitHub',
+        '🏆 Liga e Copas normalizadas por calendarSlot',
+        '🧾 Jogos de Copa encerrados permanecem acessíveis no calendário e na súmula',
       ],
     },
     {

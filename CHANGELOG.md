@@ -1,5 +1,116 @@
 # Changelog
 
+## [1.0.0-beta.14] - 2026-08-15
+
+### Refatoração
+- `PlayerModal.jsx` reduzido de 627 para aproximadamente 84 linhas e mantido como orquestrador do modal de atleta.
+- Cabeçalho, navegação e as abas Perfil, Temporada, Camisa, Salário e Disciplina separados em `src/components/player/`.
+- Regras puras de potencial, camisas ocupadas, salário, renovação, listagem e status disciplinar centralizadas em `src/engines/player/playerProfileService.js`.
+- Removidos estados, componentes auxiliares e imports não utilizados do modal antigo.
+- `JerseyBadge`, `FatigueEngine` e `DisciplineEngine` passam a ser consumidos por imports ES diretos em vez de `window.*`.
+
+### Correções e consistência
+- Corrigido o fluxo de **Listar para venda**: `PlayerModal` agora recebe `onSetGameData` e altera `isListed`/`market` sem cair acidentalmente na venda imediata.
+- Retirar um jogador da lista remove também sua entrada correspondente do mercado.
+- Renovação por desempenho passa a renovar de fato a duração contratual, além de aplicar o reajuste salarial exibido no botão.
+- Validação de salário e definição de duração do novo contrato ficam em funções únicas, evitando regras duplicadas na interface.
+- Status disciplinar e penalidade física deixam de depender de globals carregados em ordem específica.
+
+### Validação
+- 11/11 smoke tests do novo serviço de jogador aprovados.
+- Sintaxe JS/JSX analisada pelo parser TypeScript sem erros.
+- Imports locais verificados sem referências quebradas.
+- Versão sincronizada para `1.0.0-beta.14`.
+
+## [1.0.0-beta.13] - 2026-08-15
+
+### Refatoração
+- `ScreenCopas.jsx` reduzida de 340 para aproximadamente 35 linhas e mantida como orquestradora visual.
+- Status, confronto atual, grupos, jogos, histórico e navegação separados em `src/components/cups/`.
+
+### Correções e consistência
+- Finais de jogo único passam a ser identificadas corretamente na interface.
+- Placar da volta é exibido na mesma orientação visual do confronto.
+- Agregado incompleto deixa de renderizar valores inexistentes.
+- Imports não utilizados removidos da tela de Copas.
+
+### Validação
+- Smoke tests da interface de Copas aprovados.
+- Sintaxe JS/JSX e imports locais verificados.
+- Versão sincronizada para `1.0.0-beta.13`.
+
+## [1.0.0-beta.12] - 2026-08-15
+
+### Refatoração
+- `cups_engine.js` reduzido de 690 para aproximadamente 86 linhas e convertido em fachada compatível.
+- Regras separadas em `src/engines/cups/`: configuração, utilitários, Copa do Brasil, torneios continentais, consultas e inicialização por temporada.
+- `CalendarEngine.js` e o motor de copas passam a compartilhar a mesma fonte de fases, premiações e posições de calendário.
+- Adicionado `registerCopaLegResult` com o nome correto; `registerCupaLegResult` permanece como alias para compatibilidade.
+
+### Correções e consistência
+- Fase de grupos da Libertadores/Sul-Americana deixa de encerrar após apenas três chamadas e agora exige os seis jogos de ida/volta.
+- Estatísticas do adversário também são atualizadas corretamente nos jogos de volta da fase de grupos.
+- Finais de Libertadores e Sul-Americana passam a ser decididas em jogo único, inclusive ao carregar saves antigos que ainda contenham uma `leg2`.
+- Slots de grupos são associados à fase/adversário correto pelo calendário, evitando consumir o primeiro confronto pendente de outra rodada.
+- Clubes da CONMEBOL passam a ser carregados pelo próprio motor continental, sem depender da ordem de imports de `main.jsx`.
+- Datas/posições divergentes entre `cups_engine.js` e `CalendarEngine.js` foram unificadas.
+- Consulta de próximos jogos passa a incluir também as partidas de volta da fase de grupos.
+- Tela de Copas usa `TeamIcon` por import ES direto e passa a exibir placares de ida e volta dos grupos.
+
+### Validação
+- Smoke tests de grupos, elegibilidade, Copa do Brasil, calendário e final continental aprovados.
+- Sintaxe dos módulos JavaScript e imports locais verificados.
+- Versão sincronizada para `1.0.0-beta.12`.
+
+## [1.0.0-beta.11] - 2026-08-15
+
+### Refatoração
+- `ScreenLineup.jsx` reduzida de 663 para aproximadamente 167 linhas e mantida como orquestradora da escalação.
+- Cabeçalho/formações, campo, cards, banco/indisponíveis e diálogos separados em `src/components/lineup/`.
+- View-model, disponibilidade, autoescala, troca de formação e mutações de titulares/adaptados centralizados em `src/engines/lineup/lineupService.js`.
+- `ScreenLineup` deixa de depender de `window.DisciplineEngine`, `window.FatigueEngine`, `window.JerseyBadge`, `window.posColor`, `window.ovrColor` e `window.getLineupValidation`.
+
+### Correções e consistência
+- Formação 4-4-2 alinhada entre campo e `FORMATION_SLOTS`: passa a usar `PD + 2 VOL + PE`, eliminando a antiga divergência com `2 MEI`.
+- Suspensões são verificadas para a próxima rodada também ao adicionar manualmente um titular.
+- Jogadores improvisados deixam de virar "ghost starters" e agora permanecem visíveis nos slots livres do campo, recebendo a penalidade já prevista pela validação global.
+- Troca de formação limpa adaptações incompatíveis com o novo desenho tático sem remover silenciosamente titulares.
+- Autoescala prioriza posição exata, depois posição compatível e só então improvisação.
+- Alterações na escalação passam a alimentar `setIsDirtyLineup`, fazendo o aviso de saída sem salvar funcionar de fato.
+- Long press para editar camisa não dispara mais, em seguida, a troca titular/banco do mesmo jogador.
+- Número de camisa é validado entre 1 e 99 antes de ser aplicado.
+- `APP_VERSION_LABEL` passa a ser derivado de `APP_VERSION`, reduzindo risco de versão visual ficar atrasada.
+
+### Validação
+- 10/10 smoke tests do novo serviço de escalação aprovados.
+- Sintaxe JS/JSX analisada pelo parser TypeScript sem erros.
+- Imports locais verificados sem referências quebradas.
+- Versão sincronizada para `1.0.0-beta.11`.
+
+## [1.0.0-beta.10] - 2026-08-15
+
+### Refatoração
+- `ScreenFinances.jsx` reduzida de 721 para aproximadamente 74 linhas e mantida como orquestradora da área financeira.
+- Cabeçalho/risco, resumo, extrato, acordos comerciais e evolução separados em `src/components/finances/`.
+- Projeções, ofertas de patrocinadores, assinatura de contratos, parsing de extrato e agregações movidos para `src/engines/finances/financeViewModel.js`.
+- Removidos `window.FinanceEngine` e o stub `window.getFinancialSuggestions` do fluxo financeiro.
+
+### Correções e consistência
+- Diagnóstico financeiro passa a calcular a folha diretamente dos jogadores quando `club.wage` ainda está zerado em uma carreira nova.
+- Resumo de temporada passa a contabilizar `detail.wage` e `detail.opCost` dos registros atuais em vez de ignorar parte das despesas recorrentes.
+- Histórico legado de patrocínios continua sendo reconhecido nas agregações.
+- Projeção de TV usa `FinanceEngine.getTVRights` para a próxima rodada, em vez de uma tabela estática duplicada na interface.
+- Bilheteria estimada passa a usar a média real do histórico quando disponível.
+- Despesas estimadas por rodada incluem a parcela média dos custos operacionais, alinhando o saldo projetado ao diagnóstico de risco.
+- Corrigido o uso de `<Alert>` sem importação no bloco do Diretor Financeiro.
+- `APP_VERSION_LABEL`, que havia ficado preso em `v1.0 beta.6`, volta a acompanhar a versão real do projeto.
+
+### Validação
+- Smoke tests de agregação moderna/legada, contratos, projeção e parsing do extrato aprovados.
+- Sintaxe JS/JSX analisada pelo parser TypeScript sem erros.
+- Imports locais verificados sem referências quebradas.
+- Versão sincronizada para `1.0.0-beta.10`.
+
 ## [1.0.0-beta.9] - 2026-08-15
 
 ### Refatoração

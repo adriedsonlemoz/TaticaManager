@@ -117,7 +117,8 @@ const FinanceEngine = {
   // o que superestimava o tempo de sobrevivencia financeira.
   getFinancialStatus: (gameData) => {
     const money  = gameData.club?.money || 0;
-    const wage   = gameData.club?.wage  || 0;
+    const playerWage = (gameData.players || []).reduce((sum, player) => sum + (player.wage || 0), 0);
+    const wage   = gameData.club?.wage || playerWage;
     // Custos operacionais sao cobrados a cada 4 rodadas; distribui por rodada
     const opCostPerRound = FinanceEngine.getOperationalCosts
       ? Math.round(FinanceEngine.getOperationalCosts(gameData) / 4)

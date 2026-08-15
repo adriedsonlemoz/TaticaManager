@@ -11,7 +11,8 @@ React UI
  │   ├─ core/
  │   ├─ match/
  │   ├─ market/
- │   ├─ cups_engine
+ │   ├─ cups_engine (fachada)
+ │   ├─ cups/
  │   ├─ engine_finances
  │   ├─ engine_discipline
  │   ├─ engine_fatigue
@@ -70,6 +71,42 @@ As estatísticas secundárias exibidas no pós-jogo são produzidas/persistidas 
 
 Jogos de Copa já disputados também são resolvidos pelo view-model para permanecerem visíveis no calendário mensal.
 
+
+## Finanças
+- `src/components/ScreenFinances.jsx`: coordena a aba ativa e ações comerciais.
+- `src/components/finances/FinanceHeader.jsx`: saldo, indicadores, risco financeiro e navegação.
+- `FinanceOverviewTab.jsx`: projeção de receitas/despesas e recomendações do diretor financeiro.
+- `FinanceHistoryTab.jsx`: extrato compatível com registros modernos e legados.
+- `FinanceSponsorsTab.jsx`: contratos máster e naming rights.
+- `FinanceEvolutionTab.jsx`: gráfico e resumo acumulado da temporada.
+- `src/engines/finances/financeViewModel.js`: projeções, ofertas, assinatura de contratos, normalização do histórico e agregações.
+- `src/engines/engine_finances.js`: regras de TV, bilheteria, custos operacionais e risco financeiro.
+
+A UI financeira não depende mais de `window.FinanceEngine` ou do antigo stub `window.getFinancialSuggestions`.
+
+
+## Escalação
+- `src/components/ScreenLineup.jsx`: orquestra estado, seleção, autoescala, edição de camisa e persistência.
+- `src/components/lineup/LineupHeader.jsx`: formação, OVR, ações de autoescala e salvar.
+- `LineupField.jsx`: distribuição visual de titulares no gramado, inclusive improvisados.
+- `LineupPlayerCard.jsx` e `LineupRoster.jsx`: banco, indisponíveis, energia, cartões e jogadores adaptados.
+- `LineupDialogs.jsx`: picker por posição e edição do número da camisa.
+- `src/engines/lineup/lineupService.js`: view-model, disponibilidade, troca de formação, autoescala e mutações puras da escalação.
+
+`FORMATION_SLOTS` continua como regra global de limites por posição; na beta.11 o 4-4-2 foi alinhado ao campo visual (`PD + 2 VOL + PE`) para eliminar divergência entre validação e seleção manual.
+
+
+## Copas e torneios
+- `src/engines/cups_engine.js`: fachada pública de compatibilidade; consumidores antigos continuam importando `CupsEngine` pelo mesmo caminho.
+- `src/engines/cups/cupConfig.js`: fonte única de fases, premiações e posições de calendário da Copa do Brasil, Libertadores e Sul-Americana.
+- `copaBrasilEngine.js`: inicialização, progressão e resultados da Copa do Brasil.
+- `continentalEngine.js`: grupos e mata-mata da Libertadores/Sul-Americana.
+- `cupQueries.js`: consultas de jogos atuais e próximos confrontos.
+- `cupSeason.js`: classificação e inicialização dos torneios a cada temporada.
+- `cupUtils.js`: confrontos, pênaltis, agregados e utilitários compartilhados.
+
+`CalendarEngine.js` consome a mesma configuração de `cupConfig.js`, evitando divergência entre a rodada exibida e o slot realmente criado. A fase de grupos continental só encerra após os seis jogos (ida e volta contra três adversários), e as finais de Libertadores/Sul-Americana são tratadas como jogo único.
+
 ## Mercado
 `src/engines/market/marketService.js` concentra filtros, OVR por divisão, renovação do mercado, clubes CPU, série, negociação, proposta mínima, transferências e venda ao estado do jogo. `ScreenMarket.jsx` continua responsável pelos estados React e pela apresentação.
 
@@ -82,14 +119,25 @@ Jogos de Copa já disputados também são resolvidos pelo view-model para perman
 - `src/components/setup/setupTheme.js`: paleta, estilos e utilitários de apresentação.
 - `src/components/setup/setupService.js`: validação e resolução de dados sem globals em `window`.
 
+
+## Perfil de jogador
+- `src/components/PlayerModal.jsx`: orquestra o modal e a aba ativa.
+- `src/components/player/PlayerModalHeader.jsx`: identificação, camisa, posição e OVR.
+- `PlayerProfileTab.jsx`: físico, valor, potencial e lista de transferências.
+- `PlayerSeasonTab.jsx`: produção na temporada, energia, contrato e lesões.
+- `PlayerShirtTab.jsx`: seleção de numeração disponível.
+- `PlayerWageTab.jsx`: reajuste salarial e renovação.
+- `PlayerDisciplineTab.jsx`: cartões e suspensão.
+- `src/engines/player/playerProfileService.js`: regras puras de potencial, salário, camisas, listagem e disciplina.
+
 ## Compatibilidade
 O banco Dexie legado e o `appId` do Capacitor foram preservados no rename para evitar que saves existentes desapareçam para o usuário.
 
 ## Próximos alvos
-1. Modularizar `ScreenFinances.jsx` e revisar `ScreenLineup.jsx`.
-2. Continuar centralizando aleatoriedade e criar testes unitários.
-3. Revisar `MatchField.jsx` e outros componentes restantes acima de 200 linhas.
-4. Reduzir acoplamento de `ScreenLineup.jsx` e `cups_engine.js`.
+1. Refatorar `ScreenNextMatch.jsx`, hoje um dos maiores componentes visuais restantes.
+2. Separar `ScreenTable.jsx`, `ScreenInbox.jsx` e `ScreenCareer.jsx` por responsabilidade.
+3. Fazer uma rodada final em `useMatchEngine.js`, `BottomNav.jsx` e globals legados ainda presentes fora dos fluxos já modularizados.
+4. Centralizar a aleatoriedade remanescente e ampliar testes automatizados antes da versão estável.
 
 
 ## Mercado
