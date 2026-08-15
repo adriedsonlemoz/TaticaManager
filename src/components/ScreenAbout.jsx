@@ -23,17 +23,45 @@ const ScreenAbout = ({ handleCopyPix, onBack }) => {
   const changelog = [
     {
       v: APP_VERSION_LABEL, tag: 'ATUAL', color: C.green,
-      title: 'Tática Manager · Nova carreira modular',
+      title: 'Tática Manager · Calendário modular e consistente',
+      items: [
+        '📅 ScreenMatches reduzida de 930 para cerca de 112 linhas',
+        '🧩 Calendário, dia selecionado, próximos jogos, resultados e súmula viraram módulos próprios',
+        '🏆 Jogos de Copa encerrados permanecem visíveis no calendário mensal',
+        '🧭 Próximo jogo agora usa calendarSlot, evitando confusão entre rodada da Liga e slot de Copa',
+        '🔌 ScreenMatches não depende mais de window.TeamIcon, window.CupsEngine ou helpers globais',
+        '🗓️ Datas reutilizam matchDateUtils como fonte única',
+        '🚀 Versão 1.0.0-beta.9 pronta para continuidade no GitHub',
+      ],
+    },
+    {
+      v: 'v1.0 beta.8', tag: '', color: C.teal,
+      title: 'Pós-jogo modular e consistente',
+      items: [
+        '🧩 ScreenPostMatch reduzida de 805 para cerca de 195 linhas',
+        '⚽ Súmula, finanças, tabela e desfalques separados em componentes próprios',
+        '📊 Estatísticas persistidas pelo motor e finanças alinhadas ao histórico real',
+      ],
+    },
+    {
+      v: 'v1.0 beta.7', tag: '', color: C.teal,
+      title: 'Partida ao vivo modular',
+      items: [
+        '⚽ ScreenMatchResult reduzida de 1.289 para cerca de 297 linhas',
+        '🏟️ Campo e formações separados em MatchField.jsx',
+        '🗣️ Narração, banco, overlays e substituições separados da orquestração',
+        '👕 Corrigido fallback de número de camisa no mini-campo',
+      ],
+    },
+    {
+      v: 'v1.0 beta.5', tag: '', color: C.teal,
+      title: 'Nova carreira modular',
       items: [
         '🧩 ScreenSetup reduzida de 935 para cerca de 48 linhas',
         '🗂️ Os seis passos da nova carreira agora são componentes independentes',
         '🎨 Cabeçalho, progresso, navegação e uniforme extraídos para SetupUi.jsx',
         '🧠 Validações e defaults de clube/estádio centralizados em setupService.js',
-        '🧱 Paleta e estilos do fluxo centralizados em setupTheme.js',
         '🔌 Setup não depende mais de dados globais em window.*',
-        '🛡️ Seleção de divisão, clube, objetivo, técnico e contrato preservada',
-        '✅ Sintaxe, imports e JSONs validados',
-        '🚀 Versão 1.0.0-beta.5 pronta para continuidade no GitHub',
       ],
     },
     {

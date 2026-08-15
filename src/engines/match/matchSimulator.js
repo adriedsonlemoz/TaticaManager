@@ -358,6 +358,12 @@ export const simulateMatch = (gameData, match, tactics, starters, players) => {
   const awayShots = awayGoals + baseShots + Math.floor((awayPoss - 50) / 10);
   const homeOnTarget = homeGoals + Math.floor(Math.random() * Math.max(1, Math.floor(homeShots * 0.35)));
   const awayOnTarget = awayGoals + Math.floor(Math.random() * Math.max(1, Math.floor(awayShots * 0.35)));
+  // Estatísticas secundárias são sorteadas UMA vez dentro da simulação e persistem
+  // em matchResultData. A UI pós-jogo não deve gerar números novos a cada render.
+  const homeCorners = Math.max(0, Math.round(homeShots * 0.30 + Math.random() * 2));
+  const awayCorners = Math.max(0, Math.round(awayShots * 0.30 + Math.random() * 2));
+  const homeFouls = 7 + Math.floor(Math.random() * 9);
+  const awayFouls = 7 + Math.floor(Math.random() * 9);
 
   return {
     homeGoals, awayGoals, events, rawEvents,
@@ -365,6 +371,7 @@ export const simulateMatch = (gameData, match, tactics, starters, players) => {
     awayShots: Math.max(awayGoals, awayShots),
     homeOnTarget: Math.max(homeGoals, homeOnTarget),
     awayOnTarget: Math.max(awayGoals, awayOnTarget),
+    homeCorners, awayCorners, homeFouls, awayFouls,
     homePoss, awayPoss,
   };
 };

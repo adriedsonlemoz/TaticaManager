@@ -1,5 +1,90 @@
 # Changelog
 
+## [1.0.0-beta.9] - 2026-08-15
+
+### Refatoração
+- `ScreenMatches.jsx` reduzida de 930 para aproximadamente 112 linhas e mantida como orquestradora visual.
+- Calendário, detalhe do dia, próximos jogos, resultados recentes e súmula separados em `src/components/matches/`.
+- Construção dos eventos de Liga/Copa, histórico e próximos jogos centralizada em `src/engines/matches/matchesViewModel.js`.
+- Datas de Liga/Copa passam a reutilizar `src/utils/matchDateUtils.js` como fonte única.
+
+### Correções e consistência
+- Comparações de próximo jogo normalizadas por `calendarSlot`, evitando misturar índice do calendário completo com número da rodada da Liga após a entrada das Copas.
+- Jogos de Copa já disputados voltam a aparecer no calendário mensal e podem abrir súmula quando o resultado estiver disponível.
+- Resultados recentes da Liga usam os slots de Liga realmente jogados, evitando saltos quando existem Copas intercaladas.
+- Histórico de Copas também considera confrontos arquivados em `history`, com deduplicação.
+- `ScreenMatches` deixa de depender de `window.TeamIcon`, `window.CupsEngine`, `window.getLineupValidation` e `window.SMR_parseEvent`.
+- Cabeçalho passa a exibir rodada real da Liga (`leagueRound`) em vez do índice geral do calendário.
+
+### Validação
+- Sintaxe JS/JSX analisada com parser TypeScript sem erros.
+- 305 imports locais verificados sem referências quebradas.
+- Smoke tests de calendário, histórico de Copa, próximo slot e resultados recentes aprovados.
+- Versão sincronizada para `1.0.0-beta.9`.
+
+## [1.0.0-beta.8] - 2026-08-15
+
+### Refatoração
+- `ScreenPostMatch.jsx` reduzida de 805 para aproximadamente 195 linhas e mantida como orquestradora do pós-jogo.
+- Cabeçalho/placar movido para `src/components/postmatch/PostMatchHeader.jsx`.
+- Súmula, finanças, classificação e desfalques separados em componentes próprios.
+- Cards e linhas de estatísticas compartilhados extraídos para `PostMatchUi.jsx`.
+- Parsing de eventos, estatísticas e variação de posição centralizados em `postMatchViewModel.js`.
+
+### Correções e consistência
+- Faltas e escanteios deixam de ser sorteados pela interface a cada render e passam a ser gerados uma única vez pelo `matchSimulator`.
+- A súmula passa a usar `homeOnTarget`/`awayOnTarget` produzidos pelo motor, em vez de recalcular chutes no alvo na UI.
+- Variação de posição usa `posVariation` real da tabela e não tenta reconstruir a classificação anterior desfazendo o placar.
+- Partidas de Copa não exibem mais falsa variação de posição da Liga.
+- Aba Finanças prioriza o `financialHistory` efetivamente aplicado ao caixa, evitando mostrar cota de TV/patrocínio incorretos em jogos de Copa e incluindo premiações no total.
+- Minutos de substituição são normalizados para evitar apóstrofo duplicado também na súmula pós-jogo.
+
+### Validação
+- 95 arquivos JS/JSX analisados sem erros de sintaxe.
+- 284 imports locais verificados sem referências quebradas.
+- Smoke tests do `postMatchViewModel` aprovados.
+- Versão sincronizada para `1.0.0-beta.8`.
+
+## [1.0.0-beta.7] - 2026-08-15
+
+### Refatoração
+- `ScreenMatchResult.jsx` reduzida de 1.289 para aproximadamente 297 linhas e mantida como orquestradora do fluxo da partida.
+- Cabeçalho/placar extraído para `src/components/match/MatchHeader.jsx`.
+- Campo e formações extraídos para `MatchField.jsx`.
+- Banco, narração, overlays, substituições e controles ao vivo separados em componentes próprios.
+- Removidos estados, cálculos e componentes mortos que pertenciam a versões antigas da tela.
+
+### Correções
+- Corrigido fallback do número da camisa no mini-campo, que referenciava uma variável inexistente quando `shirt` não estava definido.
+- A escalação visual do adversário não ordena mais o array original do save in-place.
+- Registro visual das substituições deixou de duplicar o apóstrofo do minuto.
+- Timers de transição e overlays agora têm limpeza explícita ao desmontar/atualizar efeitos.
+
+### Validação
+- 88 arquivos JS/JSX analisados pelo parser TypeScript sem erros de sintaxe.
+- 265 imports locais verificados sem referências quebradas.
+- Versão sincronizada para `1.0.0-beta.7`.
+
+## [1.0.0-beta.6] - 2026-08-15
+
+### Refatoração
+- `src/engines/engine.js` reduzido de aproximadamente 669 linhas para um barrel de compatibilidade com cerca de 20 linhas.
+- Geração de jogadores e elencos movida para `src/engines/core/playerFactory.js`.
+- Evolução/regressão anual movida para `src/engines/core/playerDevelopment.js`.
+- Fixtures, classificação, desempates e zonas da tabela movidos para `src/engines/core/leagueEngine.js`.
+- Criação do estado inicial movida para `src/engines/core/gameStateFactory.js`.
+- Transição de temporada movida para `src/engines/core/seasonEngine.js`.
+- Forma recente e força CPU disponível movidas para `src/engines/core/teamMetrics.js`.
+
+### Compatibilidade
+- A API pública de `engine.js` foi preservada, evitando alterações em massa nos hooks, telas e engines que já importam suas funções.
+- Regras de geração, promoção/rebaixamento, contratos, finanças de virada e evolução foram mantidas durante a extração.
+- Estrutura de saves e identificadores legados não foi alterada.
+
+### Validação
+- Imports locais e sintaxe dos módulos extraídos validados.
+- Versão sincronizada para `1.0.0-beta.6`.
+
 ## [1.0.0-beta.5] - 2026-08-15
 
 ### Refatoração
