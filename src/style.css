@@ -1,0 +1,81 @@
+/* ==========================================
+   TÁTICA MANAGER — TEMA PERGAMINHO
+   ========================================== */
+
+/* Variáveis de cor globais */
+:root {
+  --perg-dark:    #d6c8a3;   /* fundo principal */
+  --perg-light:   #f5ebd0;   /* fundo de cards */
+  --perg-paper:   #ebdcb8;   /* papel intermediário */
+  --teal:         #118a8b;   /* cor primária */
+  --teal-dark:    #0d6e6f;
+  --gold:         #a6834d;   /* bordas douradas */
+  --gold-dark:    #6e5436;
+  --ink:          #362414;   /* texto escuro */
+  --ink-light:    #6e5436;   /* texto secundário */
+  --navy:         #0d3b66;   /* bordas de botão */
+  --success:      #32a852;
+  --danger:       #941818;
+  --warning:      #b87a00;
+  --info:         #1565c0;
+}
+
+/* Reset base */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ── Escala global de fonte ──────────────────────────────────
+   Todos os componentes usam rem. Aumentar aqui escala o site inteiro.
+   16px = padrão do browser | 17.5px = +9% | 18px = +12.5%
+   ─────────────────────────────────────────────────────────── */
+html {
+  font-size: 17.5px;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  background-color: var(--perg-dark);
+  color: var(--ink);
+  font-family: 'Nunito', 'Segoe UI', sans-serif;
+}
+
+#root { height: 100%; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--perg-dark); }
+::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold-dark); }
+
+/* Botão principal "Jogar Partida" */
+@keyframes pulseGlow {
+  0%   { box-shadow: 0 0 10px rgba(17,138,139,0.6); transform: scale(1); }
+  50%  { box-shadow: 0 0 25px rgba(17,138,139,0.9), 0 0 15px rgba(166,131,77,0.6); transform: scale(1.02); }
+  100% { box-shadow: 0 0 10px rgba(17,138,139,0.6); transform: scale(1); }
+}
+
+.btn-play-match {
+  animation: pulseGlow 2s infinite;
+  background: linear-gradient(45deg, var(--teal), var(--gold)) !important;
+  color: #fff !important;
+  border: 2px solid var(--navy) !important;
+  font-family: 'Cinzel', serif !important;
+  font-weight: 900 !important;
+  letter-spacing: 1px !important;
+}
+
+/* Feed de narração da partida */
+.match-feed-container {
+  max-height: 250px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+/* Impressão limpa */
+@media print {
+  .d-print-none { display: none !important; }
+  body { background: white !important; color: black !important; }
+}
