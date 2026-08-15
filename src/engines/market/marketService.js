@@ -69,6 +69,7 @@ export function resolveNegotiationPlayer(gameData, stalePlayer) {
   }
   const allTeams = [
     ...(gameData.teams || []), ...(gameData.leagues?.A || []), ...(gameData.leagues?.B || []),
+    ...(gameData.leagues?.C || []), ...(gameData.leagues?.D || []),
   ];
   const team = allTeams.find(item => item.name === stalePlayer.teamName);
   return team?.squad?.find(player => player.id === stalePlayer.id) || null;
@@ -112,4 +113,100 @@ export function applyPlayerSale(state, player, offerData) {
     teams: updateSquad(state.teams),
     leagues: { ...state.leagues, A: updateSquad(state.leagues?.A), B: updateSquad(state.leagues?.B) },
   };
+}
+export function findPlayerSaleOffer(inbox, playerId) {
+  const message = (inbox || []).find(item =>
+    item.actionData?.type === 'sell' && item.actionData?.player?.id === playerId
+  );
+  return message
+    ? { team: message.from || message.sender, value: message.actionData.value, msgId: message.id }
+    : null;
+}
+
+export function groupPlayersForSale(players, inbox) {
+  const withOffer = [];
+  const listed = [];
+  const rest = [];
+  const offerIds = new Set(
+    (inbox || [])
+      .filter(item => item.actionData?.type === 'sell')
+      .map(item => item.actionData?.player?.id)
+  );
+
+  [...(players || [])]
+    .sort((a, b) => (b.overall || 0) - (a.overall || 0))
+    .forEach(player => {
+      if (offerIds.has(player.id)) withOffer.push(player);
+      else if (player.isListed) listed.push(player);
+      else rest.push(player);
+    });
+
+  return { withOffer, listed, rest };
+}
+
+
+export function getNegotiationPreview(gameData, stalePlayer, offerPct) {
+  if (!stalePlayer) return null;
+  const fresh = resolveNegotiationPlayer(gameData, stalePlayer) || stalePlayer;
+  const player = { ...fresh, teamName: stalePlayer.teamName };
+  const minPct = player.teamName === 'Livre' ? 85 : 92;
+  const offerVal = Math.round(player.value * offerPct / 100);
+  const minVal = Math.round(player.value * minPct / 100);
+  return { player, minPct, offerVal, minVal, aboveMin: offerPct >= minPct };
+}
+
+export function buildScoutAnalysis(gameData) {
+  const myPlayers = gameData.players || [];
+  const myOvr = myPlayers.length > 0
+    ? Math.round(myPlayers.reduce((sum, player) => sum + (player.overall || 0), 0) / myPlayers.length)
+    : 70;
+
+  const posCounts = {};
+  myPlayers.forEach(player => { posCounts[player.position] = (posCounts[player.position] || 0) + 1; });
+  const allPositions = ['GOL','ZAG','LD','LE','VOL','MC','MEI','PD','PE','CA'];
+  const weakPos = allPositions
+    .filter(position => (posCounts[position] || 0) < 3)
+    .sort((a, b) => (posCounts[a] || 0) - (posCounts[b] || 0));
+
+  const allSources = [
+    ...(gameData.market || []),
+    ...(gameData.leagues?.A || []).flatMap(team => team.squad || []),
+    ...(gameData.leagues?.B || []).flatMap(team => team.squad || []),
+  ].filter(player => player && player.id && player.overall);
+
+  const ownedIds = new Set(myPlayers.map(player => player.id));
+  const budget = gameData.club.money || 0;
+  const recommendations = allSources
+    .filter(player => !ownedIds.has(player.id))
+    .map(player => {
+      let score = 0;
+      const positionUrgency = weakPos.indexOf(player.position);
+      if (positionUrgency === 0) score += 40;
+      else if (positionUrgency === 1) score += 25;
+      else if (positionUrgency >= 0) score += 10;
+      if (player.overall > myOvr + 5) score += 30;
+      else if (player.overall > myOvr) score += 15;
+      if (player.age <= 21) score += 20;
+      if ((player.value || 0) <= budget * 0.3) score += 10;
+      return { ...player, _score: score };
+    })
+    .filter(player => player._score > 0)
+    .sort((a, b) => b._score - a._score)
+    .slice(0, 6);
+
+  return { myOvr, myPlayersCount: myPlayers.length, budget, weakPos, recommendations };
+}
+
+export function getWatchlistPlayerState(gameData, watchItem) {
+  const live = [
+    ...(gameData.market || []),
+    ...(gameData.leagues?.A || []).flatMap(team => team.squad || []),
+    ...(gameData.leagues?.B || []).flatMap(team => team.squad || []),
+    ...(gameData.leagues?.C || []).flatMap(team => team.squad || []),
+    ...(gameData.leagues?.D || []).flatMap(team => team.squad || []),
+    ...(gameData.players || []),
+  ].find(player => player?.id === watchItem.id);
+  const isOwned = (gameData.players || []).some(player => player.id === watchItem.id);
+  const afford = (gameData.club?.money || 0) >= (watchItem.value || 0);
+  return { live, isOwned, afford };
 }

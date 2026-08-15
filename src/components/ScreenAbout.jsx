@@ -23,15 +23,17 @@ const ScreenAbout = ({ handleCopyPix, onBack }) => {
   const changelog = [
     {
       v: APP_VERSION_LABEL, tag: 'ATUAL', color: C.green,
-      title: 'Tática Manager · Mercado modular · GitHub ready',
+      title: 'Tática Manager · Nova carreira modular',
       items: [
-        '🏷️ Identidade oficial definida: Tática Manager',
-        '🛒 Regras do mercado extraídas para engines/market/marketService.js',
-        '🧹 ScreenMarket reduzido e mais focado na interface',
-        '🛡️ Venda de jogador não descarta mais as Séries C e D do estado',
-        '💾 Compatibilidade preservada com saves existentes e identificador mobile anterior',
-        '📚 Documentação e metadados atualizados para a nova identidade',
-        '🚀 Pacote preparado como 1.0.0-beta.2 para publicação inicial no GitHub',
+        '🧩 ScreenSetup reduzida de 935 para cerca de 48 linhas',
+        '🗂️ Os seis passos da nova carreira agora são componentes independentes',
+        '🎨 Cabeçalho, progresso, navegação e uniforme extraídos para SetupUi.jsx',
+        '🧠 Validações e defaults de clube/estádio centralizados em setupService.js',
+        '🧱 Paleta e estilos do fluxo centralizados em setupTheme.js',
+        '🔌 Setup não depende mais de dados globais em window.*',
+        '🛡️ Seleção de divisão, clube, objetivo, técnico e contrato preservada',
+        '✅ Sintaxe, imports e JSONs validados',
+        '🚀 Versão 1.0.0-beta.5 pronta para continuidade no GitHub',
       ],
     },
     {
