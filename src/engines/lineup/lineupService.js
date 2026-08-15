@@ -1,6 +1,6 @@
 import { DisciplineEngine } from '../engine_discipline.js';
 import { FatigueEngine } from '../engine_fatigue.js';
-import { FORMATION_SLOTS, canPlayAs } from '../../helpers.js';
+import { FORMATION_SLOTS, canPlayAs } from './lineupRules.js';
 
 export const LINEUP_VIEWBOX = { width: 160, height: 100 };
 

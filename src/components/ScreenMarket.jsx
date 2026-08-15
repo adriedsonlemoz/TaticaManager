@@ -2,6 +2,8 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { THEME } from '../theme.js';
+import { TeamIcon } from '../data/database_branding.js';
+import { generatePlayer } from '../engines/engine.js';
 import {
   MARKET_REFRESH_COST,
   applyPlayerSale,
@@ -44,15 +46,6 @@ const ScreenMarket = ({ gameData, setGameData, buyPlayer, formatMoney, showToast
   const [offerPct, setOfferPct] = React.useState(85);
   const [leagueFilter, setLeagueFilter] = React.useState('A');
   const [selectedClubId, setSelectedClubId] = React.useState(null);
-
-  const FallbackTeamIcon = ({ name, size }) => (
-    <Box sx={{ width:size || 40, height:size || 40, borderRadius:'50%', bgcolor:C.green,
-      display:'flex', alignItems:'center', justifyContent:'center', fontSize:size > 30 ? '0.8rem' : '0.5rem',
-      color:'#fff', fontWeight:900, border:'2px solid rgba(255,255,255,0.2)', flexShrink:0 }}>
-      {(name || '?').substring(0, 3).toUpperCase()}
-    </Box>
-  );
-  const TeamIcon = window.TeamIcon || FallbackTeamIcon;
 
   const watchlist = gameData.watchlist || [];
   const isWatched = id => watchlist.some(item => item.id === id);
@@ -111,7 +104,7 @@ const ScreenMarket = ({ gameData, setGameData, buyPlayer, formatMoney, showToast
       showToast?.('Verba insuficiente para atualizar o mercado!', 'error');
       return;
     }
-    const newMarket = createRefreshedMarket(gameData, window.generatePlayer);
+    const newMarket = createRefreshedMarket(gameData, generatePlayer);
     setGameData(prev => ({
       ...prev,
       market:newMarket,

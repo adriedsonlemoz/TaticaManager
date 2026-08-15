@@ -1,7 +1,7 @@
 // @migrated to ES module
 // data/database_clubs.js — Histórico e estádios dos clubes brasileiros
 // Carregado APÓS database.js. Não usa JSX — script normal (sem type="text/babel")
-// Acesso: window.clubsDatabase['Flamengo']
+// Acesso: import { clubsDatabase } e consulte clubsDatabase['Flamengo']
 
 export const clubsDatabase = {
 

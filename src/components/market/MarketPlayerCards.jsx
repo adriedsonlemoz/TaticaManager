@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Paper, Typography } from '@mui/material';
 import { findPlayerSaleOffer } from '../../engines/market/marketService.js';
+import { JerseyBadge } from '../../helpers.js';
 
 export function MarketPlayerCard({
   player: p,
@@ -30,8 +31,8 @@ export function MarketPlayerCard({
     }}>
       <Box sx={{ px:1.3, py:0.85, display:'flex', alignItems:'center', gap:1 }}>
         <Box sx={{ position:'relative', flexShrink:0 }}>
-          {window.JerseyBadge
-            ? React.createElement(window.JerseyBadge, { pos: p.position, num: p.shirt ?? '?', size: 40 })
+          {JerseyBadge
+            ? React.createElement(JerseyBadge, { pos: p.position, num: p.shirt ?? '?', size: 40 })
             : <Box sx={{ width:40, height:40, borderRadius:'50%', bgcolor:pc.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.62rem', fontWeight:900, color:pc.text }}>{p.position}</Box>
           }
           {p.injury && (
@@ -144,8 +145,8 @@ export function OwnedPlayerSaleCard({
       transition:'all 0.15s', '&:active':{ transform:'scale(0.985)' },
     }}>
       <Box sx={{ px:1.3, py:0.85, display:'flex', alignItems:'center', gap:1 }}>
-        {window.JerseyBadge
-          ? React.createElement(window.JerseyBadge, { pos: p.position, num: p.shirt ?? '?', size: 40 })
+        {JerseyBadge
+          ? React.createElement(JerseyBadge, { pos: p.position, num: p.shirt ?? '?', size: 40 })
           : <Box sx={{ width:38, height:38, borderRadius:'50%', flexShrink:0, bgcolor:pc.bg,
               color:pc.text, display:'flex', alignItems:'center', justifyContent:'center',
               fontSize:'0.62rem', fontWeight:900 }}>{p.position}</Box>

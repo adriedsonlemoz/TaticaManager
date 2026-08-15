@@ -5,6 +5,7 @@ import { Box, Typography, Button, Paper, Dialog, DialogContent, CircularProgress
 import { ThemeProvider } from '@mui/material/styles';
 import { THEME } from '../theme.js';
 import { TeamIcon } from '../data/database_branding.js';
+import { teamBranding } from '../data/teamBranding.js';
 import { JerseyBadge, posColor, ovrColor } from '../helpers.js';
 import { APP_VERSION_LABEL } from '../config/appMeta.js';
 
@@ -34,7 +35,6 @@ const ScreenBoot = ({ savesList, loadSpecificGame, setScreen, setDeleteSaveModal
   const [expandedSave, setExpandedSave] = React.useState(null);
   const [showAbout,    setShowAbout]    = React.useState(false); // Fix: Sobre inline
 
-  const TeamIcon = window.TeamIcon || null;
 
   // Se "Sobre" foi clicado, renderiza ScreenAbout inline sem gameData
   if (showAbout && typeof ScreenAbout !== 'undefined') {
@@ -214,7 +214,7 @@ const ScreenBoot = ({ savesList, loadSpecificGame, setScreen, setDeleteSaveModal
               const diffStyle  = getDiffStyle(meta.difficulty);
               const objInfo    = getObjLabel(meta.seasonObjective);
               const avatarEmoji= getAvatarEmoji(meta.avatarStyle);
-              const branding   = window.teamBranding?.[meta.clubName];
+              const branding   = teamBranding?.[meta.clubName];
               const serieColor = meta.serie==='A'?C.green:meta.serie==='B'?C.gold:meta.serie==='C'?C.blue:C.ink3;
               const posLabel   = meta.position ? `${meta.position}º` : '—';
 

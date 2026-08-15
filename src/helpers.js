@@ -1,25 +1,11 @@
 // @migrated to ES module
 import React from 'react';
+import { FatigueEngine } from './engines/engine_fatigue.js';
+import { InjuryEngine } from './engines/engine_injuries.js';
 
 
-// ── FORMATION_SLOTS ───────────────────────────────────────
-// Fonte única de verdade para slots por formação.
-// Usado por: getLineupValidation · toggleStarter (app.jsx) · ScreenLineup.jsx
-// Para adicionar uma nova formação: basta incluir aqui — não precisa tocar em mais nenhum arquivo.
-// Posições do sistema:
-//   Defesa:    ZAG · LD (Lateral Direito) · LE (Lateral Esquerdo)
-//   Meio:      VOL (Volante) · MC (Meio Central) · MEI (Meia Ofensivo)
-//   Ataque:    PD (Ponta Direita) · PE (Ponta Esquerda) · CA (Centroavante)
-export const FORMATION_SLOTS = {
-  '4-4-2':   { GOL:1, ZAG:2, LD:1, LE:1, PD:1, VOL:2, PE:1, CA:2 },
-  '4-3-3':   { GOL:1, ZAG:2, LD:1, LE:1, VOL:1, MC:1, MEI:1, PD:1, PE:1, CA:1 },
-  '4-2-3-1': { GOL:1, ZAG:2, LD:1, LE:1, VOL:2, PD:1, MEI:1, PE:1, CA:1 },
-  '3-5-2':   { GOL:1, ZAG:3, LD:1, LE:1, VOL:2, MC:1, CA:2 },
-  '3-4-3':   { GOL:1, ZAG:3, LD:1, LE:1, VOL:2, PD:1, PE:1, CA:1 },
-  '5-3-2':   { GOL:1, ZAG:3, LD:1, LE:1, VOL:2, MC:1, CA:2 },
-  '4-1-4-1': { GOL:1, ZAG:2, LD:1, LE:1, VOL:1, MC:2, PD:1, PE:1, CA:1 },
-  '4-5-1':   { GOL:1, ZAG:2, LD:1, LE:1, VOL:2, MC:1, PD:1, PE:1, CA:1 },
-};
+import { FORMATION_SLOTS, POSITION_COMPAT, canPlayAs, getLineupValidation } from './engines/lineup/lineupRules.js';
+export { FORMATION_SLOTS, POSITION_COMPAT, canPlayAs, getLineupValidation };
 
 // helpers.js — Funções auxiliares compartilhadas entre todos os componentes
 // Evita duplicação de posColor/ovrColor em 4+ arquivos
@@ -46,81 +32,6 @@ export const getAgeColor = (age) => {
   if (age <= 21) return 'success';
   if (age >= 30) return 'warning';
   return 'primary';
-};
-
-// ── POSITION_COMPAT ───────────────────────────────────────
-// Define quais posições um jogador pode ocupar fora da sua natural.
-// Penalidade: -10 OVR flat (adaptado). Posições não listadas = sem compat.
-export const POSITION_COMPAT = {
-  CA:  ['PD', 'PE', 'MEI', 'ATA'],
-  PE:  ['CA', 'PD', 'MEI', 'LD', 'ATA'],
-  PD:  ['CA', 'PE', 'MEI', 'LE', 'ATA'],
-  ATA: ['CA', 'PD', 'PE'],
-  MEI: ['MC', 'VOL', 'CA'],
-  MC:  ['VOL', 'MEI'],
-  VOL: ['MC', 'ZAG'],
-  ZAG: ['VOL', 'LD', 'LE'],
-  LD:  ['LE', 'ZAG', 'PD', 'LAT'],
-  LE:  ['LD', 'ZAG', 'PE', 'LAT'],
-  LAT: ['LD', 'LE', 'ZAG'],
-  GOL: [],
-};
-
-// Retorna true se o jogador de posição `playerPos` pode jogar como `slotRole`
-export const canPlayAs = (playerPos, slotRole) => {
-  if (playerPos === slotRole) return true;
-  return (POSITION_COMPAT[playerPos] || []).includes(slotRole);
-};
-
-
-// Valida a escalação e calcula a força média do time
-// Adaptado:     adaptedPosition definida → ocupa slot compatível com -10 OVR flat
-// Improvisação: sem adaptedPosition, sem slot livre → -20% OVR (não bloqueia)
-export const getLineupValidation = (gameData) => {
-  if (!gameData) return { isValid: false, avgStrength: 0, counts: {}, req: {}, improvised: [], adapted: [] };
-
-  const starters = (gameData.players || []).filter(p => p.isStarting);
-  const counts   = {};
-  starters.forEach(p => { counts[p.position] = (counts[p.position] || 0) + 1; });
-
-  const formation = gameData.club?.formation || '4-4-2';
-  const req = FORMATION_SLOTS[formation] || FORMATION_SLOTS['4-4-2'];
-
-  // Adaptado: tem adaptedPosition != position → ocupa esse slot com -10 OVR flat
-  // Improvisado: sem adaptedPosition, posição não tem slot livre → -20% OVR
-  const posSlotsAvail = { ...req };
-  const improvised = [];
-  const adapted    = [];
-
-  starters.forEach(p => {
-    const effectivePos = p.adaptedPosition || p.position;
-    if ((posSlotsAvail[effectivePos] || 0) > 0) {
-      posSlotsAvail[effectivePos]--;
-      if (p.adaptedPosition && p.adaptedPosition !== p.position) {
-        adapted.push(p.id);
-      }
-    } else {
-      improvised.push(p.id); // sem slot na posição → improvisado
-    }
-  });
-
-  // Formação é válida se tem 11 e o GOL está correto (posições erradas não bloqueiam)
-  const isValid = starters.length === 11 && (counts['GOL'] || 0) >= 1;
-
-  // OVR com penalidades
-  const avgStrength = starters.length > 0
-    ? Math.round(starters.reduce((s, p) => {
-        const isImprov  = improvised.includes(p.id);
-        const isAdapted = adapted.includes(p.id);
-        const energyPenalty = window.FatigueEngine?.getOverallPenalty(p.energy ?? 100) || 0;
-        const baseOvr = Math.max(30, p.overall - energyPenalty);
-        if (isImprov)  return s + Math.round(baseOvr * 0.80);  // -20% improvisado
-        if (isAdapted) return s + Math.max(30, baseOvr - 10);  // -10 flat adaptado
-        return s + baseOvr;
-      }, 0) / starters.length)
-    : 0;
-
-  return { isValid, avgStrength, counts, req, improvised, adapted };
 };
 
 // ── calculateMorale ───────────────────────────────────────
@@ -164,14 +75,14 @@ export const calculateMorale = (gameData) => {
 // ── processFatigueAndInjuries ─────────────────────────────
 // Aplica desgaste e verifica lesões após cada partida
 // #26 #27 #28 #29 #30 #31 #66 #68 #69 #71 #84 #85
-// FIX 3.1 + FIX 4: usa imports ES Module; window.* como fallback para saves antigos.
+// FIX 3.1 + FIX 4: usa imports ES Module diretos; sem dependência de globals do navegador.
 // Passa context como 4o param para rollForInjury para afinar gravidade da lesao.
 export const processFatigueAndInjuries = (players, events, opts = {}) => {
   if (!players) return players;
   const { difficultyMult = 1.0, isCupMatch = false } = opts;
 
-  const _InjuryEngine  = (typeof InjuryEngine  !== 'undefined' ? InjuryEngine  : null) || window.InjuryEngine;
-  const _FatigueEngine = (typeof FatigueEngine !== 'undefined' ? FatigueEngine : null) || window.FatigueEngine;
+  const _InjuryEngine = InjuryEngine;
+  const _FatigueEngine = FatigueEngine;
 
   return players.map(p => {
     // 1. Processar recuperacao de lesao

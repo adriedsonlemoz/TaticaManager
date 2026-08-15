@@ -4,6 +4,7 @@
 // ESTRUTURA DE CADA TIME:
 //   logo   : URL de imagem (PNG/SVG). Deixe null para usar o escudo SVG gerado.
 import React from 'react';
+import { teamBranding } from './teamBranding.js';
 //            Ex: logo: 'https://upload.wikimedia.org/...flamengo.svg'
 //   stadium: Nome oficial do estádio
 //   city   : Cidade sede
@@ -124,8 +125,8 @@ export const stadiumNameSuggestions = [
 
 // ── Helper: retorna branding completo (cores + logo + estádio) ────────────────
 export const getTeamBrandingFull = (name) => {
-  const base  = window.teamBranding?.[name]   || teamBranding?.[name] || { primary: '#555', secondary: '#FFF', emoji: '⚽' };
-  const extra = window.teamBrandingExtra?.[name] || teamBrandingExtra?.[name] || {};
+  const base  = teamBranding?.[name] || { primary: '#555', secondary: '#FFF', emoji: '⚽' };
+  const extra = teamBrandingExtra?.[name] || {};
   return { ...base, ...extra };
 };
 

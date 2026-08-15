@@ -23,15 +23,43 @@ const ScreenAbout = ({ handleCopyPix, onBack }) => {
   const changelog = [
     {
       v: APP_VERSION_LABEL, tag: 'ATUAL', color: C.green,
-      title: 'Tática Manager · Perfil de jogador modular',
+      title: 'Tática Manager · Navegação modular',
+      items: [
+        '🧭 BottomNav reduzido de 513 para cerca de 90 linhas e focado em orquestração',
+        '🧩 Barra e menus Time, Clube e Opções separados em componentes próprios',
+        '🎓 Badge da Base agora inclui jogadores preservados em academyReady',
+        '📅 Progresso do clube usa o calendário completo, inclusive slots de Copa',
+        '🔒 Itens bloqueados durante simulação agora têm estado visual e ação coerentes',
+        '💾 Backup JSON usa o prefixo tatica_manager_ em vez do nome legado Brasfoot',
+        '♿ Botões e diálogos ganharam semântica/ARIA para navegação mais acessível',
+        '🧪 Suíte smoke completa aprovada: 111/111 verificações',
+      ],
+    },
+    {
+      v: 'v1.0 beta.16', tag: '', color: C.teal,
+      title: 'Classificação modular',
+      items: [
+        '📊 ScreenTable reduzida de 614 para cerca de 60 linhas',
+        '🏆 Zonas, movimentos e artilharia centralizados em view-model',
+        '🤝 Contratação pelo ranking reintegrada ao fluxo real do mercado',
+      ],
+    },
+    {
+      v: 'v1.0 beta.15', tag: '', color: C.teal,
+      title: 'Pré-jogo modular',
+      items: [
+        '🏟️ ScreenNextMatch reduzida de 624 para cerca de 62 linhas',
+        '📅 Forma recente corrigida para calendários com Copa',
+        '🏆 Placar agregado e forças mandante/visitante corrigidos',
+      ],
+    },
+    {
+      v: 'v1.0 beta.14', tag: '', color: C.teal,
+      title: 'Perfil de jogador modular',
       items: [
         '👤 PlayerModal reduzido de 627 para cerca de 84 linhas',
         '🧩 Perfil, temporada, camisa, salário e disciplina separados em componentes próprios',
-        '📋 Listar para venda deixa de poder cair acidentalmente na venda imediata',
-        '🤝 Renovação por desempenho passa a atualizar também a duração do contrato',
-        '⚡ Fadiga, disciplina e JerseyBadge usam imports ES diretos em vez de window.*',
-        '🧪 Serviço de jogador validado com smoke tests de salário, potencial, camisas e mercado',
-        '🚀 Versão 1.0.0-beta.14 pronta para continuidade no GitHub',
+        '📋 Listagem para venda e renovação contratual corrigidas',
       ],
     },
     {

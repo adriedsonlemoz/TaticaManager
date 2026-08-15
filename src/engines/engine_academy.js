@@ -11,8 +11,9 @@ export const AcademyEngine = (() => {
   // FIX 8.1: INVEST_BONUS agora e um bonus ADITIVO a evoChance (ex: +0.08 = +8%),
   // nao mais um bonus direto de OVR inicial. Antes, 'elite' adicionava +7 OVR ao
   // prospecto logo na geracao, tornando-o irrealisticamente forte desde o inicio.
-  // Os valores abaixo aumentam sutilmente a PROBABILIDADE de evolucao por rodada.
+  // Os valores abaixo aumentam a PROBABILIDADE de evolução anual da base.
   const INVEST_BONUS  = { basic: 0.08, advanced: 0.15, elite: 0.25 };
+  const LEVEL_ORDER   = ['basic', 'advanced', 'elite'];
 
   const _generateProspect = (teamName, teamId, academyLevel) => {
     const db  = diexDatabase || { firstNames: ['Garoto'], lastNames: ['Promessa'], positions: ['CA'] };
@@ -116,8 +117,15 @@ export const AcademyEngine = (() => {
 
   const investAcademy = (gameData, level) => {
     const cost = INVEST_COST[level];
-    if (!cost)                               return { error: 'Nível inválido.' };
-    if ((gameData.club?.money||0) < cost)    return { error: 'Saldo insuficiente.' };
+    if (!cost) return { error: 'Nível inválido.' };
+
+    const currentLevel = gameData.club?.academyLevel || 'basic';
+    const currentIndex = LEVEL_ORDER.indexOf(currentLevel);
+    const targetIndex  = LEVEL_ORDER.indexOf(level);
+    if (targetIndex <= currentIndex) {
+      return { error: 'A academia só pode ser evoluída para um nível superior.' };
+    }
+    if ((gameData.club?.money || 0) < cost) return { error: 'Saldo insuficiente.' };
     return { cost, newLevel: level };
   };
 
@@ -125,13 +133,30 @@ export const AcademyEngine = (() => {
     generateAcademy(clubName, clubId || 'user', level || 'basic', 6);
 
   const LEVELS = {
-    basic:    { label: 'Básica',   cost: INVEST_COST.basic,    desc: 'Garotos com potencial limitado' },
-    advanced: { label: 'Avançada', cost: INVEST_COST.advanced, desc: 'Melhores instalações, maior potencial' },
-    elite:    { label: 'Elite',    cost: INVEST_COST.elite,    desc: 'CT de ponta, garotos com alto potencial' },
+    basic: {
+      label: 'Básica', cost: INVEST_COST.basic, prestige: 20, evolutionBonusPct: 8, focus: 'Formação',
+      desc: 'Estrutura inicial para desenvolver as promessas do clube',
+    },
+    advanced: {
+      label: 'Avançada', cost: INVEST_COST.advanced, prestige: 55, evolutionBonusPct: 15, focus: 'Evolução',
+      desc: 'Instalações melhores e desenvolvimento mais consistente',
+    },
+    elite: {
+      label: 'Elite', cost: INVEST_COST.elite, prestige: 90, evolutionBonusPct: 25, focus: 'Excelência',
+      desc: 'CT de ponta com a maior chance de evolução da categoria de base',
+    },
+  };
+
+  const mergeProspectPools = (...pools) => {
+    const merged = new Map();
+    pools.flat().filter(Boolean).forEach((prospect) => {
+      if (prospect?.id && !merged.has(prospect.id)) merged.set(prospect.id, prospect);
+    });
+    return [...merged.values()];
   };
 
   return { generateAcademy, evolveAcademy, promoteProspect,
-           cpuAutoPromote, processCpuAcademies, investAcademy,
-           initUserAcademy, ACADEMY_SIZE, PROMOTE_AGE, INVEST_COST, LEVELS };
+           cpuAutoPromote, processCpuAcademies, investAcademy, mergeProspectPools,
+           initUserAcademy, ACADEMY_SIZE, PROMOTE_AGE, INVEST_COST, INVEST_BONUS, LEVEL_ORDER, LEVELS };
 })();
 export default AcademyEngine;

@@ -293,7 +293,7 @@ const Game = () => {
         {screen === 'lineup'       && (<ScreenLineup {...sharedProps} updateShirt={(id, n) => { setGameData(prev => ({...prev, players: prev.players.map(p => p.id === id ? { ...p, shirt: parseInt(n) } : p)})); showToast('Camisa definida!'); }} />)}
         {screen === 'squad'        && <ScreenSquad {...sharedProps} />}
         {screen === 'medical'      && <ScreenMedical {...sharedProps} />}
-        {screen === 'table'        && <ScreenTable gameData={gameData} />}
+        {screen === 'table'        && <ScreenTable {...sharedProps} />}
         {screen === 'match_result' && <ScreenMatchResult {...sharedProps} />}
         {screen === 'next_match'   && <ScreenNextMatch {...sharedProps} />}
         {screen === 'season_end'   && <ScreenSeasonEnd {...sharedProps} />}

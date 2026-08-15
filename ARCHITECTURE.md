@@ -11,6 +11,7 @@ React UI
  │   ├─ core/
  │   ├─ match/
  │   ├─ market/
+ │   ├─ nextmatch/
  │   ├─ cups_engine (fachada)
  │   ├─ cups/
  │   ├─ engine_finances
@@ -35,10 +36,18 @@ React UI
 A API pública de `engine.js` foi preservada para evitar mudanças em massa nos consumidores existentes.
 
 ## Motor de partidas
+- `src/hooks/useMatchEngine.js`: orquestra o fluxo React, estados visuais e playback; não calcula mais a rodada inteira.
+- `matchPreflight.js`: inicialização/reconstrução do calendário, validação de titulares e salto de slots de Copa inativos.
+- `matchLeagueRound.js`: simulação imutável da rodada de Liga, atualização de tabela, fixtures e forma recente.
+- `matchCupRound.js`: simulação e fechamento financeiro/disciplinar de um slot de Copa.
+- `matchRoundState.js`: consolida pós-jogo da Liga (CPU, base, inbox, finanças, moral, H2H, estádio e mercado).
+- `matchStateUtils.js`: utilitários puros para artilharia por jogador, H2H, perfil do técnico e obras.
 - `matchSimulator.js`: simulação de campo.
 - `matchPlayback.js`: reprodução e narração.
 - `matchPlayerStats.js`: estatísticas individuais.
-- `matchPostProcessor.js`: pós-jogo.
+- `matchPostProcessor.js`: jogadores, notificações e atividade pós-jogo.
+
+A rodada de Liga não muta mais `gameData.fixtures`: o motor cria uma nova rodada, salva o novo array explicitamente e só então produz o próximo estado. A sincronização de `seasonGoals` também ocorre antes da preparação final dos jogadores.
 
 ## Interface da partida
 - `src/components/ScreenMatchResult.jsx`: estado e transição entre pré-jogo, partida, intervalo e pós-jogo.
@@ -92,6 +101,7 @@ A UI financeira não depende mais de `window.FinanceEngine` ou do antigo stub `w
 - `LineupPlayerCard.jsx` e `LineupRoster.jsx`: banco, indisponíveis, energia, cartões e jogadores adaptados.
 - `LineupDialogs.jsx`: picker por posição e edição do número da camisa.
 - `src/engines/lineup/lineupService.js`: view-model, disponibilidade, troca de formação, autoescala e mutações puras da escalação.
+- `src/engines/lineup/lineupRules.js`: formações, compatibilidade de posições e validação/força da escalação sem dependência de React.
 
 `FORMATION_SLOTS` continua como regra global de limites por posição; na beta.11 o 4-4-2 foi alinhado ao campo visual (`PD + 2 VOL + PE`) para eliminar divergência entre validação e seleção manual.
 
@@ -130,14 +140,81 @@ A UI financeira não depende mais de `window.FinanceEngine` ou do antigo stub `w
 - `PlayerDisciplineTab.jsx`: cartões e suspensão.
 - `src/engines/player/playerProfileService.js`: regras puras de potencial, salário, camisas, listagem e disciplina.
 
+
+## Pré-jogo / próxima partida
+- `src/components/ScreenNextMatch.jsx`: orquestra a composição da tela, início da partida e simulação rápida.
+- `src/components/nextmatch/NextMatchHeader.jsx`: contexto da competição, data e ações Jogar/Simular/Menu.
+- `NextMatchOverview.jsx`: mandante/visitante, classificação, força, H2H e forma recente.
+- `NextMatchLineups.jsx`: titulares do usuário e escalação estimada do adversário.
+- `NextMatchLineupStatus.jsx`: validação, inaptos e requisitos de posições.
+- `NextMatchAggregate.jsx`: placar da ida e necessidade real de gols no jogo de volta.
+- `NextMatchSeasonEnd.jsx`: fallback de fim de temporada.
+- `src/engines/nextmatch/nextMatchViewModel.js`: resolve slots de Liga/Copa, adversário, titulares CPU, forma recente e agregado sem espalhar regras pela UI.
+
+A forma recente usa somente partidas de Liga efetivamente jogadas, sem tratar `gameData.round` (slot do calendário completo) como índice direto de `fixtures`. A tela também deixou de consumir diretamente os globals de TeamIcon, JerseyBadge, DisciplineEngine e validação da escalação. A simulação rápida é enviada a `startMatchSimulation({ autoSimulate: true })`, sem a antiga flag global `_smrAutoSimulate`.
+
+## Classificação e artilharia
+- `src/components/ScreenTable.jsx`: mantém somente estado das abas, seleção do artilheiro e coordenação da contratação.
+- `src/components/table/LeagueTableHeader.jsx`: título, progresso da temporada e navegação acessível entre abas.
+- `src/components/table/StandingsView.jsx`: tabela, linhas, zonas, movimentos de fim de temporada e legenda.
+- `src/components/table/TopScorersView.jsx`: ranking de artilheiros e estados vazios.
+- `src/components/table/ScorerDialog.jsx`: detalhes financeiros e ação de contratação.
+- `src/engines/table/tableViewModel.js`: zonas por série, movimentos, progresso, saldo de gols, técnicos, artilharia e regras básicas de disponibilidade da compra.
+
+A tela deixou de redefinir `posColor`/`ovrColor` e não depende mais de `window.TeamIcon` ou `window.getTeamCoach`. A contratação a partir do ranking volta a receber `buyPlayer`, `formatMoney` e `showToast` por `sharedProps`, mantendo a validação final no fluxo central de transferências.
+
+
+## Caixa de entrada
+- `src/components/ScreenInbox.jsx`: mantém estado visual, seleção e coordenação das ações da mensagem.
+- `src/components/inbox/InboxMailbox.jsx`: cabeçalho, filtros, abas, lista, lixeira e confirmação de exclusão.
+- `src/components/inbox/InboxMessageReader.jsx`: leitura, cartões de proposta e botões de resposta.
+- `src/engines/inbox/inboxService.js`: geração, ordenação, busca, contadores, normalização e mutações puras das mensagens.
+
+A Inbox passa a tratar explicitamente `link`, `sell`, `managerOffer` e `renew_contract`. Alertas `warning` permanecem informativos e não exibem mais uma resposta inexistente. Mensagens antigas sem `date` ou `preview` ganham fallbacks por `round` e `body`. A renovação contratual reutiliza `CpuAI.applyContractRenewal`, que agora recalcula `club.wage` a partir do elenco atualizado.
+
+
+## Carreira do treinador
+- `src/components/ScreenCareer.jsx`: mantém apenas composição da tela, abertura da proposta e coordenação das ações.
+- `src/components/career/`: hero do treinador, proposta pendente, estatísticas da temporada, carreira acumulada, moral/torcida, histórico, H2H, Copa do Brasil e modal de proposta.
+- `src/engines/career/careerViewModel.js`: nível/XP, iniciais, aproveitamento, saldo, histórico e confrontos diretos.
+- `src/engines/career/managerOfferService.js`: fonte única para localizar, aceitar e recusar propostas de clube, compartilhada também pela Inbox.
+
+A barra de experiência passa a seguir os marcos reais de nível (5, 20, 50 e 100 XP), evitando a barra vazia no nível Lendário. A tela não depende mais de `window.TeamIcon`.
+
+## Categoria de base
+- `src/components/ScreenAcademy.jsx`: mantém estado visual, seleção do prospecto e coordenação das ações.
+- `src/components/academy/AcademyHeader.jsx`: nível, prestígio, indicadores e navegação.
+- `AcademySquadTab.jsx` e `AcademyProspectCard.jsx`: filtros, lista, projeção e ações dos garotos.
+- `AcademyInvestTab.jsx`: níveis, custos e benefícios alinhados às regras reais do motor.
+- `AcademyDialogs.jsx`: confirmações de promoção e dispensa.
+- `src/engines/academy/academyViewModel.js`: pools ativos/prontos, filtros, estatísticas, salário, progresso e mutações puras.
+- `src/engines/engine_academy.js`: geração, evolução, promoção, academias CPU e validação dos upgrades.
+
+Garotos movidos para `academyReady` no fim da temporada permanecem visíveis e promovíveis; saves antigos que já contenham esse pool são normalizados sem duplicação. Promoção/dispensa remove o prospecto de ambos os pools, e a promoção recalcula `club.wage`. Investimentos só permitem níveis superiores e a interface deixa de afirmar que o nível aumenta OVR/potencial inicial: o benefício real é maior chance de evolução.
+
+## Navegação inferior
+- `src/components/BottomNav.jsx`: mantém apenas o estado do menu aberto, navegação, salvar e exportar backup.
+- `src/components/navigation/BottomNavigationBar.jsx`: barra fixa e badges acessíveis.
+- `TeamNavigationDialog.jsx`, `ClubNavigationDialog.jsx` e `OptionsNavigationDialog.jsx`: apresentação dos três submenus.
+- `NavDialogPrimitives.jsx`: cabeçalho, linha de menu, fechamento e estilo compartilhado dos diálogos.
+- `src/engines/navigation/bottomNavViewModel.js`: itens da barra, bloqueio durante simulação, badges, disponibilidade do elenco, resumo da Base/Clube/Inbox e nome de backup.
+
+O resumo da Base usa os pools `academy` + `academyReady`, evitando esconder garotos prontos para promoção. O progresso do clube usa o tamanho do calendário completo quando disponível, inclusive slots de Copa. Durante uma simulação, itens indisponíveis agora aparecem realmente desabilitados em vez de parecerem clicáveis sem executar ação. O backup JSON passa a usar o prefixo `tatica_manager_`.
+
+## Dependências globais
+O antigo shim de `src/main.jsx` foi removido. Motores, componentes, helpers, bancos e geradores são consumidos por imports ES explícitos. `database_branding.js` importa `teamBranding` diretamente e `helpers.js` importa os motores de fadiga/lesão diretamente, eliminando dependências de ordem de carregamento.
+
+Os únicos usos de `window` mantidos no código são APIs do navegador: `location`, listeners de eventos e `AudioContext`/`webkitAudioContext`.
+
 ## Compatibilidade
 O banco Dexie legado e o `appId` do Capacitor foram preservados no rename para evitar que saves existentes desapareçam para o usuário.
 
 ## Próximos alvos
-1. Refatorar `ScreenNextMatch.jsx`, hoje um dos maiores componentes visuais restantes.
-2. Separar `ScreenTable.jsx`, `ScreenInbox.jsx` e `ScreenCareer.jsx` por responsabilidade.
-3. Fazer uma rodada final em `useMatchEngine.js`, `BottomNav.jsx` e globals legados ainda presentes fora dos fluxos já modularizados.
+1. Refatorar `MenuPrincipal.jsx`, compartilhando resumos de calendário, Inbox, Base e disponibilidade já extraídos para a navegação.
+2. Revisar `ScreenMedical.jsx` e `ScreenSquad.jsx`, que ainda concentram apresentação e regras locais.
+3. Extrair as demais regras puras ainda residentes em `helpers.js` para reduzir o acoplamento com React.
 4. Centralizar a aleatoriedade remanescente e ampliar testes automatizados antes da versão estável.
+5. Fazer uma revisão final de acessibilidade, estados vazios e responsividade antes da primeira versão estável.
 
 
 ## Mercado

@@ -1,11 +1,19 @@
 {
   "name": "tatica-manager",
-  "version": "1.0.0-beta.14",
+  "version": "1.0.0-beta.21",
   "private": true,
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:nextmatch": "node scripts/smoke-nextmatch.mjs",
+    "test:table": "node scripts/smoke-table.mjs",
+    "test:smoke": "npm run test:nextmatch && npm run test:table && npm run test:inbox && npm run test:career && npm run test:academy && npm run test:match-engine && npm run test:navigation",
+    "test:inbox": "node scripts/smoke-inbox.mjs",
+    "test:career": "node scripts/smoke-career.mjs",
+    "test:academy": "node scripts/smoke-academy.mjs",
+    "test:match-engine": "node scripts/smoke-match-engine.mjs",
+    "test:navigation": "node scripts/smoke-navigation.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",

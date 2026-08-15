@@ -259,9 +259,10 @@ export function buildPostMatchNotifications({
   })();
 
   const academyNotifs = (() => {
-    if (!gameData.academy?.length) return [];
-    const promoteAge = AcademyEngine?.PROMOTE_AGE || 18;
-    const ready = gameData.academy.filter(player => (player.age || 0) >= promoteAge);
+    const academyPool = AcademyEngine.mergeProspectPools(gameData.academy, gameData.academyReady);
+    if (!academyPool.length) return [];
+    const promoteAge = AcademyEngine.PROMOTE_AGE || 18;
+    const ready = academyPool.filter(player => (player.age || 0) >= promoteAge);
     if (!ready.length || nextRound % 10 !== 0) return [];
 
     const msgId = `academy_ready_r${nextRound}`;

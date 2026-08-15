@@ -1,9 +1,11 @@
 import React from 'react';
 import { Box, Dialog, Paper, Typography } from '@mui/material';
 import { getNegotiationPreview, getWatchlistPlayerState } from '../../engines/market/marketService.js';
+import { CpuAI } from '../../engines/engine_cpu_ai.js';
+import { JerseyBadge } from '../../helpers.js';
 
 export function TransferMarketHeader({ gameData, formatMoney, tab, setTab, salesCount, watchCount, C }) {
-  const windowInfo = window.CpuAI?.getTransferWindowInfo?.(gameData.round || 0) || null;
+  const windowInfo = CpuAI.getTransferWindowInfo?.(gameData.round || 0) || null;
   const tabs = [
     { id: 'market', label: 'LIVRES' },
     { id: 'clubs', label: 'CLUBES' },
@@ -313,7 +315,7 @@ export function ScoutMarketTab({ scoutData, selected, setSelected, onBuy, format
             border:expanded ? `1.5px solid ${C.teal}` : `1px solid ${C.border}`, bgcolor:expanded ? `${C.teal}08` : C.card,
             transition:'all 0.15s', '&:active':{ transform:'scale(0.985)' } }}>
             <Box sx={{ px:1.3, py:0.85, display:'flex', alignItems:'center', gap:1 }}>
-              {window.JerseyBadge ? React.createElement(window.JerseyBadge, { pos:player.position, num:player.shirt ?? '?', size:40 }) : (
+              {JerseyBadge ? React.createElement(JerseyBadge, { pos:player.position, num:player.shirt ?? '?', size:40 }) : (
                 <Box sx={{ width:38, height:38, borderRadius:'50%', flexShrink:0, bgcolor:pc.bg, color:pc.text, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.62rem', fontWeight:900 }}>
                   {player.position}
                 </Box>
@@ -386,7 +388,7 @@ export function WatchlistMarketTab({ watchlist, gameData, setGameData, onBuy, to
           <Paper key={item.id} elevation={0} sx={{ overflow:'hidden', borderRadius:'12px', mb:0.8,
             border:`1px solid ${isOwned ? `${C.green}50` : `${C.gold}30`}`, bgcolor:isOwned ? `${C.green}06` : `${C.gold}04` }}>
             <Box sx={{ px:1.3, py:0.9, display:'flex', alignItems:'center', gap:1 }}>
-              {window.JerseyBadge ? React.createElement(window.JerseyBadge, { pos:item.position, num:'?', size:40 }) : (
+              {JerseyBadge ? React.createElement(JerseyBadge, { pos:item.position, num:'?', size:40 }) : (
                 <Box sx={{ width:38, height:38, borderRadius:'50%', flexShrink:0, bgcolor:pc.bg, color:pc.text, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.62rem', fontWeight:900 }}>{item.position}</Box>
               )}
               <Box sx={{ flex:1, minWidth:0 }}>

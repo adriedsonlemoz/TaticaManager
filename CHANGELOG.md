@@ -1,5 +1,178 @@
 # Changelog
 
+## [1.0.0-beta.21] - 2026-08-15
+
+### Refatoração
+- `BottomNav.jsx` reduzido de 513 para aproximadamente 90 linhas e mantido apenas como orquestrador da navegação inferior.
+- Barra fixa extraída para `src/components/navigation/BottomNavigationBar.jsx`.
+- Submenus Time, Clube e Opções separados em componentes próprios, com primitivas visuais compartilhadas em `NavDialogPrimitives.jsx`.
+- Itens, estado ativo/bloqueado, badges e resumos contextuais centralizados em `src/engines/navigation/bottomNavViewModel.js`.
+- Removidos 17 imports legados sem uso do antigo `BottomNav`, incluindo helpers de jogador e componentes MUI não utilizados.
+
+### Correções e consistência
+- Badge/descrição da Categoria de Base passa a considerar `academyReady`, mantendo visíveis os garotos que já atingiram a idade de promoção.
+- Progresso exibido no menu do clube usa `gameData.calendar.length` quando existe, em vez de misturar o índice do calendário completo com apenas as rodadas de Liga.
+- Estado de Opções durante uma simulação deixa de parecer clicável sem responder: apresentação e regra de clique agora usam a mesma função de bloqueio.
+- Mensagens de navegação respeitam `readMsgIds`, lixeira, exclusões permanentes e o marcador legado `message.read`; datas ausentes recebem fallback por rodada.
+- Posição não encontrada na tabela passa a exibir `—` em vez de `0º`.
+- Backup JSON troca o prefixo legado `brasfoot_` por `tatica_manager_`, com nome do clube sanitizado.
+- Botões da barra e dos diálogos usam elementos `button`/atributos ARIA, melhorando navegação por teclado e leitores de tela.
+
+### Validação
+- 23/23 verificações novas da navegação aprovadas.
+- Suíte completa `npm run test:smoke` aprovada: 111/111 verificações.
+- Sintaxe de 190 arquivos JS/JSX/MJS analisada sem erros e 469 imports locais verificados sem referências quebradas.
+- `npm run build` foi tentado, mas o ambiente não possui `node_modules`; o comando encerra em `vite: not found`.
+- Versão sincronizada para `1.0.0-beta.21`.
+
+## [1.0.0-beta.20] - 2026-08-15
+
+### Refatoração
+- `useMatchEngine.js` reduzido de 536 para aproximadamente 161 linhas e mantido como orquestrador React.
+- Pré-validação e reconstrução do calendário extraídas para `src/engines/match/matchPreflight.js`.
+- Rodadas de Liga e Copa separadas em `matchLeagueRound.js` e `matchCupRound.js`.
+- Construção do estado pós-jogo da Liga movida para `matchRoundState.js`, com utilitários puros em `matchStateUtils.js`.
+- O hook deixa de concentrar atualização de tabela, finanças, H2H, estádio, artilharia, CPU, academia e inbox.
+- `FORMATION_SLOTS`, compatibilidade de posições e `getLineupValidation` extraídos de `helpers.js` para `src/engines/lineup/lineupRules.js`, com reexport compatível para a UI antiga.
+
+### Correções e consistência
+- Corrigida a mutação direta de `gameData.fixtures`: partidas de Liga agora são clonadas, simuladas imutavelmente e salvas explicitamente em `fixtures`.
+- Corrigida a persistência de `seasonGoals`: a artilharia é acumulada e sincronizada nos jogadores antes de `preparePostMatchPlayers`, eliminando o antigo side-effect tardio que podia perder os gols no save.
+- Conclusão de obras do estádio deixa de disparar `setTimeout` dentro do updater de estado; o domínio sinaliza a conclusão e o hook apenas exibe o toast.
+- Pré-validação de escalação, jogador irregular e slots de Copa inativos passa a ter retorno explícito, reduzindo branches duplicados no hook.
+- O fluxo de Copa preserva comportamento financeiro, disciplina, fadiga e fidelidade da torcida sem depender do hook monolítico.
+
+### Validação
+- 15/15 smoke tests novos do motor de partidas aprovados, incluindo imutabilidade de fixtures/tabela e sincronização de `seasonGoals`.
+- Suíte completa `npm run test:smoke` aprovada: 88/88 verificações (pré-jogo 10, classificação 10, Inbox 12, Carreira 18, Categoria de Base 23 e motor de partidas 15).
+- Sintaxe de 183 arquivos JS/JSX/MJS analisada sem erros e 458 imports locais verificados sem referências quebradas.
+- `npm run build` foi tentado, mas o ambiente não possui `node_modules`; o comando encerra em `vite: not found`.
+- Versão sincronizada para `1.0.0-beta.20`.
+
+## [1.0.0-beta.19] - 2026-08-15
+
+### Refatoração
+- `ScreenAcademy.jsx` reduzida de 532 para aproximadamente 107 linhas e mantida como orquestradora da Categoria de Base.
+- Cabeçalho, elenco/filtros, cards de prospectos, investimentos e diálogos separados em `src/components/academy/`.
+- Pools, estatísticas, filtros, salário de promoção, progresso e mutações puras centralizados em `src/engines/academy/academyViewModel.js`.
+- Metadados de nível/prestígio e validação de investimento consolidados no `AcademyEngine`.
+
+### Correções e consistência
+- Corrigido o pool `academyReady`: garotos que completavam a idade de promoção no fim da temporada deixavam `academy` e ficavam invisíveis para a interface. Agora permanecem visíveis e promovíveis, inclusive em saves antigos.
+- A transição de temporada preserva prospectos já pendentes em `academyReady` em vez de sobrescrevê-los na temporada seguinte.
+- Promoção e dispensa removem o garoto tanto de `academy` quanto de `academyReady`, evitando reaparecimentos e duplicações.
+- Promoção recalcula `club.wage` com a folha real do elenco profissional.
+- Investimentos não permitem mais pagar para rebaixar a academia de Elite/Avançada para um nível inferior.
+- A aba Investir deixa de prometer OVR/potencial inicial maior: a apresentação agora reflete a regra real de maior chance de evolução.
+- Progresso visual do prospecto é limitado a 0–100% e trajetórias desconhecidas de saves legados recebem fallback seguro.
+- Notificações de promoção também consideram o pool `academyReady`.
+
+### Validação
+- 23/23 verificações da Categoria de Base aprovados.
+- Classificação 10/10, Inbox 12/12 e Carreira 18/18 continuam aprovados.
+- Sintaxe de 176 arquivos JS/JSX/MJS analisada sem erros.
+- 440 imports locais verificados sem referências quebradas.
+- Nenhum global interno `window.*` foi reintroduzido; permanecem apenas APIs nativas do navegador.
+- Versão sincronizada para `1.0.0-beta.19`.
+
+## [1.0.0-beta.18] - 2026-08-15
+
+### Refatoração
+- `ScreenCareer.jsx` reduzida de 571 para 67 linhas e mantida como orquestradora da carreira.
+- Hero, proposta, estatísticas da temporada, carreira acumulada, moral/torcida, histórico, H2H, Copa e modal separados em `src/components/career/`.
+- Cálculos de nível, aproveitamento, saldo, histórico e confrontos centralizados em `src/engines/career/careerViewModel.js`.
+- Propostas de clube centralizadas em `src/engines/career/managerOfferService.js` e compartilhadas entre Career e Inbox, removendo regras duplicadas.
+- Shim global removido de `main.jsx`; motores, bancos, componentes, helpers e geradores deixam de ser publicados em `window`.
+- Consumidores legados em Boot, mercado, Academy, Medical, BottomNav, MenuPrincipal, `helpers.js` e branding passam a usar imports ES diretos.
+
+### Correções e consistência
+- Barra de experiência da carreira passa a respeitar os marcos reais de 5/20/50/100 XP; nível Lendário agora exibe progresso completo em vez de barra vazia.
+- Aceitar/recusar proposta pela tela de Carreira evita IDs duplicados na lixeira e usa exatamente a mesma mutação da Inbox.
+- `database_branding.js` deixa de depender de `window.teamBranding`, corrigindo a dependência oculta de ordem de inicialização.
+- `helpers.js` usa `FatigueEngine` e `InjuryEngine` diretamente para penalidade de energia, recuperação e lesões.
+- Mercado usa `generatePlayer` e `CpuAI` por import; badges, escudos e disciplina deixam de depender de registros globais.
+- Os únicos `window.*` restantes são APIs reais do navegador (`location`, eventos e `AudioContext`).
+
+### Validação
+- 18/18 smoke tests do novo domínio de carreira aprovados.
+- 12/12 smoke tests da Inbox reexecutados e aprovados após compartilhar o serviço de proposta.
+- Sintaxe de 168 arquivos JS/JSX/MJS analisada sem erros.
+- 422 imports locais verificados sem referências quebradas.
+- Build Vite completo não foi executado neste ambiente porque `node_modules` não está disponível.
+- Versão sincronizada para `1.0.0-beta.18`.
+
+## [1.0.0-beta.17] - 2026-08-15
+
+### Refatoração
+- `ScreenInbox.jsx` reduzida de 571 para aproximadamente 200 linhas e mantida como orquestradora da caixa de entrada.
+- Lista/lixeira e leitura de mensagem separadas em `src/components/inbox/`.
+- Geração, ordenação, busca, contadores, normalização de tipos e mutações puras centralizadas em `src/engines/inbox/inboxService.js`.
+- Removidos imports legados e não utilizados da Inbox; os componentes passam a depender apenas do que realmente consomem.
+
+### Correções e consistência
+- Propostas `managerOffer`, já suportadas pela regra interna, agora exibem botões de aceitar/recusar também na Inbox.
+- Mensagens `renew_contract` geradas pelo motor CPU passam a permitir renovação diretamente pelo correio.
+- `warning` deixa de exibir “resposta requerida” sem qualquer ação disponível.
+- `CpuAI.applyContractRenewal` passa a validar jogador inexistente, aceita RNG injetável para testes e recalcula `club.wage` após o reajuste.
+- Tipos legados `contract` são normalizados para `CONTRATO`; imprensa, rumor, torcida e disciplina recebem estilos próprios.
+- Mensagens sem `date` ou `preview` usam `round` e `body` como fallback, melhorando notificações já gravadas em saves antigos.
+- Dependências do `useMemo` das mensagens geradas passam a acompanhar mudanças reais de clube e elenco, inclusive salário e titularidade.
+- IDs de leitura/lixeira/exclusão passam a evitar duplicatas nas operações centralizadas.
+
+### Validação
+- 12/12 smoke tests da Inbox aprovados.
+- Scripts adicionados: `npm run test:inbox` e `npm run test:smoke` atualizado para incluir Inbox.
+- Build Vite completo não foi executado neste ambiente porque `node_modules` não está disponível e a instalação das dependências não pôde ser concluída.
+- Versão sincronizada para `1.0.0-beta.17`.
+
+## [1.0.0-beta.16] - 2026-08-15
+
+### Refatoração
+- `ScreenTable.jsx` reduzida de 614 para aproximadamente 60 linhas e mantida como orquestradora da classificação.
+- Cabeçalho/abas, classificação, ranking de artilheiros e modal de detalhes separados em `src/components/table/`.
+- Zonas por série, movimentos de fim de temporada, progresso, saldo de gols, técnicos e ranking centralizados em `src/engines/table/tableViewModel.js`.
+- Removidas redefinições locais de `posColor`/`ovrColor` e dependências de `window.TeamIcon`/`window.getTeamCoach` no fluxo da classificação.
+
+### Correções e consistência
+- Posições modernas de ataque (`CA`, `PD`, `PE`) passam a usar as cores compartilhadas corretas no ranking em vez do fallback cinza da implementação antiga.
+- `ScreenTable` passa a receber `sharedProps`; o modal de artilheiros recupera acesso a `buyPlayer`, `formatMoney` e `showToast`, que existiam na assinatura mas nunca eram enviados por `app.jsx`.
+- Compra iniciada pelo ranking normaliza `teamName` antes de chegar ao fluxo central, preservando validações do clube vendedor, remoção de `teamRosters` e contabilização de transferências.
+- Modal de artilheiro passa a considerar também `transferBudget`, evitando apresentar uma contratação como disponível quando o valor excede o orçamento.
+- Abas e linhas clicáveis de artilheiros recebem semântica de botão/tab para navegação mais previsível por teclado e leitores de tela.
+
+### Validação
+- 10/10 smoke tests do novo view-model de classificação aprovados.
+- Smoke tests de pré-jogo da beta 15 reexecutados: 10/10 aprovados.
+- Sintaxe de 150 arquivos JS/JSX analisada pelo parser TypeScript sem erros.
+- 403 imports locais verificados sem referências quebradas.
+- `npm run test:smoke` passa a executar os testes de pré-jogo e classificação em sequência após a instalação normal das dependências.
+- Build Vite completo não foi executado neste ambiente porque `node_modules` não está disponível.
+- Versão sincronizada para `1.0.0-beta.16`.
+
+## [1.0.0-beta.15] - 2026-08-15
+
+### Refatoração
+- `ScreenNextMatch.jsx` reduzida de 624 para aproximadamente 62 linhas e mantida como orquestradora da tela pré-jogo.
+- Cabeçalho/ações, confronto, escalações, status da escalação, agregado e fim de temporada separados em `src/components/nextmatch/`.
+- Resolução de calendário Liga/Copa, adversário, titulares CPU, forma recente e regras do agregado centralizadas em `src/engines/nextmatch/nextMatchViewModel.js`.
+- `ScreenNextMatch` deixa de depender diretamente de `window.TeamIcon`, `window.JerseyBadge`, `window.DisciplineEngine` e `window.getLineupValidation`; os consumidores passam a usar imports ES.
+- Auto-simulação deixa de trafegar pela flag global `window._smrAutoSimulate`; `startMatchSimulation` agora recebe a opção `{ autoSimulate: true }` e grava o estado diretamente em `matchControlsRef`.
+
+### Correções e consistência
+- Forma recente deixa de usar `gameData.round` como índice de `fixtures`, evitando resultados incorretos quando Copas inserem slots entre rodadas da Liga.
+- Mensagem do placar agregado passa a considerar a diferença real de gols: informa quando empate classifica, quantos gols são necessários para levar aos pênaltis e quantos classificam diretamente.
+- Texto ambíguo “Quem marca avança” foi removido do agregado e substituído por contexto correto do jogo de ida.
+- Busca da linha do adversário na tabela prioriza `id` e mantém fallback por nome para compatibilidade com saves antigos.
+- Indicadores de força no card “VS” passam a respeitar a ordem mandante/visitante, inclusive quando o usuário joga fora de casa.
+- Seleção automática dos 11 jogadores do adversário foi isolada e preserva compatibilidade com posições legadas `LAT`/`ATA`.
+
+### Validação
+- 10/10 smoke tests do novo view-model de pré-jogo aprovados.
+- Sintaxe de 145 arquivos JS/JSX analisada pelo parser TypeScript sem erros.
+- 392 imports locais verificados sem referências quebradas.
+- Build completo não foi executado neste ambiente porque as dependências npm não estavam disponíveis no cache offline.
+- Versão sincronizada para `1.0.0-beta.15`.
+
 ## [1.0.0-beta.14] - 2026-08-15
 
 ### Refatoração

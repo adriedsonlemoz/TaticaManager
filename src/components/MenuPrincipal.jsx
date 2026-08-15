@@ -10,6 +10,8 @@ import { CalendarEngine } from '../engines/CalendarEngine.js';
 import { FinanceEngine } from '../engines/engine_finances.js';
 import { resolveMatchInfo } from '../utils/matchDateUtils.js';
 import { APP_NAME, APP_VERSION_LABEL } from '../config/appMeta.js';
+import { TeamIcon } from '../data/database_branding.js';
+import { DisciplineEngine } from '../engines/engine_discipline.js';
 
 const C_V1 = {
   bg:       '#f9fafb',
@@ -29,7 +31,6 @@ const C_V1 = {
 };
 
 const MenuPrincipal = ({ gameData, setScreen, formatMoney, handleGoToNextMatch }) => {
-  const TeamIcon = window.TeamIcon;
   const C = THEME;
 
   const club      = gameData.club || {};
@@ -66,8 +67,8 @@ const MenuPrincipal = ({ gameData, setScreen, formatMoney, handleGoToNextMatch }
   const players  = gameData.players || [];
   const injured  = players.filter(p => !!p.injury).length;
   const suspended = players.filter(p =>
-    window.DisciplineEngine?.isPlayerSuspended
-      ? window.DisciplineEngine.isPlayerSuspended(p, gameData.round) : false).length;
+    DisciplineEngine?.isPlayerSuspended
+      ? DisciplineEngine.isPlayerSuspended(p, gameData.round) : false).length;
   const startersCount = players.filter(p => p.isStarting).length;
   const needsLineup   = gameData.round === 0 && startersCount < 11;
   const serieColor    = { A: C_V1.grass, B: '#d97706', C: '#2563eb', D: '#7c3aed' }[gameData.serie] || C_V1.grass;

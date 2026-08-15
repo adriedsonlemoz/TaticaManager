@@ -187,7 +187,9 @@ const generateNextSeason = (prevState) => {
         teamRosters,
         prevState.academies || {}
       );
-      return { academy: userRemaining, academyReady: userReady, academies: cpuResult.academies };
+      const carriedReady = AE.mergeProspectPools(prevState.academyReady, userReady)
+        .filter((prospect) => !(prevState.players || []).some((player) => player.id === prospect.id));
+      return { academy: userRemaining, academyReady: carriedReady, academies: cpuResult.academies };
     })(),
     club: {
       ...prevState.club,

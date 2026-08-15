@@ -134,23 +134,27 @@ export const CpuAI = (() => {
    * Chame quando usuário aceitar proposta no inbox.
    * Retorna { players, club } atualizados.
    */
-  const applyContractRenewal = (players, club, playerId, cost) => {
+  const applyContractRenewal = (players, club, playerId, cost, rng = Math.random) => {
     if ((club.money || 0) < cost) return { players, club, error: 'Saldo insuficiente!' };
-    
+
+    const target = players.find(p => p.id === playerId);
+    if (!target) return { players, club, error: 'Jogador não encontrado.' };
+
+    const oldWage = target.wage || 0;
+    const newWage = Math.round(oldWage * (1.10 + rng() * 0.10));
     const updPlayers = players.map(p =>
-      p.id === playerId ?
-      {
-        ...p,
-        contract: (p.contract || 1) + 2,
-        // Pequeno reajuste salarial na renovação (entre +10% e +20%)
-        wage: Math.round((p.wage || 0) * (1.10 + Math.random() * 0.10)),
-      } :
-      p
+      p.id === playerId
+        ? { ...p, contract: (p.contract || 1) + 2, wage: newWage }
+        : p
     );
-    
+
     return {
       players: updPlayers,
-      club: { ...club, money: (club.money || 0) - cost },
+      club: {
+        ...club,
+        money: (club.money || 0) - cost,
+        wage: updPlayers.reduce((sum, p) => sum + (p.wage || 0), 0),
+      },
       error: null,
     };
   };

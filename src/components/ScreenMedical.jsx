@@ -19,7 +19,7 @@ const ScreenMedical = ({ gameData, setGameData, showToast, formatMoney }) => {
   // ── Classificação dos jogadores ───────────────────────────
   const injured    = gameData.players.filter(p => p.injury);
   const suspended  = gameData.players.filter(p =>
-    window.DisciplineEngine?.isPlayerSuspended(p, gameData.round)
+    DisciplineEngine?.isPlayerSuspended(p, gameData.round)
   );
   const fatigued   = gameData.players.filter(p =>
     !p.injury && (p.energy ?? 100) < 60
@@ -74,7 +74,7 @@ const ScreenMedical = ({ gameData, setGameData, showToast, formatMoney }) => {
 
   // ── Helpers visuais ───────────────────────────────────────
   const energyColor = (e) => e < 50 ? C.red : e < 75 ? C.yellow : C.green;
-  const posColor    = window.posColor || (() => ({ bg: '#555', text: '#fff' }));
+  
 
   const SectionHeader = ({ icon, title, count, color }) => (
     <Box sx={{
@@ -94,7 +94,7 @@ const ScreenMedical = ({ gameData, setGameData, showToast, formatMoney }) => {
 
   // ── Card de jogador lesionado ─────────────────────────────
   const InjuryCard = ({ p }) => {
-    const Chip = window.JerseyBadge;
+    const Chip = JerseyBadge;
     return (
       <Paper sx={{
         mb: 1, bgcolor: C.card, border: `1.5px solid ${C.red}40`,
@@ -180,8 +180,8 @@ const ScreenMedical = ({ gameData, setGameData, showToast, formatMoney }) => {
 
   // ── Card de jogador suspenso ──────────────────────────────
   const SuspensionCard = ({ p }) => {
-    const left = window.DisciplineEngine?.getPlayerSuspensionRoundsLeft(p, gameData.round) || 0;
-    const Chip = window.JerseyBadge;
+    const left = DisciplineEngine?.getPlayerSuspensionRoundsLeft(p, gameData.round) || 0;
+    const Chip = JerseyBadge;
     return (
       <Paper sx={{
         mb: 1, bgcolor: C.card, border: `1.5px solid ${C.yellow}60`,
@@ -206,7 +206,7 @@ const ScreenMedical = ({ gameData, setGameData, showToast, formatMoney }) => {
   // ── Card de jogador cansado ───────────────────────────────
   const FatigueCard = ({ p }) => {
     const energy = p.energy ?? 100;
-    const Chip   = window.JerseyBadge;
+    const Chip   = JerseyBadge;
     return (
       <Paper sx={{
         mb: 0.8, bgcolor: C.card,
