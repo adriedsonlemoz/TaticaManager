@@ -42,7 +42,7 @@ const usePersistence = (showToast) => {
           clubName:        d.club?.name            || r.name,
           serie:           d.serie                 || 'A',
           round:           d.round                 || 0,
-          totalRounds:     d.fixtures?.length       || 38,
+          totalRounds:     d.calendar?.length       || d.fixtures?.length || 38,
           manager:         d.club?.manager          || '',
           season:          d.season                 || 2026,
           savedAt:         r.savedAt                || null,

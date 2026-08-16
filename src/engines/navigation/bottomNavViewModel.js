@@ -1,6 +1,6 @@
-import { DisciplineEngine } from '../engine_discipline.js';
 import { getAcademyProspects, getAcademyStats } from '../academy/academyViewModel.js';
 import { getMessageDate } from '../inbox/inboxService.js';
+import { getPlayerAvailability, getUpcomingRound } from '../core/playerStatus.js';
 
 export const NAV_MENU = Object.freeze({
   TEAM: 'team',
@@ -44,14 +44,22 @@ export function getUnreadNavigationMessages(gameData = {}) {
 
 export function getSquadAvailability(gameData = {}) {
   const players = gameData.players || [];
-  const currentRound = number(gameData.round);
-  const injured = players.filter((player) => Boolean(player?.injury)).length;
-  const suspended = players.filter((player) => DisciplineEngine.isPlayerSuspended(player, currentRound)).length;
+  const currentRound = getUpcomingRound(gameData);
+  const decorated = players.map((player, index) => ({
+    player,
+    index,
+    status: getPlayerAvailability(player, currentRound),
+  }));
+  const unavailableIds = new Set(
+    decorated
+      .filter(({ status }) => status.unavailable)
+      .map(({ player, index }) => player?.id ?? `idx:${index}`),
+  );
 
   return {
-    injured,
-    suspended,
-    unavailable: injured + suspended,
+    injured: decorated.filter(({ status }) => status.injured).length,
+    suspended: decorated.filter(({ status }) => status.suspended).length,
+    unavailable: unavailableIds.size,
   };
 }
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { ovrColor } from '../../helpers.js';
+import { ovrColor } from '../../utils/playerVisuals.js';
 import { FORMATION_DESCRIPTIONS } from '../../engines/lineup/lineupService.js';
 
 export default function LineupHeader({ club, currentRound, avgOvr, startersCount, energyPenaltyTotal, formation, isDirty, onFormation, onAuto, onSave, C }) {

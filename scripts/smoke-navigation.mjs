@@ -31,7 +31,7 @@ const state = {
   ],
   players:[
     { id:'inj', injury:{ type:'Leve' } },
-    { id:'susp', discipline:{ suspendedUntilRound:5 } },
+    { id:'susp', discipline:{ suspendedUntilRound:6 } },
     { id:'ok', discipline:{ suspendedUntilRound:null } },
   ],
   academy:[developing],
@@ -56,6 +56,7 @@ assert.equal(unread[0].displayDate, 'Rodada 5');
 
 const squad = getSquadAvailability(state);
 assert.deepEqual(squad, { injured:1, suspended:1, unavailable:2 });
+assert.equal(getSquadAvailability({ round:5, players:[{ id:'both', injury:{}, discipline:{ suspendedUntilRound:6 } }] }).unavailable, 1, 'lesão+suspensão não deve duplicar desfalque');
 
 const academy = getAcademyNavigationSummary(state);
 assert.equal(academy.total, 2);
@@ -90,4 +91,4 @@ assert.equal(navItems.find(item => item.menu === NAV_MENU.TEAM).badge, 2);
 assert.equal(getBackupFilename(state), 'tatica_manager_Sao_Teste_FC.json');
 assert.equal(getBackupFilename({}), 'tatica_manager_save.json');
 
-console.log('navigation smoke tests: 23/23 OK');
+console.log('navigation smoke tests: 24/24 OK');

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { JerseyBadge, ovrColor } from '../../helpers.js';
+import JerseyBadge from '../player/JerseyBadge.jsx';
+import { ovrColor } from '../../utils/playerVisuals.js';
 import { isPlayerInjured, isPlayerSuspended } from '../../engines/lineup/lineupService.js';
 
 const batteryColor=(energy,C)=>energy<50?C.red:energy<75?C.yellow:C.green;

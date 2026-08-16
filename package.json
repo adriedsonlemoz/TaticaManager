@@ -1,6 +1,6 @@
 {
   "name": "tatica-manager",
-  "version": "1.0.0-beta.21",
+  "version": "1.0.0-beta.28",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -8,12 +8,20 @@
     "preview": "vite preview",
     "test:nextmatch": "node scripts/smoke-nextmatch.mjs",
     "test:table": "node scripts/smoke-table.mjs",
-    "test:smoke": "npm run test:nextmatch && npm run test:table && npm run test:inbox && npm run test:career && npm run test:academy && npm run test:match-engine && npm run test:navigation",
     "test:inbox": "node scripts/smoke-inbox.mjs",
     "test:career": "node scripts/smoke-career.mjs",
     "test:academy": "node scripts/smoke-academy.mjs",
     "test:match-engine": "node scripts/smoke-match-engine.mjs",
-    "test:navigation": "node scripts/smoke-navigation.mjs"
+    "test:navigation": "node scripts/smoke-navigation.mjs",
+    "test:home": "node scripts/smoke-home.mjs",
+    "test:medical": "node scripts/smoke-medical.mjs",
+    "test:squad": "node scripts/smoke-squad.mjs",
+    "test:field": "node scripts/smoke-field.mjs",
+    "test:smoke": "npm run test:nextmatch && npm run test:table && npm run test:inbox && npm run test:career && npm run test:academy && npm run test:match-engine && npm run test:navigation && npm run test:home && npm run test:medical && npm run test:squad && npm run test:field && npm run test:boot-about && npm run test:market && npm run test:match-post && npm run test:season-end",
+    "test:boot-about": "node scripts/smoke-boot-about.mjs",
+    "test:market": "node scripts/smoke-market.mjs",
+    "test:match-post": "node scripts/smoke-match-post.mjs",
+    "test:season-end": "node scripts/smoke-season-end.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",

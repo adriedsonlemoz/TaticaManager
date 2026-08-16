@@ -1,9 +1,9 @@
 import React from 'react';
-import { calculateMorale } from '../helpers.js';
+import { calculateMorale } from '../engines/core/moraleEngine.js';
 import { getLineupValidation } from '../engines/lineup/lineupRules.js';
 import useRoundAdvance from './useRoundAdvance.js';
 import { startMatchPlayback } from '../engines/match/matchPlayback.js';
-import { processLeaguePlayers } from '../engines/match/matchPostProcessor.js';
+import { processLeaguePlayers } from '../engines/match/matchPlayerPostProcessor.js';
 import { inspectMatchStart } from '../engines/match/matchPreflight.js';
 import { simulateCupRound, buildCupPostMatchState } from '../engines/match/matchCupRound.js';
 import { simulateLeagueRound } from '../engines/match/matchLeagueRound.js';

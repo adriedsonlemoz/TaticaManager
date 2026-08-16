@@ -4,7 +4,8 @@ import { Box, Typography, Button, Paper, Dialog, DialogContent, CircularProgress
 import { ThemeProvider } from '@mui/material/styles';
 import { THEME } from '../theme.js';
 import { TeamIcon } from '../data/database_branding.js';
-import { JerseyBadge, posColor, ovrColor } from '../helpers.js';
+import JerseyBadge from './player/JerseyBadge.jsx';
+import { posColor, ovrColor } from '../utils/playerVisuals.js';
 
 // components/ErrorBoundary.js — v2.0
 // Captura erros de renderização em qualquer componente filho

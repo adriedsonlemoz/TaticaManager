@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { THEME } from '../../theme.js';
-import { ovrColor, posColor } from '../../helpers.js';
+import { ovrColor, posColor } from '../../utils/playerVisuals.js';
 
 const C = THEME;
 

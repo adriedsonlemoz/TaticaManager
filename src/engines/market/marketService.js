@@ -1,5 +1,7 @@
 // Regras puras do mercado. Mantém ScreenMarket focado em estado e apresentação.
 
+import { getTransferFunds } from './transferRules.js';
+
 export const MARKET_REFRESH_COST = 200000;
 
 export function getMarketOverallRange(serie = 'A') {
@@ -13,17 +15,29 @@ export function createRefreshedMarket(gameData, playerFactory) {
   const { min, max } = getMarketOverallRange(gameData.serie || 'A');
   const count = gameData.market?.length || 15;
   return Array.from({ length: count }, () => {
-    const overall = min + Math.floor(Math.random() * (max - min));
+    const overall = min + Math.floor(Math.random() * (max - min + 1));
     const player = playerFactory?.(null, 'Livre', overall) || null;
     return player ? { ...player, teamName: 'Livre' } : null;
   }).filter(Boolean);
+}
+
+const MARKET_POSITION_ALIASES = Object.freeze({
+  LD: ['LD', 'LAT'],
+  LE: ['LE', 'LAT'],
+  CA: ['CA', 'ATA'],
+});
+
+export function matchesMarketPosition(playerPosition, filterPosition) {
+  if (filterPosition === 'TODOS') return true;
+  const aliases = MARKET_POSITION_ALIASES[filterPosition] || [filterPosition];
+  return aliases.includes(playerPosition);
 }
 
 export function normalizeAndFilterMarket(players, { position = 'TODOS', range = { min: 0, max: 99 } } = {}) {
   return (players || [])
     .map(player => ({ ...player, teamName: player.teamName || 'Livre' }))
     .filter(player =>
-      (position === 'TODOS' || player.position === position) &&
+      matchesMarketPosition(player.position, position) &&
       player.overall >= range.min && player.overall <= range.max
     );
 }
@@ -52,15 +66,24 @@ export function getTeamSerie(gameData, team) {
 }
 
 export function enrichTransferPlayer(gameData, player, finalPrice) {
-  const enriched = { ...player, value: finalPrice, teamName: gameData.club.name };
-  if (enriched.teamId || !player.teamName || player.teamName === 'Livre') return enriched;
   const allTeams = [
     ...(gameData.teams || []), ...(gameData.leagues?.A || []),
     ...(gameData.leagues?.B || []), ...(gameData.leagues?.C || []),
     ...(gameData.leagues?.D || []),
   ];
-  const originTeam = allTeams.find(team => team.name === player.teamName);
-  return originTeam?.id ? { ...enriched, teamId: originTeam.id } : enriched;
+  const originTeam = player.teamId != null
+    ? allTeams.find(team => String(team.id) === String(player.teamId))
+    : allTeams.find(team => team.name === player.teamName);
+  const originTeamName = player.teamName || originTeam?.name || 'Livre';
+  const originTeamId = player.teamId ?? originTeam?.id ?? null;
+  return {
+    ...player,
+    value: finalPrice,
+    originTeamName,
+    originTeamId,
+    teamId: originTeamId,
+    teamName: gameData.club.name,
+  };
 }
 
 export function resolveNegotiationPlayer(gameData, stalePlayer) {
@@ -71,8 +94,11 @@ export function resolveNegotiationPlayer(gameData, stalePlayer) {
     ...(gameData.teams || []), ...(gameData.leagues?.A || []), ...(gameData.leagues?.B || []),
     ...(gameData.leagues?.C || []), ...(gameData.leagues?.D || []),
   ];
-  const team = allTeams.find(item => item.name === stalePlayer.teamName);
-  return team?.squad?.find(player => player.id === stalePlayer.id) || null;
+  const team = allTeams.find(item => item.name === stalePlayer.teamName || String(item.id) === String(stalePlayer.teamId));
+  const roster = team?.id != null && Array.isArray(gameData.teamRosters?.[team.id])
+    ? gameData.teamRosters[team.id]
+    : (team?.squad || []);
+  return roster.find(player => player.id === stalePlayer.id) || null;
 }
 
 export function getMinimumAcceptedOffer(player) {
@@ -80,21 +106,34 @@ export function getMinimumAcceptedOffer(player) {
 }
 
 export function applyPlayerSale(state, player, offerData) {
-  const updatedPlayers = state.players.filter(item => item.id !== player.id);
+  const updatedPlayers = (state.players || []).filter(item => item.id !== player.id);
   const transaction = {
     round: state.round, income: offerData.value, expense: 0, total: offerData.value,
     detail: { description: `Venda: ${player.name} → ${offerData.team}` },
   };
-  const playerForCPU = { ...player, teamName: offerData.team, isStarting: false, isListed: false };
+  const allTeams = [
+    ...(state.teams || []),
+    ...(state.leagues?.A || []), ...(state.leagues?.B || []),
+    ...(state.leagues?.C || []), ...(state.leagues?.D || []),
+  ];
+  const buyerTeam = allTeams.find(team => team.name === offerData.team) || null;
+  const playerForCPU = {
+    ...player,
+    teamName: offerData.team,
+    teamId: buyerTeam?.id ?? player.teamId ?? null,
+    isStarting: false,
+    isListed: false,
+  };
   const updateSquad = teams => (teams || []).map(team =>
-    team.name === offerData.team ? { ...team, squad: [...(team.squad || []), playerForCPU] } : team
+    team.name === offerData.team
+      ? { ...team, squad: [...(team.squad || []).filter(item => item.id !== player.id), playerForCPU] }
+      : team
   );
-  const allTeams = [...(state.teams || []), ...(state.leagues?.A || []), ...(state.leagues?.B || [])];
-  const buyerTeam = allTeams.find(team => team.name === offerData.team);
-  const updatedRosters = { ...state.teamRosters };
+  const updatedRosters = { ...(state.teamRosters || {}) };
   if (buyerTeam?.id) {
+    const currentRoster = updatedRosters[buyerTeam.id] || buyerTeam.squad || [];
     updatedRosters[buyerTeam.id] = [
-      ...(updatedRosters[buyerTeam.id] || []).filter(item => item.id !== player.id), playerForCPU,
+      ...currentRoster.filter(item => item.id !== player.id), playerForCPU,
     ];
   }
   if (updatedRosters.user) updatedRosters.user = updatedRosters.user.filter(item => item.id !== player.id);
@@ -103,15 +142,21 @@ export function applyPlayerSale(state, player, offerData) {
     players: updatedPlayers,
     club: {
       ...state.club,
-      money: state.club.money + offerData.value,
-      transferBudget: (state.club.transferBudget || 0) + offerData.value,
-      wage: Math.max(0, (state.club.wage || 0) - (player.wage || 0)),
+      money: (state.club?.money || 0) + offerData.value,
+      transferBudget: (state.club?.transferBudget || 0) + offerData.value,
+      wage: Math.max(0, (state.club?.wage || 0) - (player.wage || 0)),
     },
     financialHistory: [transaction, ...(state.financialHistory || [])].slice(0, 50),
     inbox: (state.inbox || []).filter(message => message.id !== offerData.msgId),
     teamRosters: updatedRosters,
     teams: updateSquad(state.teams),
-    leagues: { ...state.leagues, A: updateSquad(state.leagues?.A), B: updateSquad(state.leagues?.B) },
+    leagues: {
+      ...(state.leagues || {}),
+      A: updateSquad(state.leagues?.A),
+      B: updateSquad(state.leagues?.B),
+      C: updateSquad(state.leagues?.C),
+      D: updateSquad(state.leagues?.D),
+    },
   };
 }
 export function findPlayerSaleOffer(inbox, playerId) {
@@ -161,21 +206,26 @@ export function buildScoutAnalysis(gameData) {
     ? Math.round(myPlayers.reduce((sum, player) => sum + (player.overall || 0), 0) / myPlayers.length)
     : 70;
 
-  const posCounts = {};
-  myPlayers.forEach(player => { posCounts[player.position] = (posCounts[player.position] || 0) + 1; });
   const allPositions = ['GOL','ZAG','LD','LE','VOL','MC','MEI','PD','PE','CA'];
+  const posCounts = Object.fromEntries(allPositions.map(position => [
+    position,
+    myPlayers.filter(player => matchesMarketPosition(player.position, position)).length,
+  ]));
   const weakPos = allPositions
     .filter(position => (posCounts[position] || 0) < 3)
     .sort((a, b) => (posCounts[a] || 0) - (posCounts[b] || 0));
 
-  const allSources = [
+  const allSources = Array.from(new Map([
     ...(gameData.market || []),
+    ...Object.values(gameData.teamRosters || {}).flatMap(roster => roster || []),
     ...(gameData.leagues?.A || []).flatMap(team => team.squad || []),
     ...(gameData.leagues?.B || []).flatMap(team => team.squad || []),
-  ].filter(player => player && player.id && player.overall);
+    ...(gameData.leagues?.C || []).flatMap(team => team.squad || []),
+    ...(gameData.leagues?.D || []).flatMap(team => team.squad || []),
+  ].filter(player => player && player.id && player.overall).map(player => [player.id, player])).values());
 
   const ownedIds = new Set(myPlayers.map(player => player.id));
-  const budget = gameData.club.money || 0;
+  const budget = getTransferFunds(gameData).available;
   const recommendations = allSources
     .filter(player => !ownedIds.has(player.id))
     .map(player => {
@@ -199,14 +249,18 @@ export function buildScoutAnalysis(gameData) {
 
 export function getWatchlistPlayerState(gameData, watchItem) {
   const live = [
+    ...(gameData.players || []),
+    ...Object.values(gameData.teamRosters || {}).flatMap(roster => roster || []),
     ...(gameData.market || []),
+    ...(gameData.teams || []).flatMap(team => team.squad || []),
     ...(gameData.leagues?.A || []).flatMap(team => team.squad || []),
     ...(gameData.leagues?.B || []).flatMap(team => team.squad || []),
     ...(gameData.leagues?.C || []).flatMap(team => team.squad || []),
     ...(gameData.leagues?.D || []).flatMap(team => team.squad || []),
-    ...(gameData.players || []),
   ].find(player => player?.id === watchItem.id);
   const isOwned = (gameData.players || []).some(player => player.id === watchItem.id);
-  const afford = (gameData.club?.money || 0) >= (watchItem.value || 0);
-  return { live, isOwned, afford };
+  const price = Number(live?.value ?? watchItem.value) || 0;
+  const funds = getTransferFunds(gameData);
+  const afford = funds.cash >= price && (!funds.budgetLimited || funds.transferBudget >= price);
+  return { live, isOwned, afford, price };
 }

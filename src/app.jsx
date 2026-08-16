@@ -8,7 +8,7 @@ import usePersistence from './hooks/hooks_persistence.js';
 import useMatchSimulation from './hooks/hooks_simulation.js';
 import useSquad from './hooks/hooks_squad.js';
 
-import { FORMATION_SLOTS } from './helpers.js';
+import { FORMATION_SLOTS } from './engines/lineup/lineupRules.js';
 
 // Engines
 import { DisciplineEngine } from './engines/engine_discipline.js';
@@ -16,7 +16,6 @@ import { FinanceEngine } from './engines/engine_finances.js';
 import { CupsEngine } from './engines/cups_engine.js';
 import { CalendarEngine } from './engines/CalendarEngine.js';
 import { CpuAI } from './engines/engine_cpu_ai.js';
-import { generateNextSeason, sortLeagueTable } from './engines/engine.js';
 
 // Data
 import { TeamIcon } from './data/database_branding.js';
@@ -305,7 +304,7 @@ const Game = () => {
         {screen === 'academy'      && <ScreenAcademy {...sharedProps} />}
         {screen === 'inbox'        && <ScreenInbox {...sharedProps} />}
         {screen === 'career'       && <ScreenCareer {...sharedProps} />}
-        {screen === 'about'        && (<ScreenAbout setScreen={setScreen} handleCopyPix={() => { try { navigator.clipboard.writeText('brasfoot@pix.com'); } catch(e){} }} />)}
+        {screen === 'about'        && <ScreenAbout />}
         {screen === 'game_over'   && <ScreenGameOver gameData={gameData} setScreen={handleNav} setGameData={setGameData} persistence={persistence} />}
         
         {playerModalData && (

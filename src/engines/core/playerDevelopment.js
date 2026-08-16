@@ -1,7 +1,7 @@
 // End-of-season player progression and regression.
 import { FatigueEngine } from '../engine_fatigue.js';
 
-const applySeasonEvolution = (players, scorers) => {
+const applySeasonEvolution = (players, scorers, rng = Math.random) => {
   return players.map(function(p) {
     const goals   = p.seasonGoals || 0;
     const assists = p.assists     || 0;
@@ -33,15 +33,15 @@ const applySeasonEvolution = (players, scorers) => {
 
     // Jovens excepcionais (≤ 20 com boa performance) podem ganhar +2 OVR
     let evoPoints = 1;
-    if (p.age <= 20 && evoChance > 0.6 && Math.random() < 0.25) evoPoints = 2;
+    if (p.age <= 20 && evoChance > 0.6 && rng() < 0.25) evoPoints = 2;
 
-    const evolved    = p.overall < 99 && Math.random() < evoChance;
+    const evolved    = p.overall < 99 && rng() < evoChance;
     const valueBonus = evolved ? (evoPoints >= 2 ? 1.15 : 1.08) : (goals >= 5 || assists >= 4 ? 1.04 : 1.0);
 
     // Veteranos (≥ 32) podem regredir
     let regression = 0;
-    if (p.age >= 34 && p.overall > 65 && Math.random() < 0.35) regression = 1;
-    else if (p.age >= 32 && p.overall > 70 && Math.random() < 0.15) regression = 1;
+    if (p.age >= 34 && p.overall > 65 && rng() < 0.35) regression = 1;
+    else if (p.age >= 32 && p.overall > 70 && rng() < 0.15) regression = 1;
 
     return {
       ...p,

@@ -1,8 +1,7 @@
 // @migrated to ES module
 import React from 'react';
 import { FatigueEngine } from '../engines/engine_fatigue.js';
-import { FinanceEngine } from '../engines/engine_finances.js';
-import { CpuAI } from '../engines/engine_cpu_ai.js';
+import { evaluateTransferPurchase } from '../engines/market/transferRules.js';
 
 // hooks/hooks_squad.js — v4.6 (regra de elenco mínimo do time vendedor)
 
@@ -10,90 +9,36 @@ const useSquad = (gameData, setGameData, showToast, formatMoney) => {
   const [playerModal, setPlayerModal] = React.useState(null);
 
   // ── Comprar Jogador ──
-  // Elenco mínimo que o time vendedor deve manter após venda
-  const MIN_SELLING_SQUAD = 20;
-
   const buyPlayer = React.useCallback((p) => {
-    if (!gameData) return;
-    const budget = gameData.club.transferBudget ?? 0;
-    
-    // Janela de transferências
-    if (CpuAI?.isTransferWindowOpen) {
-      if (!CpuAI.isTransferWindowOpen(gameData.round)) {
-        const info = CpuAI.getTransferWindowInfo(gameData.round);
-        showToast(`🚫 Janela fechada! ${info.label} abre em ${info.opensIn} rodada(s).`, 'error');
-        return;
-      }
+    if (!gameData || !p) return false;
+
+    const eligibility = evaluateTransferPurchase(gameData, p, p.value);
+    if (!eligibility.allowed) {
+      showToast?.(
+        `${eligibility.code === 'window_closed' ? '🚫 ' : eligibility.code === 'financial_crisis' ? '🚨 ' : eligibility.code === 'seller_min_squad' ? '🚫 ' : eligibility.code === 'reputation' ? '🤝 ' : ''}${eligibility.message}`,
+        eligibility.severity || 'error',
+        eligibility.detail || undefined,
+      );
+      return false;
     }
 
-    // Limite de elenco
-    const maxSquad = CpuAI?.MAX_SQUAD_SIZE || 30;
-    if ((gameData.players || []).length >= maxSquad) {
-      showToast(`🚫 Elenco cheio! Máximo de ${maxSquad} jogadores. Libere alguém antes de contratar.`, 'error');
-      return;
-    }
-
-    // ✅ Regra: protege elenco mínimo do time vendedor
-    // Um time CPU não pode vender se ficaria abaixo de MIN_SELLING_SQUAD jogadores
-    // (mínimo para disputar o campeonato). Não se aplica a jogadores livres.
-    if (p.teamId && p.teamName && p.teamName !== 'Livre') {
-      const sellerRoster = (gameData.teamRosters?.[p.teamId] || []);
-      if (sellerRoster.length > 0 && sellerRoster.length <= MIN_SELLING_SQUAD) {
-        showToast(
-          `🚫 ${p.teamName} não pode vender agora.`,
-          'error',
-          `O clube ficaria com menos de ${MIN_SELLING_SQUAD} jogadores — abaixo do mínimo para disputar o campeonato.`
-        );
-        return;
-      }
-    }
-
-    // #56 Bloquear compra se situação financeira crítica
-    if (FinanceEngine?.getFinancialStatus) {
-      const fin = FinanceEngine.getFinancialStatus(gameData);
-      if (fin.status === 'critico') {
-        showToast('🚨 Situação financeira crítica! Sem crédito para contratações.', 'error');
-        return;
-      }
-    }
-
-    // Validação de reputação: jogador pode recusar jogar em clube/série muito inferior ao seu OVR
-    // Thresholds: OVR > 75 recusa Série C/D | OVR > 82 recusa Série B | OVR > 88 recusa Série A baixo
-    const playerOvr = p.overall || 65;
-    const clubSerie = gameData.serie || 'A';
-    const isLivre   = !p.teamId || p.teamName === 'Livre' || !p.teamName;
-    if (!isLivre) { // Jogadores livres aceitam qualquer clube
-      const minSerieByOvr =
-        playerOvr >= 86 ? 'A' :      // estrela: só Série A
-        playerOvr >= 78 ? 'B' :      // muito bom: A ou B
-        playerOvr >= 70 ? 'C' :      // bom: até C
-        null;                         // mediano: aceita qualquer série
-      const serieOrder = { 'A': 1, 'B': 2, 'C': 3, 'D': 4 };
-      if (minSerieByOvr && (serieOrder[clubSerie] || 4) > (serieOrder[minSerieByOvr] || 4)) {
-        const stars = playerOvr >= 86 ? 'estrela' : playerOvr >= 78 ? 'experiente' : 'qualificado';
-        showToast(
-          `🤝 ${p.name.split(' ').pop()} recusou a proposta.`,
-          'error',
-          `Jogador ${stars} (OVR ${playerOvr}) exige no mínimo a Série ${minSerieByOvr}. Seu clube está na Série ${clubSerie}.`
-        );
-        return;
-      }
-    }
-
-    // Trava de Saldo
-    if (gameData.club.money < p.value) {
-      showToast('Saldo insuficiente em caixa!', 'error');
-      return;
-    }
-    
-    // Trava de Orçamento
-    if (budget > 0 && p.value > budget) {
-      showToast('Fora do orçamento de transferências!', 'warning');
-      return;
-    }
-
-    const shirt = Math.max(...gameData.players.map(x => x.shirt || 0), 0) + 1;
+    const shirt = Math.max(...(gameData.players || []).map(x => x.shirt || 0), 0) + 1;
     const newWage = p.wage || 0;
+    const sourceTeamId = p.originTeamId ?? p.teamId;
+    const playerForUser = {
+      ...p,
+      originTeamId: undefined,
+      originTeamName: undefined,
+      teamId: 'user',
+      teamName: gameData.club.name,
+      isStarting: false,
+      shirt,
+      goals: 0,
+      assists: 0,
+      energy: 100,
+      injury: null,
+      discipline: p.discipline || { yellowCards: 0, suspendedUntilRound: null, disciplineHistory: [] },
+    };
 
     setGameData(prev => {
       const transaction = {
@@ -101,19 +46,22 @@ const useSquad = (gameData, setGameData, showToast, formatMoney) => {
         income: 0,
         expense: p.value,
         total: -p.value,
-        detail: { transfer: p.value, description: `Compra: ${p.name}` }
+        detail: { transfer: p.value, description: `Compra: ${p.name}` },
       };
 
-      // ✅ FIX #8: Sincroniza teamRosters ao comprar jogador de um time CPU.
-      // Antes, o jogador permanecia no roster do time vendedor durante simulações.
-      const updatedRosters = { ...prev.teamRosters };
-      if (p.teamId && updatedRosters[p.teamId]) {
-        updatedRosters[p.teamId] = updatedRosters[p.teamId].filter(r => r.id !== p.id);
+      const updatedRosters = { ...(prev.teamRosters || {}) };
+      if (sourceTeamId != null && updatedRosters[sourceTeamId]) {
+        updatedRosters[sourceTeamId] = updatedRosters[sourceTeamId].filter(r => r.id !== p.id);
       }
-      // Também remove do squad do time nas listas leagues.A/B
-      const removeFromLeague = (arr) => (arr || []).map(t =>
-        t.squad ? { ...t, squad: t.squad.filter(r => r.id !== p.id) } : t
-      );
+      updatedRosters.user = [
+        ...(updatedRosters.user || []).filter(r => r.id !== p.id),
+        playerForUser,
+      ];
+
+      const removeFromPool = (arr) => (arr || []).map(team => {
+        if (sourceTeamId == null || String(team.id) !== String(sourceTeamId)) return team;
+        return { ...team, squad: (team.squad || []).filter(r => r.id !== p.id) };
+      });
 
       return {
         ...prev,
@@ -123,29 +71,29 @@ const useSquad = (gameData, setGameData, showToast, formatMoney) => {
           transferBudget: Math.max(0, (prev.club.transferBudget || 0) - p.value),
           wage: (prev.club.wage || 0) + newWage,
         },
-        players: [...prev.players, {
-          ...p,
-          isStarting: false, shirt, goals: 0, assists: 0, energy: 100, injury: null,
-          discipline: p.discipline || { yellowCards: 0, suspendedUntilRound: null, disciplineHistory: [] },
-        }],
-        market: prev.market.filter(x => x.id !== p.id),
+        players: [...(prev.players || []), playerForUser],
+        market: (prev.market || []).filter(x => x.id !== p.id),
+        watchlist: (prev.watchlist || []).filter(item => item.id !== p.id),
         teamRosters: updatedRosters,
-        teams: removeFromLeague(prev.teams),
+        teams: removeFromPool(prev.teams),
         leagues: {
-          A: removeFromLeague(prev.leagues?.A),
-          B: removeFromLeague(prev.leagues?.B),
+          ...(prev.leagues || {}),
+          A: removeFromPool(prev.leagues?.A),
+          B: removeFromPool(prev.leagues?.B),
+          C: removeFromPool(prev.leagues?.C),
+          D: removeFromPool(prev.leagues?.D),
         },
         financialHistory: [transaction, ...(prev.financialHistory || [])].slice(0, 50),
-        // ✅ FIX #transfer-limit: contabiliza compras por time CPU
         transfersFromTeam: (() => {
-          if (!p.teamId || p.teamName === 'Livre') return prev.transfersFromTeam || {};
+          if (!sourceTeamId || p.originTeamName === 'Livre') return prev.transfersFromTeam || {};
           const curr = prev.transfersFromTeam || {};
-          return { ...curr, [p.teamId]: (curr[p.teamId] || 0) + 1 };
+          return { ...curr, [sourceTeamId]: (curr[sourceTeamId] || 0) + 1 };
         })(),
       };
     });
-    showToast(`Contratado: ${p.name}!`);
-  }, [gameData, showToast]);
+    showToast?.(`Contratado: ${p.name}!`);
+    return true;
+  }, [gameData, setGameData, showToast]);
 
   // ── Treinamento intensivo ──
   const trainSquad = React.useCallback(() => {

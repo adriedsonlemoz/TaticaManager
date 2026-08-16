@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { THEME } from '../../theme.js';
-import { JerseyBadge } from '../../helpers.js';
+import JerseyBadge from '../player/JerseyBadge.jsx';
 import {
   getProspectDevelopmentProgress,
   getProspectWage,

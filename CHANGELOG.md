@@ -1,5 +1,195 @@
 # Changelog
 
+## [1.0.0-beta.28] - 2026-08-16
+
+### Refatoração
+- `ScreenSeasonEnd.jsx` reduzido de 310 para 47 linhas e transformado em compositor; hero, abas, resumo da temporada, elenco, finanças, tabela final e ações foram extraídos para `src/components/seasonEnd/`.
+- `seasonEngine.js` reduzido a um orquestrador de 73 linhas; objetivo, resultado/snapshot, elenco, clubes, Academy e transição anual foram separados em `src/engines/season/`.
+- `useRoundAdvance.js` deixa de montar objetivo/histórico/transição diretamente e delega a virada para `seasonTransitionService.js`.
+- `applySeasonEvolution` aceita RNG injetável, preservando o comportamento padrão e permitindo testes determinísticos.
+
+### Correções e consistência
+- Objetivos `libertadores`, `sulamericana` e `midtable` passam a ser avaliados de verdade no fim da temporada; antes eram oferecidos no setup, mas não participavam da decisão de permanência/demissão.
+- O encerramento da temporada passa a respeitar o calendário completo: uma final de Copa/continental posicionada depois da última rodada da Liga não é mais pulada.
+- A classificação final usa os critérios completos de desempate com as fixtures da temporada.
+- `seasonResult` passa a guardar um snapshot antes do reset anual, preservando artilheiro, líder de assistências, elenco, finanças, objetivo, estatísticas e tabela final.
+- “Ver Tabela Final” deixa de abrir a tabela zerada da nova temporada e passa a exibir a classificação encerrada armazenada no snapshot.
+- Folha salarial é recalculada após envelhecimento, reajustes, saídas e reposições; o orçamento anual de transferências é reconstruído a partir do caixa da nova temporada.
+- Histórico disciplinar é preservado entre temporadas enquanto cartões/suspensões correntes são reiniciados.
+- Títulos de Liga e copas conquistados no ano passam a incrementar `managerProfile.trophies`.
+- Histórico de carreira passa a ser construído a partir do fechamento real da temporada, antes de o estado anual ser zerado.
+
+### Validação
+- Fim de temporada: 48/48 verificações novas aprovadas.
+- Suíte completa `npm run test:smoke` aprovada: 376/376 verificações.
+- Sintaxe de 273 arquivos JS/JSX/MJS analisada sem erros e 643 imports locais verificados sem referências quebradas.
+- Nenhum global interno `window.*` foi reintroduzido; permanecem apenas APIs nativas do navegador.
+- Build Vite continua dependente de `node_modules`; neste ambiente o Vite não está instalado.
+- Versão sincronizada para `1.0.0-beta.28`.
+
+## [1.0.0-beta.27] - 2026-08-16
+
+### Refatoração
+- `matchPostProcessor.js` reduzido de 402 linhas para um barril de compatibilidade; jogadores, notificações, base, transferências e contexto de rodadas foram separados em módulos próprios em `src/engines/match/`.
+- Criado `matchRoundContext.js` para distinguir explicitamente índice do calendário completo, rodada de Liga concluída e próxima partida.
+- Criados `matchPlayerPostProcessor.js`, `matchAcademyPostProcessor.js`, `matchTransferPostProcessor.js`, `matchNotifications.js` e `matchNotificationBuilders.js`.
+- `matchRoundState.js` passa a consolidar o estado usando o contexto de rodadas em vez de recalcular números de forma independente.
+
+### Correções e consistência
+- Avisos de contrato, imprensa, rumores, cobrança da diretoria, Base, mercado CPU e progressão da Academy passam a seguir a rodada da Liga; slots de Copa não deslocam mais essas regras.
+- Pressão da torcida passa a considerar a partida recém-encerrada e usa as fixtures atualizadas, permitindo disparar corretamente após a terceira derrota consecutiva.
+- Suspensões continuam usando o calendário real de partidas, mas a contagem pós-jogo agora olha a próxima partida; vermelho direto exibe 2 jogos e segundo amarelo 1 jogo.
+- `engine_discipline.js` passa a processar `red_second_yellow` nos eventos estruturados; antes o tipo era reconhecido no código, mas removido pelo filtro inicial e podia não suspender o atleta.
+- Jogador cuja suspensão termina no jogo atual não é mais retirado indevidamente da escalação do próximo compromisso.
+- Lesão de treino escolhe apenas reservas ainda saudáveis após o processamento da partida.
+- Direitos de TV, custos operacionais e importância financeira da rodada de Liga deixam de usar o índice do calendário com Copas intercaladas.
+- Força do clube só é recalculada quando ainda existem 11 titulares válidos após lesões/suspensões, evitando gravar uma força artificialmente reduzida por escalação incompleta.
+
+### Validação
+- Pós-jogo: 18/18 verificações novas aprovadas.
+- Suíte completa `npm run test:smoke` aprovada: 328/328 verificações.
+- Sintaxe de 255 arquivos JS/JSX/MJS analisada sem erros e 603 imports locais verificados sem referências quebradas.
+- Nenhum global interno `window.*` foi reintroduzido; permanecem apenas APIs nativas do navegador.
+- `npm run build` continua dependente de `node_modules`; neste ambiente o Vite não está instalado.
+- Versão sincronizada para `1.0.0-beta.27`.
+
+## [1.0.0-beta.26] - 2026-08-15
+
+### Refatoração
+- `MarketSections.jsx` reduzido de 425 para 7 linhas e mantido apenas como barril de compatibilidade; cabeçalho, negociação e as cinco abas foram separados em `src/components/market/sections/`.
+- `ScreenMarket.jsx` reduzido de 236 para aproximadamente 87 linhas e mantido como compositor da tela.
+- `MarketPlayerCards.jsx` reduzido de 237 para aproximadamente 125 linhas, reutilizando `JerseyBadge` e as cores centralizadas em `playerVisuals.js`.
+- Estado, filtros, favoritos e ações do Mercado extraídos para `src/hooks/useMarketController.js`.
+- Constantes e view-model do catálogo movidos para `src/engines/market/marketViewModel.js`.
+- Janela, caixa/orçamento, limite de elenco, saúde financeira, reputação e mínimo do vendedor centralizados em `src/engines/market/transferRules.js` e compartilhados com `useSquad`.
+
+### Correções e consistência
+- Cards, Scout, favoritos, negociação e `buyPlayer` passam a consultar a mesma elegibilidade; a interface não anuncia mais uma compra possível quando o motor vai recusá-la.
+- Negociação deixa de exibir sucesso falso quando janela, orçamento, elenco, reputação ou situação financeira impedem a contratação.
+- Janela de transferências passa a usar a próxima rodada de Liga (`leagueRound + 1`) em vez do índice do calendário completo; slots de Copa não deslocam mais as janelas.
+- Mercado inicial passa a reconhecer a rodada 1 antes da primeira partida, mantendo as janelas 1–5 e 20–24 coerentes com a Liga.
+- Cabeçalho diferencia caixa, orçamento de transferências e folha salarial; Scout usa a verba efetivamente disponível.
+- Favoritos usam preço/OVR/clube atuais antes de liberar a contratação, evitando comprar pelo valor antigo do snapshot.
+- Scout passa a considerar elencos das Séries C/D e `teamRosters`, com deduplicação por jogador.
+- Filtros modernos `LD`/`LE`/`CA` reconhecem `LAT`/`ATA` de saves antigos.
+- Compras passam a remover o atleta do vendedor em `teamRosters`, `teams` e ligas A/B/C/D, adicionar o atleta ao roster do usuário e gravar `teamId: 'user'`.
+- Vendas para clubes C/D passam a sincronizar squad, `teamRosters`, `teamId`, caixa, orçamento, folha e Inbox.
+- Transferências CPU→CPU respeitam a janela de transferências, e a renovação automática do catálogo usa a rodada de Liga.
+- Geração do catálogo passa a incluir corretamente o limite superior da faixa de OVR configurada.
+
+### Validação
+- Mercado: 45/45 verificações novas aprovadas.
+- Suíte completa `npm run test:smoke` aprovada: 310/310 verificações.
+- Sintaxe de 248 arquivos JS/JSX/MJS analisada sem erros e 581 imports locais verificados sem referências quebradas.
+- Nenhum global interno `window.*` foi reintroduzido; usos executáveis continuam restritos a APIs nativas do navegador (`location`, listeners e `AudioContext`).
+- `npm run build` foi tentado, mas o ambiente não possui `node_modules`; o comando encerra em `vite: not found`.
+- Versão sincronizada para `1.0.0-beta.26`.
+
+## [1.0.0-beta.25] - 2026-08-15
+
+### Refatoração
+- `ScreenBoot.jsx` reduzido de 462 para aproximadamente 70 linhas e mantido apenas como orquestrador da inicialização.
+- `ScreenAbout.jsx` reduzido de 489 para aproximadamente 35 linhas e mantido como compositor da tela Sobre.
+- Cabeçalho, cards de save, estado vazio, loading, progresso e rodapé extraídos para `src/components/boot/`.
+- Logo/hero, apoio via PIX e histórico de versões extraídos para `src/components/about/`.
+- Regras puras da inicialização movidas para `src/engines/boot/bootViewModel.js`; changelog visual movido para `src/data/aboutChangelog.js`.
+- Chave PIX centralizada em `src/config/support.js`.
+
+### Correções e consistência
+- Tela inicial passa a usar `APP_NAME` e exibe Tática Manager, removendo o vestígio visual “CLUBE DE BOLSO”.
+- Logo da tela Sobre deixa de exibir “CDB” e passa a usar a identidade “TM”.
+- Chave PIX exibida e chave copiada passam a vir da mesma constante; antes a interface mostrava `suporte@brasfootweb.com`, mas copiava `brasfoot@pix.com`.
+- Saves são ordenados por `savedAt` decrescente antes de destacar a carreira mais recente; a ordem bruta do IndexedDB não define mais o destaque.
+- Metadado `totalRounds` do Boot passa a preferir `calendar.length`, compatível com `gameData.round` como índice do calendário completo com Copa.
+- Histórico de carreira respeita valores numéricos zero com `??`, evitando fallback indevido para dados legados.
+- Cards expansíveis e retorno da tela Sobre usam controles semânticos/ARIA.
+
+### Validação
+- Boot/Sobre: 29/29 verificações novas aprovadas.
+- Suíte completa `npm run test:smoke` aprovada: 265/265 verificações.
+- Sintaxe de 238 arquivos JS/JSX/MJS analisada sem erros e 552 imports locais verificados sem referências quebradas.
+- Somente APIs nativas do navegador permanecem em `window` (`location`, listeners e `AudioContext`).
+- `npm run build` foi tentado, mas o ambiente não possui `node_modules`; o comando encerra em `vite: not found`.
+- Versão sincronizada para `1.0.0-beta.25`.
+
+## [1.0.0-beta.24] - 2026-08-15
+
+### Refatoração
+- `FieldView.jsx` reduzido de 306 para aproximadamente 31 linhas e mantido apenas como compositor do campo tático.
+- Gramados vertical/horizontal, cabeçalho, legenda e marcador de jogador extraídos para `src/components/field/`.
+- Layouts, distribuição de titulares, nome curto e estado dos marcadores centralizados em `src/engines/field/fieldViewModel.js`.
+- `JerseyBadge` removido de `helpers.js` e transformado em componente próprio em `src/components/player/JerseyBadge.jsx`, com IDs SVG únicos por instância.
+- `helpers.js` reduzido de 259 para 7 linhas e mantido apenas como barril legado de regras puras; nenhum módulo interno do app depende mais dele.
+- Cores/OVR/idade movidos para `src/utils/playerVisuals.js`, moral para `src/engines/core/moraleEngine.js`, fadiga/lesões para `src/engines/match/playerConditionProcessor.js` e parser para `src/engines/match/matchEventParser.js`.
+
+### Correções e consistência
+- Campo tático passa a suportar de verdade `4-1-4-1` e `4-5-1`; antes essas formações exibiam o nome correto, mas usavam silenciosamente o desenho do 4-4-2.
+- Distribuição no campo considera `adaptedPosition` antes da posição original e sinaliza improvisação quando precisa usar fallback.
+- `JerseyBadge` passa a respeitar `showPos={false}`, que antes era ignorado, e evita colisões entre IDs de gradiente/filtro SVG.
+- Moral recente deixa de tratar o índice do calendário completo como índice de `fixtures`: usa as últimas partidas de Liga efetivamente jogadas, independentemente de slots de Copa.
+- Disponibilidade de Elenco, Centro Médico, navegação, escalação e campo passa a usar a próxima rodada (`gameData.round + 1`), igual à pré-validação da partida, evitando divergência visual de suspensões.
+- Somente APIs nativas do navegador continuam usando `window` (`location`, listeners e `AudioContext`).
+
+### Validação
+- Campo/Helpers: 37/37 verificações novas aprovadas.
+- Centro Médico ampliado para 29/29 e Elenco para 32/32 após a unificação da próxima rodada; demais domínios permanecem verdes.
+- Suíte completa `npm run test:smoke` aprovada: 236/236 verificações.
+- Sintaxe de 224 arquivos JS/JSX/MJS analisada sem erros e 540 imports locais verificados sem referências quebradas.
+- `npm run build` foi tentado, mas o ambiente não possui `node_modules`; o comando encerra em `vite: not found`.
+- Versão sincronizada para `1.0.0-beta.24`.
+
+## [1.0.0-beta.23] - 2026-08-15
+
+### Refatoração
+- `ScreenMedical.jsx` reduzido de 404 para aproximadamente 53 linhas e mantido como orquestrador do Centro Médico.
+- `ScreenSquad.jsx` reduzido de 395 para aproximadamente 27 linhas e mantido como orquestrador do Elenco.
+- Cabeçalho, seções, cards e legenda do Centro Médico extraídos para `src/components/medical/`.
+- Cabeçalho, filtros, cards, campo/lista e ações do Elenco extraídos para `src/components/squad/`.
+- Regras puras extraídas para `src/engines/medical/medicalViewModel.js`, `src/engines/squad/squadViewModel.js` e `src/engines/core/playerStatus.js`.
+
+### Correções e consistência
+- Penalidades de fadiga exibidas no Centro Médico passam a seguir `FatigueEngine`: -2 OVR abaixo de 70, -5 abaixo de 50 e -8 abaixo de 30.
+- Gastos de tratamento, recuperação individual e fisioterapia passam a gerar lançamento em `financialHistory`, mantendo caixa e extrato sincronizados.
+- Fisioterapia evita cobrança inútil quando todo o elenco já está com 100% de energia; recuperação individual também bloqueia jogador já totalmente recuperado.
+- Ordenação do Elenco passa a reconhecer `LD`, `LE`, `MC`, `PD`, `PE` e `CA`, preservando `LAT` e `ATA` de saves antigos.
+- Total de desfalques deixa de somar duas vezes um jogador simultaneamente lesionado e suspenso; os contadores individuais continuam independentes.
+- Estado “elenco em plena forma” não aparece mais ao mesmo tempo que uma seção de energia baixa.
+- Filtros do Elenco e cards de jogador usam controles semânticos/ARIA sem alterar o fluxo de navegação.
+
+### Validação
+- Centro Médico: 28/28 verificações novas aprovadas.
+- Elenco: 31/31 verificações novas aprovadas.
+- Navegação ampliada para 24/24 com regressão de desfalque único.
+- Suíte completa `npm run test:smoke` aprovada: 197/197 verificações.
+- Sintaxe de 213 arquivos JS/JSX/MJS analisada sem erros e 515 imports locais verificados sem referências quebradas.
+- `npm run build` foi tentado, mas o ambiente não possui `node_modules`; o comando encerra em `vite: not found`.
+- Versão sincronizada para `1.0.0-beta.23`.
+
+## [1.0.0-beta.22] - 2026-08-15
+
+### Refatoração
+- `MenuPrincipal.jsx` reduzido de 400 para aproximadamente 29 linhas e mantido apenas como compositor da Central.
+- Cabeçalho, alerta de escalação, próxima partida, títulos de seção e grid de navegação extraídos para `src/components/home/`.
+- Regras da Central centralizadas em `src/engines/home/homeViewModel.js`, reutilizando os resumos já extraídos para a navegação inferior.
+- Removidos cálculos duplicados locais de Inbox, Base, DM, classificação, forma, finanças e calendário.
+
+### Correções e consistência
+- Fim da temporada passa a usar `calendar.length` quando disponível, evitando encerrar a Central antes dos slots de Copa restantes.
+- Forma recente deixa de percorrer `gameData.round` como índice de `fixtures`; agora considera apenas partidas de Liga realmente jogadas.
+- Card da Base passa a incluir `academyReady`, igualando o painel ao badge da navegação inferior.
+- Mensagens não lidas passam a respeitar `readMsgIds`, lixeira, exclusões e flags legadas, evitando divergência entre Central e BottomNav.
+- Próxima partida de Copa calcula mando e orientação de ida/volta pelo confronto real, em vez de herdar `isHome` de uma partida de Liga inexistente.
+- Slots de Copa já inativos são ignorados ao localizar o próximo compromisso exibido.
+- Alerta de escalação passa a funcionar em qualquer rodada e também detecta titular lesionado/suspenso.
+- Cards e chamadas principais usam botões semânticos e rótulos ARIA sem alterar o visual do painel.
+
+### Validação
+- 26/26 verificações novas da Central aprovadas.
+- Suíte completa `npm run test:smoke` aprovada: 137/137 verificações.
+- Sintaxe de 199 arquivos JS/JSX/MJS analisada sem erros e 489 imports locais verificados sem referências quebradas.
+- `npm run build` foi tentado, mas o ambiente não possui `node_modules`; o comando encerra em `vite: not found`.
+- Versão sincronizada para `1.0.0-beta.22`.
+
 ## [1.0.0-beta.21] - 2026-08-15
 
 ### Refatoração

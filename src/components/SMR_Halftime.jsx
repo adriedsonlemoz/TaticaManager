@@ -2,7 +2,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { THEME } from '../theme.js';
-import { FORMATION_SLOTS } from '../helpers.js';
+import { FORMATION_SLOTS } from '../engines/lineup/lineupRules.js';
 
 // SMR_Halftime.jsx — Step 1: Tela de intervalo
 // Mostra stats do 1T, permite substituições e ajuste tático antes do 2T.

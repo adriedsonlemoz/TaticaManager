@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { TeamIcon } from '../../data/database_branding.js';
-import { getLineupValidation } from '../../helpers.js';
+import { getLineupValidation } from '../../engines/lineup/lineupRules.js';
 import { WEEK_DAYS_SHORT, getMatchResult } from '../../engines/matches/matchesViewModel.js';
 import { C, N, getResultColor } from './matchesTheme.js';
 

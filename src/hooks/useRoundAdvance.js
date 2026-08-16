@@ -2,8 +2,8 @@
 import React from 'react';
 import { DisciplineEngine }  from '../engines/engine_discipline.js';
 import { FinanceEngine }      from '../engines/engine_finances.js';
-import { CupsEngine }         from '../engines/cups_engine.js';
-import { generateNextSeason, sortLeagueTable } from '../engines/engine.js';
+import { isSeasonScheduleComplete } from '../engines/season/seasonOutcome.js';
+import { prepareSeasonTransition } from '../engines/season/seasonTransitionService.js';
 
 // hooks/useRoundAdvance.js — v1.0
 // Extraído de hooks_simulation.js.
@@ -35,52 +35,24 @@ const useRoundAdvance = (
       }
     }
 
-    if ((gameData.leagueRound ?? gameData.round) >= (gameData.fixtures?.length || 38)) {
-      if (!generateNextSeason) return showToast('Temporada encerrada!', 'warning');
-      // #14 Histórico de carreira acumulado por temporada
-      const _sortedFinal = sortLeagueTable ? sortLeagueTable(gameData.table) : gameData.table;
-      const _finalPos    = _sortedFinal.findIndex(t => t.id === 'user') + 1;
-      const _myRow       = _sortedFinal.find(t => t.id === 'user') || {};
-
-      // FEATURE: verificar objetivo de temporada → demissão se não cumprido
-      const _objective = gameData.seasonObjective || 'survive';
-      const _serie     = gameData.serie || 'A';
-      const _objFailed = (() => {
-        if (_objective === 'champion'    && _finalPos !== 1)   return `Objetivo: ser CAMPEÃO. Você terminou em ${_finalPos}º.`;
-        if (_objective === 'top4'        && _finalPos > 4)     return `Objetivo: TOP 4. Você terminou em ${_finalPos}º.`;
-        if (_objective === 'promotion'   && _finalPos > 4 && _serie !== 'A') return `Objetivo: ACESSO. Você terminou em ${_finalPos}º.`;
-        if (_objective === 'survive'     && _finalPos >= 17)   return `Objetivo: NÃO REBAIXAR. Você terminou em ${_finalPos}º.`;
-        return null;
-      })();
-
-      if (_objFailed) {
-        // Guarda o motivo no estado e manda para game_over
-        setGameData(prev => ({ ...prev, gameOverReason: 'fired', gameOverMessage: _objFailed }));
+    // O calendário completo é a fonte de verdade quando há Copa.
+    // Assim finais pós-Liga não são puladas só porque as 38 rodadas acabaram.
+    if (isSeasonScheduleComplete(gameData)) {
+      const transition = prepareSeasonTransition(gameData);
+      if (transition.status === 'fired') {
+        setGameData(prev => ({
+          ...prev,
+          gameOverReason: 'fired',
+          gameOverMessage: transition.reason,
+        }));
         setScreen('game_over');
         return;
       }
-
-      const seasonEntry  = {
-        season:    gameData.season,
-        serie:     gameData.serie,
-        position:  _finalPos,
-        pts:       _myRow.pts  || 0,
-        wins:      _myRow.w    || 0,
-        draws:     _myRow.d    || 0,
-        losses:    _myRow.l    || 0,
-        topScorer: Object.values(gameData.scorers || {})
-          .filter(p => p.isUserTeam)
-          .sort((a, b) => (b.goals || 0) - (a.goals || 0))[0]?.name || null,
-        money:     gameData.club.money || 0,
-        cupResult: gameData.cups?.copaBrasil?.status || null,
-      };
-      const _careerHistory = [...(gameData.careerHistory || []), seasonEntry];
-      const nextState = generateNextSeason({ ...gameData, careerHistory: _careerHistory });
-      nextState.careerHistory = _careerHistory;
-      if (CupsEngine?.autoInitCupsForSeason) {
-        nextState.cups = CupsEngine.autoInitCupsForSeason(nextState, false);
+      if (transition.status !== 'advanced' || !transition.nextState) {
+        showToast('Não foi possível iniciar a próxima temporada.', 'error');
+        return;
       }
-      setGameData(nextState);
+      setGameData(transition.nextState);
       setScreen('season_end');
       return;
     }

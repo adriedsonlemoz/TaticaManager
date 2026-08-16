@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Button, Dialog, Typography } from '@mui/material';
-import { SMR_parseEvent } from '../../helpers.js';
+import { SMR_parseEvent } from '../../engines/match/matchEventParser.js';
 import { C, N } from './matchesTheme.js';
 
 const MatchSummaryDialog = ({ match, onClose }) => (

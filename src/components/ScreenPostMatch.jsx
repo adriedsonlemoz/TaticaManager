@@ -34,8 +34,8 @@ const ScreenPostMatch = ({
   const [showPositionPopup, setShowPositionPopup] = React.useState(false);
   const [acknowledged, setAcknowledged] = React.useState(false);
 
-  const nextRound = gameData?.round || 1;
-  const matchRound = nextRound - 1;
+  const matchRound = Math.max(0, (gameData?.round || 1) - 1);
+  const nextCalendarRound = (gameData?.round || 0) + 1;
 
   const playedMatchInfo = React.useMemo(
     () => resolveMatchInfo(gameData, matchRound),
@@ -46,8 +46,8 @@ const ScreenPostMatch = ({
     if (!playersBefore.length || !gameData?.players?.length) {
       return { suspensions: [], injuries: [], hasBlockers: false };
     }
-    return PostMatchAgent.analyzeDesfalques(playersBefore, gameData.players, rawEvents, nextRound);
-  }, [playersBefore, gameData?.players, rawEvents, nextRound]);
+    return PostMatchAgent.analyzeDesfalques(playersBefore, gameData.players, rawEvents, nextCalendarRound);
+  }, [playersBefore, gameData?.players, rawEvents, nextCalendarRound]);
 
   const sortedTable = React.useMemo(
     () => (sortLeagueTable ? sortLeagueTable(gameData?.table || []) : (gameData?.table || [])),

@@ -30,24 +30,43 @@ React UI
 - `playerDevelopment.js`: evolução/regressão de fim de temporada.
 - `leagueEngine.js`: calendário, tabela, desempate e zonas da classificação.
 - `gameStateFactory.js`: criação do estado inicial de uma carreira.
-- `seasonEngine.js`: promoção/rebaixamento, renovação anual e transição de temporada.
+- `seasonEngine.js`: orquestrador da nova temporada; regras anuais ficam em `src/engines/season/`.
 - `teamMetrics.js`: forma recente e força disponível de clubes CPU.
 
 A API pública de `engine.js` foi preservada para evitar mudanças em massa nos consumidores existentes.
+
+## Virada de temporada
+- `src/hooks/useRoundAdvance.js`: detecta o fim real do calendário e solicita a transição, sem montar regras anuais no hook.
+- `src/engines/season/seasonTransitionService.js`: coordena objetivo, histórico, geração da nova temporada e reinicialização das copas.
+- `seasonObjective.js`: avalia todos os objetivos oferecidos no setup.
+- `seasonOutcome.js`: tabela final, movimento de divisão, snapshot e histórico da temporada encerrada.
+- `seasonRoster.js`: idade, contratos, reajustes, evolução e limpeza anual do elenco.
+- `seasonTeams.js`: pools CPU, troca de clube e renovação dos rosters adversários.
+- `seasonClub.js`: caixa, orçamento anual, folha, torcida, dificuldade e troféus do treinador.
+- `seasonAcademy.js`: evolução anual e normalização da base/`academyReady`.
+- `seasonEndViewModel.js`: adapta o snapshot final para a tela de resumo.
+- `src/components/seasonEnd/`: apresentação do resumo, elenco, finanças e classificação final.
+
+A temporada só é encerrada quando o calendário completo termina. O snapshot de `seasonResult` é criado antes dos resets anuais, evitando que assistências, artilharia, classificação e indicadores do ano encerrado sejam perdidos quando a nova temporada é gerada.
 
 ## Motor de partidas
 - `src/hooks/useMatchEngine.js`: orquestra o fluxo React, estados visuais e playback; não calcula mais a rodada inteira.
 - `matchPreflight.js`: inicialização/reconstrução do calendário, validação de titulares e salto de slots de Copa inativos.
 - `matchLeagueRound.js`: simulação imutável da rodada de Liga, atualização de tabela, fixtures e forma recente.
 - `matchCupRound.js`: simulação e fechamento financeiro/disciplinar de um slot de Copa.
-- `matchRoundState.js`: consolida pós-jogo da Liga (CPU, base, inbox, finanças, moral, H2H, estádio e mercado).
+- `matchRoundState.js`: consolida o próximo estado da Liga, delegando regras de domínio aos processadores pós-jogo.
+- `matchRoundContext.js`: separa rodada do calendário completo, rodada da Liga e próxima partida para impedir mistura entre Liga e Copa.
+- `matchPlayerPostProcessor.js`: moral individual, minutos, disciplina, fadiga/lesões e preparação final dos jogadores.
+- `matchNotifications.js` + `matchNotificationBuilders.js`: avisos de imprensa, contratos, diretoria, torcida, DM, Base e suspensões.
+- `matchAcademyPostProcessor.js`: progressão periódica da categoria de base pela rodada da Liga.
+- `matchTransferPostProcessor.js`: atividade CPU e renovação do mercado pela rodada da Liga.
 - `matchStateUtils.js`: utilitários puros para artilharia por jogador, H2H, perfil do técnico e obras.
 - `matchSimulator.js`: simulação de campo.
 - `matchPlayback.js`: reprodução e narração.
 - `matchPlayerStats.js`: estatísticas individuais.
-- `matchPostProcessor.js`: jogadores, notificações e atividade pós-jogo.
+- `matchPostProcessor.js`: barril legado que reexporta os processadores especializados para compatibilidade.
 
-A rodada de Liga não muta mais `gameData.fixtures`: o motor cria uma nova rodada, salva o novo array explicitamente e só então produz o próximo estado. A sincronização de `seasonGoals` também ocorre antes da preparação final dos jogadores.
+A rodada de Liga não muta mais `gameData.fixtures`: o motor cria uma nova rodada, salva o novo array explicitamente e só então produz o próximo estado. A sincronização de `seasonGoals` também ocorre antes da preparação final dos jogadores. Desde a beta.27, `gameData.round` (calendário Liga + Copas) e `gameData.leagueRound` (Liga) são tratados por um contexto explícito no pós-jogo.
 
 ## Interface da partida
 - `src/components/ScreenMatchResult.jsx`: estado e transição entre pré-jogo, partida, intervalo e pós-jogo.
@@ -118,7 +137,15 @@ A UI financeira não depende mais de `window.FinanceEngine` ou do antigo stub `w
 `CalendarEngine.js` consome a mesma configuração de `cupConfig.js`, evitando divergência entre a rodada exibida e o slot realmente criado. A fase de grupos continental só encerra após os seis jogos (ida e volta contra três adversários), e as finais de Libertadores/Sul-Americana são tratadas como jogo único.
 
 ## Mercado
-`src/engines/market/marketService.js` concentra filtros, OVR por divisão, renovação do mercado, clubes CPU, série, negociação, proposta mínima, transferências e venda ao estado do jogo. `ScreenMarket.jsx` continua responsável pelos estados React e pela apresentação.
+- `src/components/ScreenMarket.jsx`: compositor/orquestrador da tela de transferências.
+- `src/hooks/useMarketController.js`: estado das abas/filtros, favoritos e ações de compra, negociação, listagem, venda e renovação do catálogo.
+- `src/components/market/sections/`: cabeçalho, negociação e as cinco abas do mercado em componentes independentes.
+- `src/components/market/MarketPlayerCards.jsx`: cards reutilizáveis de compra e venda.
+- `src/engines/market/marketViewModel.js`: constantes, filtros ativos, clubes, Scout e resumo do cabeçalho.
+- `src/engines/market/marketService.js`: transformação de dados, Scout, favoritos, resolução de jogador e mutações de venda.
+- `src/engines/market/transferRules.js`: fonte única de janela, caixa/orçamento, limite do elenco, situação financeira, reputação e mínimo do vendedor.
+
+A UI e `useSquad` usam a mesma validação de contratação. A janela é calculada pela próxima rodada de Liga (`leagueRound + 1`), sem tratar slots de Copa como rodadas do mercado. Compras e vendas mantêm `teamRosters`, `teams` e ligas A/B/C/D sincronizados.
 
 
 ## Criação de carreira
@@ -201,8 +228,61 @@ Garotos movidos para `academyReady` no fim da temporada permanecem visíveis e p
 
 O resumo da Base usa os pools `academy` + `academyReady`, evitando esconder garotos prontos para promoção. O progresso do clube usa o tamanho do calendário completo quando disponível, inclusive slots de Copa. Durante uma simulação, itens indisponíveis agora aparecem realmente desabilitados em vez de parecerem clicáveis sem executar ação. O backup JSON passa a usar o prefixo `tatica_manager_`.
 
+## Central / painel principal
+- `src/components/MenuPrincipal.jsx`: mantém apenas composição da Central e navegação entre telas.
+- `src/components/home/HomeHeader.jsx`: identidade do clube, posição, caixa, folha, gols, pontos e forma recente.
+- `HomeLineupAlert.jsx`: aviso de escalação incompleta ou titular inapto em qualquer rodada.
+- `HomeNextMatchCard.jsx`: próxima partida de Liga/Copa, mando, data, posições e slots de Copa inativos.
+- `HomeNavigationGrid.jsx`: grid acessível das áreas do jogo.
+- `src/engines/home/homeViewModel.js`: temporada, próximo compromisso, cards, escalação e agregações da Central.
+
+A Central reutiliza os resumos puros da navegação inferior para Inbox, Base, disponibilidade e clube, evitando números divergentes entre as duas interfaces. O fim da temporada usa o calendário completo; a forma recente percorre apenas fixtures de Liga realmente jogadas; `academyReady` entra no badge da Base; e slots de Copa já inativos são ignorados ao localizar o próximo compromisso.
+
+## Centro Médico
+- `src/components/ScreenMedical.jsx`: mantém apenas composição, formatação e disparo das ações médicas.
+- `src/components/medical/`: cabeçalho, seções, cards de lesão/suspensão/fadiga e legenda.
+- `src/engines/medical/medicalViewModel.js`: classificação do elenco, custos e mutações puras de tratamento, recuperação e fisioterapia.
+- `src/engines/core/playerStatus.js`: normalização compartilhada de energia, disponibilidade, suspensão e situação contratual.
+
+As faixas de fadiga exibidas agora seguem `FatigueEngine.getOverallPenalty`: -2 OVR abaixo de 70, -5 abaixo de 50 e -8 abaixo de 30. Gastos médicos são registrados em `financialHistory`, evitando redução de caixa sem lançamento correspondente no extrato.
+
+## Elenco
+- `src/components/ScreenSquad.jsx`: coordena apenas filtro, ordenação, navegação e composição.
+- `src/components/squad/`: cabeçalho, filtros, cards, campo/lista e ações fixas.
+- `src/engines/squad/squadViewModel.js`: grupos de posição, ordenação, métricas e decoração de jogadores.
+
+A ordenação por posição conhece o conjunto moderno (`LD`, `LE`, `MC`, `PD`, `PE`, `CA`) e mantém compatibilidade com `LAT`/`ATA`. Disponibilidade usa jogadores únicos: um atleta simultaneamente lesionado e suspenso continua aparecendo nas duas categorias, mas conta apenas uma vez no total de desfalques/badge.
+
+## Campo tático e helpers compartilhados
+- `src/components/FieldView.jsx`: compositor mínimo do campo vertical usado pelo Elenco.
+- `src/components/field/FieldPitch.jsx`: gramados vertical e horizontal compartilhados com a Escalação.
+- `FieldHeader.jsx`, `FieldPlayerMarker.jsx` e `FieldLegend.jsx`: apresentação isolada do campo.
+- `src/engines/field/fieldViewModel.js`: layouts, distribuição por posição/adaptação, nomes curtos e status dos marcadores.
+- `src/components/player/JerseyBadge.jsx`: camisa SVG compartilhada, sem viver em um arquivo genérico de helpers.
+- `src/utils/playerVisuals.js`: cores de posição/OVR/idade.
+- `src/engines/core/moraleEngine.js`: forma recente e cálculo de moral.
+- `src/engines/match/playerConditionProcessor.js`: fadiga, recuperação e lesões pós-jogo.
+- `src/engines/match/matchEventParser.js`: parser de eventos textuais.
+
+`helpers.js` permanece apenas como barril de compatibilidade para regras puras antigas. O app não o importa internamente. O campo conhece as oito formações usadas pela Escalação, incluindo `4-1-4-1` e `4-5-1`, e a disponibilidade usa a próxima rodada por meio de `getUpcomingRound` em `playerStatus.js`.
+
+## Inicialização e lista de carreiras
+- `src/components/ScreenBoot.jsx`: mantém apenas estado local de loading/expansão/Sobre e composição da tela inicial.
+- `src/components/boot/`: cabeçalho, loading, estado vazio, card de save, progresso e rodapé.
+- `src/engines/boot/bootViewModel.js`: ordenação por recência, estatísticas globais, datas relativas, progresso, objetivo, dificuldade, histórico e formatação financeira.
+
+A carreira destacada passa a ser a realmente mais recente por `savedAt`, sem depender da ordem devolvida pelo IndexedDB. O progresso usa `calendar.length` quando disponível, pois `gameData.round` representa o índice do calendário completo, incluindo slots de Copa.
+
+## Sobre e histórico de versões
+- `src/components/ScreenAbout.jsx`: compositor mínimo da tela institucional.
+- `src/components/about/`: hero/logo, apoio via PIX e histórico expansível.
+- `src/data/aboutChangelog.js`: dados do histórico de versões fora do JSX.
+- `src/config/support.js`: fonte única da chave PIX exibida e copiada.
+
+A identidade visual da inicialização e do Sobre usa `APP_NAME`/`APP_VERSION_LABEL`; referências visuais antigas a Clube de Bolso/CDB foram removidas dessas telas.
+
 ## Dependências globais
-O antigo shim de `src/main.jsx` foi removido. Motores, componentes, helpers, bancos e geradores são consumidos por imports ES explícitos. `database_branding.js` importa `teamBranding` diretamente e `helpers.js` importa os motores de fadiga/lesão diretamente, eliminando dependências de ordem de carregamento.
+O antigo shim de `src/main.jsx` foi removido. Motores, componentes, regras e bancos são consumidos por imports ES explícitos; `helpers.js` não carrega React nem componentes visuais.
 
 Os únicos usos de `window` mantidos no código são APIs do navegador: `location`, listeners de eventos e `AudioContext`/`webkitAudioContext`.
 
@@ -210,16 +290,8 @@ Os únicos usos de `window` mantidos no código são APIs do navegador: `locatio
 O banco Dexie legado e o `appId` do Capacitor foram preservados no rename para evitar que saves existentes desapareçam para o usuário.
 
 ## Próximos alvos
-1. Refatorar `MenuPrincipal.jsx`, compartilhando resumos de calendário, Inbox, Base e disponibilidade já extraídos para a navegação.
-2. Revisar `ScreenMedical.jsx` e `ScreenSquad.jsx`, que ainda concentram apresentação e regras locais.
-3. Extrair as demais regras puras ainda residentes em `helpers.js` para reduzir o acoplamento com React.
-4. Centralizar a aleatoriedade remanescente e ampliar testes automatizados antes da versão estável.
-5. Fazer uma revisão final de acessibilidade, estados vazios e responsividade antes da primeira versão estável.
+1. Refatorar os componentes médios restantes antes da versão estável.
+2. Centralizar a aleatoriedade remanescente para tornar simulações determinísticas em testes quando necessário.
+3. Revisar regras ainda duplicadas de apresentação/estado entre partida ao vivo, resultado e calendário.
+4. Fazer uma revisão final de acessibilidade, estados vazios e responsividade antes da primeira versão estável.
 
-
-## Mercado
-A tela de transferências segue a divisão entre orquestração, apresentação e domínio:
-- `src/components/ScreenMarket.jsx`: estado visual e coordenação das ações.
-- `src/components/market/MarketPlayerCards.jsx`: cards reutilizáveis de compra e venda.
-- `src/components/market/MarketSections.jsx`: cabeçalho, negociação e conteúdo das cinco abas.
-- `src/engines/market/marketService.js`: filtros, Scout, negociação, vendas, favoritos e regras puras do mercado.

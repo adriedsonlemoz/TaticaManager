@@ -59,7 +59,7 @@ const processMatchDisciplineEvents = (players, matchEvents, round, rawEvents = [
   let updatedPlayers = players;
 
   // --- Caminho 1: rawEvents estruturados (preciso, por ID) ---
-  const structuredCards = rawEvents.filter(e => e.type === 'yellow' || e.type === 'red' || e.type === 'red_direct');
+  const structuredCards = rawEvents.filter(e => ['yellow', 'red', 'red_direct', 'red_second_yellow'].includes(e.type));
   if (structuredCards.length > 0) {
     structuredCards.forEach(e => {
       if (!e.isPlayer) return; // só processa cartões do time do usuário

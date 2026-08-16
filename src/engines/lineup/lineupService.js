@@ -1,6 +1,7 @@
 import { DisciplineEngine } from '../engine_discipline.js';
 import { FatigueEngine } from '../engine_fatigue.js';
 import { FORMATION_SLOTS, canPlayAs } from './lineupRules.js';
+import { getUpcomingRound } from '../core/playerStatus.js';
 
 export const LINEUP_VIEWBOX = { width: 160, height: 100 };
 
@@ -101,7 +102,7 @@ export function buildSlotPlayers(starters, formation) {
 export function buildLineupViewModel(gameData) {
   const players = gameData?.players || [];
   const club = gameData?.club || {};
-  const currentRound = (gameData?.round || 0) + 1;
+  const currentRound = getUpcomingRound(gameData);
   const formation = club.formation || '4-4-2';
   const starters = players.filter(p => p.isStarting);
   const unavailable = players.filter(p => isPlayerUnavailable(p, currentRound));
@@ -151,7 +152,7 @@ export function toggleStarterState(gameData, playerId) {
   const players = gameData?.players || [];
   const player = players.find(p => p.id === playerId);
   if (!player) return { gameData, error: 'Jogador não encontrado.' };
-  const currentRound = (gameData?.round || 0) + 1;
+  const currentRound = getUpcomingRound(gameData);
 
   if (player.isStarting) {
     return {
@@ -188,7 +189,7 @@ export function selectPlayerForRoleState(gameData, playerId, role) {
   const players = gameData?.players || [];
   const player = players.find(p => p.id === playerId);
   if (!player) return { gameData, error:'Jogador não encontrado.' };
-  const currentRound = (gameData?.round || 0) + 1;
+  const currentRound = getUpcomingRound(gameData);
   if (isPlayerUnavailable(player, currentRound)) return { gameData, error:`${player.name.split(' ')[0]} está indisponível.` };
 
   const starters = players.filter(p => p.isStarting);
@@ -213,7 +214,7 @@ export function selectPlayerForRoleState(gameData, playerId, role) {
 
 export function autoLineupState(gameData) {
   const players = gameData?.players || [];
-  const currentRound = (gameData?.round || 0) + 1;
+  const currentRound = getUpcomingRound(gameData);
   const formation = gameData?.club?.formation || '4-4-2';
   const slots = FORMATION_POSITIONS[formation] || FORMATION_POSITIONS['4-4-2'];
   const available = players

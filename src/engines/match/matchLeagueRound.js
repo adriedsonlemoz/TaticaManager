@@ -30,7 +30,8 @@ export function simulateLeagueRound({ gameData, leagueIdx, tactics, starters }) 
     if (match.home?.isPlayer || match.away?.isPlayer) {
       let attendance = 0;
       if (FinanceEngine?.calculateMatchFinances) {
-        const finances = FinanceEngine.calculateMatchFinances(match.home, match.away, gameData);
+        const financeGameData = { ...gameData, round: leagueIdx + 1 };
+        const finances = FinanceEngine.calculateMatchFinances(match.home, match.away, financeGameData);
         attendance = finances.attendance;
         ticketIncome = finances.ticketRevenue;
       }

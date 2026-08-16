@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { JerseyBadge } from '../../helpers.js';
+import JerseyBadge from './JerseyBadge.jsx';
 import { THEME } from '../../theme.js';
 
 export default function PlayerShirtTab({ player, takenShirts, onUpdateShirt }) {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { JerseyBadge } from '../../helpers.js';
+import JerseyBadge from '../player/JerseyBadge.jsx';
 import { sortNextMatchPlayers } from '../../engines/nextmatch/nextMatchViewModel.js';
 
 const PlayerRow = ({ player, align, theme }) => {
