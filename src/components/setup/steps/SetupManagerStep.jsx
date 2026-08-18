@@ -4,8 +4,7 @@ import { SETUP_PALETTE as P, SETUP_INPUT_STYLE as inputStyle, formatSetupMoney a
 import { SetupCardHeader, SetupNavRow, SetupSectionLabel, SetupShirt } from '../SetupUi.jsx';
 
 const SetupManagerStep = ({
-  setupData, up, goCard, isCardValid, availableTeams, brand,
-  useExistingTeam, setUseExistingTeam, teamSearch, setTeamSearch,
+  setupData, up, goCard, isCardValid, brand,
   signing, setSigning, signed, setSigned, handleStartNewGame, savesList, setScreen,
 }) => {
     const NATS = ['Brasileiro','Argentino','Português','Espanhol','Italiano','Alemão','Francês','Inglês','Uruguaio','Colombiano','Chileno','Paraguaio','Holandês','Belga','Croata','Japonês'];
@@ -33,7 +32,7 @@ const SetupManagerStep = ({
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <SetupCardHeader icon="👔" step={4} title="Perfil do Técnico" sub="PERSONALIZE O TREINADOR" />
+        <SetupCardHeader icon="👔" step={3} title="Perfil do Técnico" sub="PERSONALIZE O TREINADOR" />
 
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
           <Box sx={{ position: 'relative' }}>
@@ -126,7 +125,7 @@ const SetupManagerStep = ({
           </Box>
         </Box>
 
-        <SetupNavRow onBack={() => goCard(3)} onNext={() => goCard(5)} disabled={!isCardValid(4)} nextLabel="VER UNIFORME" />
+        <SetupNavRow onBack={() => goCard(2)} onNext={() => goCard(4)} disabled={!isCardValid(3)} nextLabel="VER UNIFORME" />
       </Box>
     );
   };

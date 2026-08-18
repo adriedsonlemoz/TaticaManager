@@ -38,6 +38,7 @@ assert.ok(promoted.players.some(p => p.id === 'ready'));
 assert.equal(promoted.academy.some(p => p.id === 'ready'), false);
 assert.equal(promoted.academyReady.some(p => p.id === 'ready'), false);
 assert.equal(promoted.club.wage, promoted.players.reduce((sum,p)=>sum+(p.wage||0),0));
+assert.deepEqual(promoted.teamRosters.user.map(p => p.id), promoted.players.map(p => p.id));
 
 const dispensed = dispenseProspectState(state, 'ready');
 assert.equal(dispensed.academy.some(p => p.id === 'ready'), false);
@@ -56,4 +57,4 @@ assert.equal(investment.state.financialHistory[0].expense, 4_000_000);
 const proDuplicateState = { ...state, players:[...state.players, { id:'ready', wage:3000 }] };
 assert.deepEqual(getAcademyProspects(proDuplicateState).map(p => p.id), ['young']);
 
-console.log('academy smoke tests: 23/23 OK');
+console.log('academy smoke tests: 24/24 OK');

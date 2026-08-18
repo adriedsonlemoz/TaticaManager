@@ -25,6 +25,9 @@ export function evaluateSeasonObjective({ objective = 'survive', serie = 'A', po
   if (['libertadores', 'sulamericana'].includes(objective) && serie !== 'A') {
     return { objective, label, applicable: false, success: true, position: pos, message: null };
   }
+  if (objective === 'survive' && serie === 'D') {
+    return { objective, label, applicable: false, success: true, position: pos, message: null };
+  }
 
   let success = true;
   let requirement = '';

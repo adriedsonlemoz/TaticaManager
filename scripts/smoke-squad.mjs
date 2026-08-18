@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import {
   POSITION_ORDER,
   buildSquadViewModel,
@@ -71,5 +72,8 @@ deep(vm.list.map(row => row.player.id), ['pd','pe','ca','ata'], 'posições ofen
 eq(vm.teamOvr, Math.round(players.filter(p => p.isStarting).reduce((sum,p)=>sum+p.overall,0)/11));
 eq(vm.totalValue, players.reduce((sum,p)=>sum+p.value,0));
 eq(vm.tabs.find(tab => tab.id === 'mid').count, 4);
+
+const squadHookSource = await readFile(new URL('../src/hooks/hooks_squad.js', import.meta.url), 'utf8');
+ok(squadHookSource.includes('syncUserRosterState'), 'treino intensivo deve sincronizar players e teamRosters.user');
 
 console.log(`squad smoke tests: ${checks}/${checks} OK`);

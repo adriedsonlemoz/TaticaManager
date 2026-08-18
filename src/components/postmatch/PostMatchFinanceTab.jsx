@@ -2,20 +2,30 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { THEME } from '../../theme.js';
 import { PostMatchCard, PostMatchCardHead } from './PostMatchUi.jsx';
+import { getPostMatchFinanceEntry, getPostMatchFinanceFallback, isPostMatchUserTeam } from './postMatchViewModel.js';
 
 const C = THEME;
 
 const PostMatchFinanceTab = ({ gameData, matchResultData, roundSummary, formatMoney }) => {
-  const { attendance = 0, income = 0, cupEvents = [] } = matchResultData;
-  const financeEntry = gameData?.financialHistory?.find(entry => entry.round === gameData?.round)
-    || gameData?.financialHistory?.[0];
-  const detail = financeEntry?.detail || {};
-  const ticketIncome = detail.ticket ?? income;
-  const tvIncome = detail.tv ?? (matchResultData?.isCupMatch ? 0 : (gameData?.serie === 'A' ? 500000 : 150000));
-  const sponsorIncome = detail.sponsor ?? (matchResultData?.isCupMatch ? 0 : ((gameData?.club?.sponsors?.master?.roundValue || 0)
-    + (gameData?.club?.sponsors?.stadium?.roundValue || 0)));
-  const cupIncome = detail.cup ?? cupEvents.reduce((sum, event) => sum + (event.earned || 0), 0);
-  const totalIncome = financeEntry?.income ?? (ticketIncome + tvIncome + sponsorIncome + cupIncome);
+  const number = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
+  const attendance = Math.max(0, Math.trunc(number(matchResultData?.attendance)));
+  const income = Math.max(0, number(matchResultData?.income));
+  const cupEvents = Array.isArray(matchResultData?.cupEvents) ? matchResultData.cupEvents.filter(Boolean) : [];
+  const matches = Array.isArray(roundSummary) ? roundSummary.filter(match => match?.home && match?.away) : [];
+  const money = typeof formatMoney === 'function' ? formatMoney : (value) => String(number(value));
+  const financialHistory = Array.isArray(gameData?.financialHistory) ? gameData.financialHistory : [];
+  const financeEntry = getPostMatchFinanceEntry({
+    financialHistory,
+    playedRound:matchResultData?.calendarRound ?? gameData?.round,
+    isCupMatch:Boolean(matchResultData?.isCupMatch),
+  });
+  const detail = financeEntry?.detail && typeof financeEntry.detail === 'object' ? financeEntry.detail : {};
+  const fallback = getPostMatchFinanceFallback({ gameData, matchResultData, cupEvents });
+  const ticketIncome = Math.max(0, number(detail.ticket ?? fallback.ticket));
+  const tvIncome = Math.max(0, number(detail.tv ?? fallback.tv));
+  const sponsorIncome = Math.max(0, number(detail.sponsor ?? fallback.sponsor));
+  const cupIncome = Math.max(0, number(detail.cup ?? fallback.cup));
+  const totalIncome = Math.max(0, number(financeEntry?.income ?? fallback.income));
 
   return (
     <>
@@ -41,14 +51,14 @@ const PostMatchFinanceTab = ({ gameData, matchResultData, roundSummary, formatMo
                 <Typography sx={{ fontSize: '1rem' }}>{row.icon}</Typography>
                 <Typography sx={{ color: C.ink2, fontWeight: 700, fontSize: '0.75rem' }}>{row.label}</Typography>
               </Box>
-              <Typography sx={{ color: row.color, fontWeight: 900, fontSize: '0.9rem' }}>{formatMoney(row.value)}</Typography>
+              <Typography sx={{ color: row.color, fontWeight: 900, fontSize: '0.9rem' }}>{money(row.value)}</Typography>
             </Box>
           ))}
 
           <Box sx={{ height: 1, bgcolor: C.border, my: 1 }} />
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography sx={{ color: C.ink, fontWeight: 900, fontSize: '0.85rem' }}>TOTAL ARRECADADO</Typography>
-            <Typography sx={{ color: C.green, fontWeight: 900, fontSize: '1.1rem' }}>{formatMoney(totalIncome)}</Typography>
+            <Typography sx={{ color: C.green, fontWeight: 900, fontSize: '1.1rem' }}>{money(totalIncome)}</Typography>
           </Box>
         </Box>
       </PostMatchCard>
@@ -63,26 +73,28 @@ const PostMatchFinanceTab = ({ gameData, matchResultData, roundSummary, formatMo
                   <Typography sx={{ color: C.ink, fontWeight: 900, fontSize: '0.72rem' }}>{event.cup}</Typography>
                   <Typography sx={{ color: C.ink3, fontSize: '0.6rem', fontWeight: 700, mt: 0.15 }}>{event.msg}</Typography>
                 </Box>
-                {(event.earned || 0) > 0 && <Typography sx={{ color: C.green, fontWeight: 900, fontSize: '0.82rem', flexShrink: 0 }}>+{formatMoney(event.earned)}</Typography>}
+                {number(event?.earned) > 0 && <Typography sx={{ color: C.green, fontWeight: 900, fontSize: '0.82rem', flexShrink: 0 }}>+{money(number(event.earned))}</Typography>}
               </Box>
             ))}
           </Box>
         </PostMatchCard>
       )}
 
-      <PostMatchCard>
-        <PostMatchCardHead label={`RESULTADOS · ROD ${gameData?.round}`} icon="📋" />
-        {(roundSummary || []).map((match, index) => {
-          const isUser = match.home.id === 'user' || match.away.id === 'user';
+      {matches.length > 0 && <PostMatchCard>
+        <PostMatchCardHead label={`RESULTADOS · ROD ${matchResultData?.leagueRound || gameData?.leagueRound || 1}`} icon="📋" />
+        {matches.map((match, index) => {
+          const homeIsUser = isPostMatchUserTeam(match.home, gameData);
+          const awayIsUser = isPostMatchUserTeam(match.away, gameData);
+          const isUser = homeIsUser || awayIsUser;
           return (
-            <Box key={index} sx={{ display: 'flex', alignItems: 'center', px: 1.2, py: 0.6, borderBottom: index < (roundSummary?.length || 0) - 1 ? `1px solid ${C.border}` : 'none', bgcolor: isUser ? 'rgba(22,163,74,0.04)' : 'transparent' }}>
-              <Typography sx={{ flex: 1, textAlign: 'right', color: match.home.id === 'user' ? C.green : C.ink2, fontSize: '0.66rem', fontWeight: match.home.id === 'user' ? 900 : 600, mr: 0.5, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{match.home.name}</Typography>
+            <Box key={index} sx={{ display: 'flex', alignItems: 'center', px: 1.2, py: 0.6, borderBottom: index < matches.length - 1 ? `1px solid ${C.border}` : 'none', bgcolor: isUser ? 'rgba(22,163,74,0.04)' : 'transparent' }}>
+              <Typography sx={{ flex: 1, textAlign: 'right', color: homeIsUser ? C.green : C.ink2, fontSize: '0.66rem', fontWeight: homeIsUser ? 900 : 600, mr: 0.5, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{match.home.name}</Typography>
               <Typography sx={{ color: isUser ? C.ink : C.ink3, fontWeight: 900, fontSize: '0.72rem', fontFamily: 'monospace', minWidth: 40, textAlign: 'center', bgcolor: C.bgCardAlt, borderRadius: '5px', px: 0.5, py: 0.2, flexShrink: 0 }}>{match.result || 'vs'}</Typography>
-              <Typography sx={{ flex: 1, color: match.away.id === 'user' ? C.green : C.ink2, fontSize: '0.66rem', fontWeight: match.away.id === 'user' ? 900 : 600, ml: 0.5, overflow: 'hidden', whiteSpace: 'nowrap' }}>{match.away.name}</Typography>
+              <Typography sx={{ flex: 1, color: awayIsUser ? C.green : C.ink2, fontSize: '0.66rem', fontWeight: awayIsUser ? 900 : 600, ml: 0.5, overflow: 'hidden', whiteSpace: 'nowrap' }}>{match.away.name}</Typography>
             </Box>
           );
         })}
-      </PostMatchCard>
+      </PostMatchCard>}
     </>
   );
 };

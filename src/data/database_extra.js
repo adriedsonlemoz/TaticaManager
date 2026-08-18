@@ -3,19 +3,9 @@
 import { diexDatabase } from './database.js';
 
 diexDatabase.copaBrasilExtras = [
-  { id:"c1",  name:"Ferroviário",    strength:62 }, { id:"c2",  name:"Ituano",          strength:63 },
-  { id:"c3",  name:"Figueirense",    strength:61 }, { id:"c4",  name:"CSA",              strength:62 },
-  { id:"c5",  name:"Remo",           strength:61 }, { id:"c6",  name:"Náutico",          strength:63 },
-  { id:"c7",  name:"Athletic Club",  strength:60 }, { id:"c8",  name:"Confiança",        strength:60 },
-  { id:"c9",  name:"Brusque",        strength:61 }, { id:"c10", name:"Campinense",       strength:58 },
-  { id:"c11", name:"Pouso Alegre",   strength:59 }, { id:"c12", name:"Aparecidense",     strength:59 },
-  { id:"c13", name:"Volta Redonda",  strength:60 }, { id:"c14", name:"Botafogo PB",      strength:60 },
-  { id:"c15", name:"Porto Velho",    strength:55 }, { id:"c16", name:"Gama",             strength:57 },
-  { id:"c17", name:"América MG",     strength:66 }, { id:"c18", name:"Londrina",         strength:62 },
-  { id:"c19", name:"São Bernardo",   strength:63 }, { id:"c20", name:"Portuguesa",       strength:62 },
-  { id:"c21", name:"Caxias",         strength:61 }, { id:"c22", name:"Treze",            strength:58 },
-  { id:"c23", name:"Madureira",      strength:59 }, { id:"c24", name:"Tocantinópolis",   strength:54 },
-];
+  ...(diexDatabase.serieCTeams || []),
+  ...(diexDatabase.serieDTeams || []).slice(0, 4),
+].map((team) => ({ id:team.id, name:team.name, strength:team.strength }));
 
 diexDatabase.conmebolTeams = [
   { id:"arg1", name:"River Plate",    strength:88, country:"🇦🇷" },

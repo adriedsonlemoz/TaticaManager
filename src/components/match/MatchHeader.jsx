@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { THEME } from '../../theme.js';
 import { TeamIcon } from '../../data/database_branding.js';
+import { getMatchCompetitionLabel } from '../../engines/match/matchPresentationViewModel.js';
 
 const C = THEME || {};
 
@@ -21,13 +22,19 @@ const MatchHeader = ({ gameData, matchResultData, liveScore, minute, step, simul
         )}
         <Box sx={{ bgcolor:'rgba(44,24,0,0.05)', border:`1px solid ${C.border}`, borderRadius:20, px:1, py:0.2 }}>
           <Typography sx={{ color:C.txt2, fontWeight:900, fontSize:'0.58rem', fontFamily:'monospace' }}>
-            {isLive ? `⏱ ${minDisplay}'` : step === 1 ? `⏸ INTERVALO · 45'` : `✅ ENCERRADO · 90'`}
+            {isLive
+              ? `⏱ ${minDisplay}'`
+              : step === -1
+                ? '🏟️ PRÉ-JOGO'
+                : step === 1
+                  ? `⏸ INTERVALO · 45'`
+                  : step >= 5
+                    ? `✅ ENCERRADO · 90'`
+                    : `⏱ ${minDisplay}'`}
           </Typography>
         </Box>
         <Typography sx={{ color:C.txt3, fontSize:'0.5rem', fontWeight:700 }}>
-          {matchResultData?.isCupMatch
-            ? `${matchResultData.cupLabel || '🏆 Copa'} · ${matchResultData.cupLeg === 'leg1' ? 'Jogo de Ida' : matchResultData.cupLeg === 'leg2' ? 'Jogo de Volta' : matchResultData.cupLeg || 'Jogo Único'}`
-            : `Série ${gameData?.serie} · Rod ${gameData?.round}`}
+          {getMatchCompetitionLabel(gameData, matchResultData)}
         </Typography>
       </Box>
       <Box sx={{ display:'flex', alignItems:'center' }}>

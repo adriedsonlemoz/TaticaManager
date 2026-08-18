@@ -3,6 +3,8 @@ import { THEME } from '../theme.js';
 import { CpuAI } from '../engines/engine_cpu_ai.js';
 import InboxMailbox from './inbox/InboxMailbox.jsx';
 import InboxMessageReader from './inbox/InboxMessageReader.jsx';
+import { applyContractRenewalState } from '../engines/market/contractTransactions.js';
+import { applyUserSale } from '../engines/market/transferTransactions.js';
 import {
   acceptManagerOfferState,
   buildGeneratedMessages,
@@ -18,7 +20,7 @@ import {
   restoreMessageState,
 } from '../engines/inbox/inboxService.js';
 
-const ScreenInbox = ({ gameData, setGameData, setScreen, formatMoney, showToast, sellPlayer }) => {
+const ScreenInbox = ({ gameData, setGameData, setScreen, formatMoney, showToast }) => {
   const [tab, setTab] = React.useState('inbox');
   const [selected, setSelected] = React.useState(null);
   const [confirmDialog, setConfirmDialog] = React.useState(null);
@@ -108,14 +110,22 @@ const ScreenInbox = ({ gameData, setGameData, setScreen, formatMoney, showToast,
     }
 
     if (action.type === 'sell') {
-      const player = gameData.players.find(item => item.id === action.player?.id);
+      const player = gameData.players.find(item => String(item.id) === String(action.player?.id));
       if (!player) {
         showToast('Esta proposta expirou ou o jogador já saiu do clube.', 'error');
         handleTrash(message.id);
         return;
       }
-      sellPlayer(player, action.value);
-      setGameData(prev => moveMessageToTrashState(prev, message.id));
+      const result = applyUserSale(gameData, player, action.value, {
+        buyerTeamId: action.teamId ?? null,
+        buyerTeamName: message.from || null,
+        messageId: message.id,
+      });
+      if (!result.ok) {
+        showToast(result.message || 'Esta proposta não pode mais ser concluída.', 'error');
+        return;
+      }
+      setGameData(result.state);
       setSelected(null);
       showToast(`✅ NEGÓCIO FECHADO! ${player.name} vendido por ${formatMoney(action.value)}.`, 'success');
       return;
@@ -129,27 +139,27 @@ const ScreenInbox = ({ gameData, setGameData, setScreen, formatMoney, showToast,
     }
 
     if (action.type === 'renew_contract') {
-      const result = CpuAI.applyContractRenewal(gameData.players, gameData.club, action.playerId, action.cost || 0);
-      if (result.error) {
-        showToast(result.error, 'error');
+      const validation = CpuAI.validateContractRenewal(
+        gameData.players,
+        gameData.club,
+        action.playerId,
+        action.cost,
+        { expectedContract:action.expectedContract, expectedWage:action.expectedWage },
+      );
+      if (validation.error) {
+        showToast(validation.error, 'error');
         return;
       }
-      const renewed = result.players.find(player => player.id === action.playerId);
-      setGameData(prev => ({
-        ...prev,
-        players: result.players,
-        club: result.club,
-        trashMsgIds: [...new Set([...(prev.trashMsgIds || []), message.id])],
-      }));
+      setGameData((prev) => applyContractRenewalState(prev, action).state);
       setSelected(null);
-      showToast(`✅ Contrato de ${renewed?.name || 'jogador'} renovado por mais 2 temporadas.`, 'success');
+      showToast(`✅ Contrato de ${validation.target?.name || 'jogador'} renovado por mais 2 temporadas.`, 'success');
     }
-  }, [formatMoney, gameData.club, gameData.players, handleTrash, sellPlayer, setGameData, setScreen, showToast]);
+  }, [formatMoney, gameData, handleTrash, setGameData, setScreen, showToast]);
 
   if (selected) {
     const action = selected.actionData;
     const livePlayer = action?.type === 'sell'
-      ? gameData.players.find(player => player.id === action.player?.id)
+      ? gameData.players.find(player => String(player.id) === String(action.player?.id))
       : null;
 
     return (

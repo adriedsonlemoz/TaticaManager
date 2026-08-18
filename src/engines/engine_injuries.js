@@ -70,11 +70,12 @@ export const InjuryEngine = {
    * Lesoes graves (recoveryMod < 1) tem chance de NAO reduzir roundsLeft em algumas rodadas,
    * simulando recuperacao mais lenta sem alterar a duracao nominal.
    */
-  processRecovery: (injury) => {
+  processRecovery: (injury, rng = Math.random) => {
     if (!injury) return null;
     const mod = injury.recoveryMod ?? 1.0;
+    const random = typeof rng === 'function' ? rng : Math.random;
     // Se mod < 1, ha chance de a rodada "nao contar" na recuperacao
-    const recovers = Math.random() < mod;
+    const recovers = random() < mod;
     const remaining = recovers ? injury.roundsLeft - 1 : injury.roundsLeft;
     if (remaining <= 0) return null; // Curado!
     return { ...injury, roundsLeft: remaining };

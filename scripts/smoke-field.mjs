@@ -79,3 +79,7 @@ eq(getAgeColor(20), 'success');
 eq(getAgeColor(30), 'warning');
 
 console.log(`field/helpers smoke tests: ${checks}/${checks} OK`);
+eq(parseMatchEvent("45+2' ⚽ GOL! (João Silva)").minute, 47, 'parser deve compreender acréscimos');
+eq(parseMatchEvent("24' 😬 GOL CONTRA! Carlos Souza manda para dentro do próprio gol! (Time Casa)").player, 'Carlos Souza', 'parser deve extrair autor do gol contra');
+eq(parseMatchEvent("41' 🚨 PÊNALTI! — ⚽ CONVERTIDO por Pedro Lima! (Time Fora)").player, 'Pedro Lima', 'parser deve extrair cobrador do pênalti');
+eq(parseMatchEvent("55' 🟨🟥 SEGUNDO AMARELO! Bruno Reis está EXPULSO! (Time Fora)").player, 'Bruno Reis', 'parser deve extrair expulso por segundo amarelo');

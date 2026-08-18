@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Button, Dialog, Typography } from '@mui/material';
 import { THEME } from '../../theme.js';
 import { ovrColor, posColor } from '../../utils/playerVisuals.js';
-import { getScorerPurchaseStatus } from '../../engines/table/tableViewModel.js';
+import { getScorerPurchaseStatus, getScorerTransferFunds } from '../../engines/table/tableViewModel.js';
 
 const C = THEME;
 
@@ -15,8 +15,9 @@ const ScorerDialog = ({ player, gameData, buyPlayer, formatMoney, onBuy, onClose
   const pc = posColor(player.position);
   const purchase = getScorerPurchaseStatus(gameData, player);
   const fmt = formatMoney || fallbackFormatMoney;
-  const money = Number(gameData.club?.money) || 0;
-  const budget = Number(gameData.club?.transferBudget) || 0;
+  const funds = getScorerTransferFunds(gameData);
+  const money = funds.cash;
+  const budget = funds.transferBudget;
 
   return (
     <Dialog open onClose={onClose} maxWidth="xs" fullWidth>
@@ -65,7 +66,7 @@ const ScorerDialog = ({ player, gameData, buyPlayer, formatMoney, onBuy, onClose
                 {fmt(money)}
               </Typography>
             </Box>
-            {budget > 0 && (
+            {funds.budgetLimited && (
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography sx={{ fontSize: '0.68rem', color: '#8b949e', fontWeight: 700 }}>Orçamento de transferências:</Typography>
                 <Typography sx={{ fontSize: '0.68rem', fontWeight: 900, color: budget >= (player.value || 0) ? C.zGreen : C.zRed }}>

@@ -1,12 +1,24 @@
 // @migrated
-// engines/engine_discipline.js — v1.3 (Regras corrigidas para padrão brasileiro)
-// Cartão vermelho direto = 2 rodadas | Segundo amarelo (= vermelho) = 1 rodada
-// Amarelo: 3 acumulados = 1 rodada de suspensão + reset do contador
+// engines/engine_discipline.js — v1.4
+// Cartão vermelho direto = 2 jogos | Segundo amarelo (= vermelho) = 1 jogo
+// Amarelo: 3 acumulados = 1 jogo de suspensão + reset do contador
 
 const DISCIPLINE_TYPES = {
   YELLOW: 'yellow',
   RED: 'red',
-  RED_DIRECT: 'red_direct', // vermelho direto (falta grave) = 2 rodadas
+  RED_DIRECT: 'red_direct',
+};
+
+const roundNumber = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : fallback;
+};
+
+const idKey = (value) => value == null ? null : String(value);
+const idsEqual = (left, right) => {
+  const leftKey = idKey(left);
+  const rightKey = idKey(right);
+  return leftKey != null && rightKey != null && leftKey === rightKey;
 };
 
 const initPlayerDiscipline = (player) => ({
@@ -15,187 +27,183 @@ const initPlayerDiscipline = (player) => ({
     yellowCards: 0,
     suspendedUntilRound: null,
     disciplineHistory: [],
-  }
+  },
 });
 
-// ── Registra um cartão e atualiza a suspensão ──────────────
-const recordPlayerCard = (players, playerName, cardType, minute, round) => {
-  return players.map(p => {
-    if (p.name !== playerName) return p;
+const applyCardToPlayer = (player, cardType, minute, round) => {
+  const playedRound = roundNumber(round);
+  const history = [...(Array.isArray(player.discipline?.disciplineHistory) ? player.discipline.disciplineHistory : [])];
+  history.push({ round: playedRound, type: cardType, minute });
 
-    const history = [...(p.discipline?.disciplineHistory || [])];
-    history.push({ round, type: cardType, minute });
+  let yellowCards = Number(player.discipline?.yellowCards) || 0;
+  let suspendedUntilRound = player.discipline?.suspendedUntilRound == null
+    ? null
+    : roundNumber(player.discipline.suspendedUntilRound);
 
-    let yellowCards          = p.discipline?.yellowCards || 0;
-    let suspendedUntilRound  = p.discipline?.suspendedUntilRound || null;
+  const extendSuspension = (untilRound) => {
+    suspendedUntilRound = Math.max(suspendedUntilRound ?? 0, untilRound);
+  };
 
-    if (cardType === DISCIPLINE_TYPES.YELLOW) {
-      yellowCards += 1;
-      // Brasileirão: 3 amarelos = 1 rodada de suspensão + reset
-      if (yellowCards >= 3) {
-        suspendedUntilRound = round + 1; // suspenso na PRÓXIMA rodada
-        yellowCards = 0;                 // reset após cumprir
-      }
-    } else if (cardType === DISCIPLINE_TYPES.RED) {
-      // Segundo amarelo convertido em vermelho = 1 rodada
-      suspendedUntilRound = round + 1;
-    } else if (cardType === DISCIPLINE_TYPES.RED_DIRECT) {
-      // Vermelho direto (falta grave) = 2 rodadas de suspensão
-      suspendedUntilRound = round + 2;
+  if (cardType === DISCIPLINE_TYPES.YELLOW) {
+    yellowCards += 1;
+    if (yellowCards >= 3) {
+      extendSuspension(playedRound + 1);
+      yellowCards = 0;
     }
+  } else if (cardType === DISCIPLINE_TYPES.RED) {
+    extendSuspension(playedRound + 1);
+  } else if (cardType === DISCIPLINE_TYPES.RED_DIRECT) {
+    extendSuspension(playedRound + 2);
+  }
 
-    return {
-      ...p,
-      discipline: { yellowCards, suspendedUntilRound, disciplineHistory: history }
-    };
-  });
+  return {
+    ...player,
+    discipline: { yellowCards, suspendedUntilRound, disciplineHistory: history },
+  };
 };
 
-// ── Processa cartões dos eventos de uma partida ────────────
-// ✅ FIX #4: Aceita rawEvents (4º parâmetro) com playerId estruturado.
-// Quando playerId está presente, usa matching por ID (preciso).
-// Fallback para parsing de texto se rawEvents não vier.
+const recordPlayerCard = (players, playerName, cardType, minute, round) => (
+  (Array.isArray(players) ? players : []).map((player) => (
+    player?.name === playerName ? applyCardToPlayer(player, cardType, minute, round) : player
+  ))
+);
+
 const processMatchDisciplineEvents = (players, matchEvents, round, rawEvents = []) => {
-  let updatedPlayers = players;
+  let updatedPlayers = Array.isArray(players) ? players : [];
+  const rawList = Array.isArray(rawEvents) ? rawEvents : [];
 
-  // --- Caminho 1: rawEvents estruturados (preciso, por ID) ---
-  const structuredCards = rawEvents.filter(e => ['yellow', 'red', 'red_direct', 'red_second_yellow'].includes(e.type));
+  const structuredCards = rawList.filter((event) => (
+    ['yellow', 'red', 'red_direct', 'red_second_yellow'].includes(event?.type)
+  ));
   if (structuredCards.length > 0) {
-    structuredCards.forEach(e => {
-      if (!e.isPlayer) return; // só processa cartões do time do usuário
-      const cardType = e.type === 'red_direct'        ? DISCIPLINE_TYPES.RED_DIRECT
-                     : e.type === 'red'               ? DISCIPLINE_TYPES.RED
-                     : e.type === 'red_second_yellow' ? DISCIPLINE_TYPES.RED  // segundo amarelo = suspensão de 1 rodada
-                     :                                  DISCIPLINE_TYPES.YELLOW;
-      const applyCard = (p) => {
-        const history = [...(p.discipline?.disciplineHistory || [])];
-        history.push({ round, type: cardType, minute: e.min });
-        let yellowCards = p.discipline?.yellowCards || 0;
-        let suspendedUntilRound = p.discipline?.suspendedUntilRound || null;
-        if (cardType === DISCIPLINE_TYPES.YELLOW) {
-          yellowCards += 1;
-          if (yellowCards >= 3) { suspendedUntilRound = round + 1; yellowCards = 0; }
-        } else if (cardType === DISCIPLINE_TYPES.RED) {
-          suspendedUntilRound = round + 1;
-        } else {
-          suspendedUntilRound = round + 2;
-        }
-        return { ...p, discipline: { yellowCards, suspendedUntilRound, disciplineHistory: history } };
-      };
+    structuredCards.forEach((event) => {
+      if (!event?.isPlayer) return;
+      const cardType = event.type === 'red_direct' ? DISCIPLINE_TYPES.RED_DIRECT
+        : event.type === 'red' || event.type === 'red_second_yellow' ? DISCIPLINE_TYPES.RED
+          : DISCIPLINE_TYPES.YELLOW;
 
-      if (e.playerId) {
-        // Matching por ID — sem ambiguidade
-        updatedPlayers = updatedPlayers.map(p => p.id === e.playerId ? applyCard(p) : p);
-      } else if (e.playerName) {
-        // Fallback por nome quando id não está disponível
-        updatedPlayers = recordPlayerCard(updatedPlayers, e.playerName, cardType, e.min, round);
+      if (event.playerId != null) {
+        updatedPlayers = updatedPlayers.map((player) => (
+          idsEqual(player?.id, event.playerId)
+            ? applyCardToPlayer(player, cardType, event.min, round)
+            : player
+        ));
+      } else if (event.playerName) {
+        updatedPlayers = recordPlayerCard(updatedPlayers, event.playerName, cardType, event.min, round);
       }
     });
     return updatedPlayers;
   }
 
-  // --- Caminho 2: fallback — parsing de texto (comportamento legado) ---
-  const cardEvents = matchEvents.filter(event =>
-    event.includes('🟨') || event.includes('🟥') ||
-    event.includes('Cartão amarelo') || event.includes('Cartão VERMELHO')
-  );
+  const eventList = Array.isArray(matchEvents) ? matchEvents.filter((event) => typeof event === 'string') : [];
+  const cardEvents = eventList.filter((event) => (
+    event.includes('🟨') || event.includes('🟥')
+    || event.includes('Cartão amarelo') || event.includes('Cartão VERMELHO')
+  ));
 
-  // Ordena por nome mais longo primeiro para evitar correspondência parcial
-  const sortedPlayers = [...players].sort((a, b) => b.name.length - a.name.length);
+  const sortedPlayers = [...updatedPlayers]
+    .filter((player) => player?.name)
+    .sort((a, b) => String(b.name).length - String(a.name).length);
 
-  cardEvents.forEach(event => {
-    const isDirectRed = event.includes('EXPULSO') || event.includes('Vermelho direto');
-    const isRed       = event.includes('🟥') || event.includes('VERMELHO');
-    const isYellow    = event.includes('🟨') || event.includes('amarelo');
-
+  cardEvents.forEach((event) => {
+    const isSecondYellow = event.includes('SEGUNDO AMARELO');
+    const isDirectRed = !isSecondYellow && (event.includes('Vermelho direto') || event.includes('vermelho direto'));
+    const isRed = event.includes('🟥') || event.includes('VERMELHO') || isSecondYellow;
+    const isYellow = event.includes('🟨') || event.toLowerCase().includes('amarelo');
     if (!isRed && !isYellow) return;
 
-    const minuteMatch = event.match(/^(\d+)'/);
-    const minute = minuteMatch ? parseInt(minuteMatch[1]) : 0;
-
-    const matchedPlayer = sortedPlayers.find(p => event.includes(p.name));
+    const minuteMatch = event.match(/^(\d+)(?:\+(\d+))?'/);
+    const minute = minuteMatch
+      ? Number.parseInt(minuteMatch[1], 10) + (Number.parseInt(minuteMatch[2] || '0', 10) || 0)
+      : 0;
+    const matchedPlayer = sortedPlayers.find((player) => event.includes(player.name));
     if (!matchedPlayer) return;
 
-    let cardType;
-    if (isDirectRed) {
-      cardType = DISCIPLINE_TYPES.RED_DIRECT; // 2 rodadas
-    } else if (isRed) {
-      cardType = DISCIPLINE_TYPES.RED;        // 1 rodada
-    } else {
-      cardType = DISCIPLINE_TYPES.YELLOW;     // acúmulo
-    }
-
-    updatedPlayers = recordPlayerCard(updatedPlayers, matchedPlayer.name, cardType, minute, round);
+    const cardType = isDirectRed ? DISCIPLINE_TYPES.RED_DIRECT
+      : isRed ? DISCIPLINE_TYPES.RED
+        : DISCIPLINE_TYPES.YELLOW;
+    updatedPlayers = updatedPlayers.map((player) => (
+      idsEqual(player?.id, matchedPlayer.id)
+        ? applyCardToPlayer(player, cardType, minute, round)
+        : player
+    ));
   });
 
   return updatedPlayers;
 };
 
-// ── Verifica se está suspenso ──────────────────────────────
 const isPlayerSuspended = (player, currentRound) => {
-  if (!player.discipline) return false;
-  const s = player.discipline.suspendedUntilRound;
-  return s !== null && currentRound <= s;
+  if (!player?.discipline) return false;
+  const suspendedUntil = player.discipline.suspendedUntilRound;
+  if (suspendedUntil == null) return false;
+  return roundNumber(currentRound) <= roundNumber(suspendedUntil);
 };
 
 const getPlayerSuspensionRoundsLeft = (player, currentRound) => {
-  if (!player.discipline) return 0;
-  const s = player.discipline.suspendedUntilRound;
-  if (s === null || currentRound > s) return 0;
-  return s - currentRound + 1;
+  if (!player?.discipline) return 0;
+  const suspendedUntil = player.discipline.suspendedUntilRound;
+  if (suspendedUntil == null) return 0;
+  const current = roundNumber(currentRound);
+  const until = roundNumber(suspendedUntil);
+  return current > until ? 0 : until - current + 1;
 };
 
-const getPlayerYellowCards   = (p) => p.discipline?.yellowCards || 0;
-const getCardsUntilSuspension = (p) => Math.max(0, 3 - getPlayerYellowCards(p));
+const getPlayerYellowCards = (player) => Math.max(0, Number(player?.discipline?.yellowCards) || 0);
+const getCardsUntilSuspension = (player) => Math.max(0, 3 - getPlayerYellowCards(player));
 
-// ── Reset ao cumprir suspensão ─────────────────────────────
 const clearSuspensionAndResetCards = (players, currentRound) => {
-  return players.map(p => {
-    if (!p.discipline) return p;
-    const s = p.discipline.suspendedUntilRound;
-    if (s !== null && currentRound > s) {
+  const current = roundNumber(currentRound);
+  return (Array.isArray(players) ? players : []).map((player) => {
+    if (!player?.discipline) return player;
+    const suspendedUntil = player.discipline.suspendedUntilRound;
+    if (suspendedUntil != null && current > roundNumber(suspendedUntil)) {
       return {
-        ...p,
+        ...player,
         discipline: {
-          yellowCards: p.discipline.yellowCards, // mantém amarelos (apenas reset quando atinge 3)
+          yellowCards: getPlayerYellowCards(player),
           suspendedUntilRound: null,
-          disciplineHistory: p.discipline.disciplineHistory,
-        }
+          disciplineHistory: Array.isArray(player.discipline.disciplineHistory)
+            ? player.discipline.disciplineHistory
+            : [],
+        },
       };
     }
-    return p;
+    return player;
   });
 };
 
-// ── Reset de temporada ─────────────────────────────────────
-const resetSeasonalDiscipline = (players) => players.map(p => ({
-  ...p,
+const resetSeasonalDiscipline = (players) => (Array.isArray(players) ? players : []).map((player) => ({
+  ...player,
   discipline: {
     yellowCards: 0,
     suspendedUntilRound: null,
-    disciplineHistory: p.discipline?.disciplineHistory || [],
-  }
+    disciplineHistory: Array.isArray(player?.discipline?.disciplineHistory)
+      ? player.discipline.disciplineHistory
+      : [],
+  },
 }));
 
-// ── Resumo ─────────────────────────────────────────────────
 const getDisciplineSummary = (player, currentRound) => {
-  const yellows     = getPlayerYellowCards(player);
-  const suspended   = isPlayerSuspended(player, currentRound);
-  const suspLeft    = getPlayerSuspensionRoundsLeft(player, currentRound);
-  const cardsLeft   = getCardsUntilSuspension(player);
+  const yellows = getPlayerYellowCards(player);
+  const suspended = isPlayerSuspended(player, currentRound);
+  const suspensionRoundsLeft = getPlayerSuspensionRoundsLeft(player, currentRound);
+  const cardsUntilSuspension = getCardsUntilSuspension(player);
   return {
-    yellowCards: yellows, isSuspended: suspended,
-    suspensionRoundsLeft: suspLeft, cardsUntilSuspension: cardsLeft,
+    yellowCards: yellows,
+    isSuspended: suspended,
+    suspensionRoundsLeft,
+    cardsUntilSuspension,
     status: suspended
-      ? `🔴 Suspenso (${suspLeft} rod.)`
+      ? `🔴 Suspenso (${suspensionRoundsLeft} rod.)`
       : yellows === 0 ? '✅ Sem cartões'
-      : yellows === 1 ? '🟨 1 amarelo (2 até suspensão)'
-      : '🟨🟨 2 amarelos (1 até suspensão)',
+        : yellows === 1 ? '🟨 1 amarelo (2 até suspensão)'
+          : '🟨🟨 2 amarelos (1 até suspensão)',
   };
 };
 
 const validateLineupForSuspensions = (starters, currentRound) => {
-  const suspendedInLineup = starters.filter(p => isPlayerSuspended(p, currentRound));
+  const suspendedInLineup = (Array.isArray(starters) ? starters : [])
+    .filter((player) => isPlayerSuspended(player, currentRound));
   return { valid: suspendedInLineup.length === 0, suspendedInLineup };
 };
 

@@ -1,4 +1,5 @@
 // @migrated to ES module
+import { resolveClub } from './clubCatalog.js';
 // data/database_coaches.js — Técnicos reais e estádios por clube (2025/2026)
 // Consumido por: ScreenTable (nome do técnico), engine.js (nome do estádio)
 // Atualizar conforme mudanças de mercado
@@ -86,9 +87,16 @@ export const coachesDatabase = {
 };
 
 // ── Acesso rápido: retorna só o nome do técnico ────────────
-export const getTeamCoach = (teamName) =>
-  coachesDatabase?.[teamName]?.coach || 'Técnico';
+const getCoachEntry = (teamName) => {
+  const club = resolveClub(teamName);
+  const keys = club ? [club.name, ...(club.aliases || []), teamName] : [teamName];
+  for (const key of keys) {
+    if (coachesDatabase?.[key]) return coachesDatabase[key];
+  }
+  return null;
+};
+
+export const getTeamCoach = (teamName) => getCoachEntry(teamName)?.coach || 'Técnico';
 
 // ── Acesso rápido: retorna só o estádio ───────────────────
-export const getTeamStadium = (teamName) =>
-  coachesDatabase?.[teamName]?.stadium || null;
+export const getTeamStadium = (teamName) => getCoachEntry(teamName)?.stadium || null;

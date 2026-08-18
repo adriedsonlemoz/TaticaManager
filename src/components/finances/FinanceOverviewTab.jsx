@@ -24,17 +24,16 @@ export function FinanceOverviewTab({ gameData, overview, suggestions, formatMone
     totalExpense,
     estimatedBalance,
     summary,
+    projectedMatch,
+    operationalChargeNext,
   } = overview;
 
-  const fees = summary.training + summary.stadium + summary.market;
+  const fees = summary.training + summary.stadium + summary.market + summary.academy + summary.medical + summary.contracts;
   const transferBalance = summary.transfersIn - summary.transfersOut;
-  const upcomingOperationalCharge = (gameData?.round || 0) > 0 && (
-    gameData.round % 4 === 0 || (gameData.round + 1) % 4 === 0
-  );
 
   return (
     <Box>
-      {upcomingOperationalCharge && (
+      {operationalChargeNext && (
         <Box sx={{ mb: 1.2, px: 1.2, py: 0.8, bgcolor: `${C.blue}08`, border: `1px solid ${C.blue}25`, borderRadius: '8px', display: 'flex', gap: 0.8, alignItems: 'center' }}>
           <Typography sx={{ fontSize: '0.9rem' }}>🏢</Typography>
           <Box>
@@ -64,9 +63,11 @@ export function FinanceOverviewTab({ gameData, overview, suggestions, formatMone
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
               <Box>
                 <Typography sx={{ color: C.txt2, fontSize: '0.62rem' }}>🏟️ Bilheteria</Typography>
-                {avgRealTicket !== null && (
-                  <Typography sx={{ color: C.txt3, fontSize: '0.48rem' }}>Média real usada na projeção</Typography>
-                )}
+                <Typography sx={{ color: C.txt3, fontSize: '0.48rem' }}>
+                  {projectedMatch
+                    ? (projectedMatch.userIsHome ? 'Próximo jogo em casa' : 'Cota de visitante no próximo jogo')
+                    : (avgRealTicket !== null ? 'Média real usada na projeção' : 'Sem partida projetável')}
+                </Typography>
               </Box>
               <Typography sx={{ color: C.txt1, fontSize: '0.62rem', fontWeight: 700 }}>{formatMoney(ticketIncome)}</Typography>
             </Box>
@@ -83,7 +84,7 @@ export function FinanceOverviewTab({ gameData, overview, suggestions, formatMone
             <MoneyLine label="👥 Salários/rod" value={formatMoney(totalWage)} />
             <MoneyLine label="🏢 Operacional/rod (média)" value={formatMoney(recurringOpCost)} />
             {summary.transfersOut > 0 && <MoneyLine label="🛒 Compras (acum.)" value={formatMoney(summary.transfersOut)} color={C.red} prefix="-" />}
-            {fees > 0 && <MoneyLine label="⚙️ Taxas (acum.)" value={formatMoney(fees)} color={C.red} prefix="-" />}
+            {fees > 0 && <MoneyLine label="⚙️ Outras despesas (acum.)" value={formatMoney(fees)} color={C.red} prefix="-" />}
           </Box>
         </Paper>
       </Box>

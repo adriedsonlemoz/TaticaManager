@@ -1,4 +1,6 @@
 import { AcademyEngine } from '../engine_academy.js';
+import { appendFinancialEntry } from '../finances/financeLedger.js';
+import { syncUserRosterState } from '../core/gameStateIntegrity.js';
 
 export const ACADEMY_FILTERS = ['all', 'ready', 'burst', 'steady', 'late'];
 
@@ -122,14 +124,11 @@ export const promoteProspectState = (gameData, prospect) => {
   if (!prospect) return gameData;
   const professional = AcademyEngine.promoteProspect(prospect, gameData.club?.name || prospect.teamName);
   const players = [...(gameData.players || []), professional];
-  const wage = players.reduce((sum, player) => sum + (Number(player.wage) || 0), 0);
-  return {
+  return syncUserRosterState({
     ...gameData,
-    players,
     academy: removeProspect(gameData.academy, prospect.id),
     academyReady: removeProspect(gameData.academyReady, prospect.id),
-    club: { ...(gameData.club || {}), wage },
-  };
+  }, players);
 };
 
 export const dispenseProspectState = (gameData, prospectId) => ({
@@ -159,7 +158,7 @@ export const investAcademyState = (gameData, level) => {
         money: (Number(gameData.club?.money) || 0) - result.cost,
         academyLevel: result.newLevel,
       },
-      financialHistory: [transaction, ...(gameData.financialHistory || [])].slice(0, 50),
+      financialHistory: appendFinancialEntry(gameData.financialHistory, transaction, { season: gameData.season, round: gameData.round, leagueRound: gameData.leagueRound ?? gameData.round, competition: 'academy' }),
     },
     ...result,
     label: info.label,

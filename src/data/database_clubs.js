@@ -1,4 +1,5 @@
 // @migrated to ES module
+import { resolveClub } from './clubCatalog.js';
 // data/database_clubs.js — Histórico e estádios dos clubes brasileiros
 // Carregado APÓS database.js. Não usa JSX — script normal (sem type="text/babel")
 // Acesso: import { clubsDatabase } e consulte clubsDatabase['Flamengo']
@@ -363,4 +364,14 @@ export const clubsDatabase = {
     legends: ['Gustavo Marques', 'Romarinho'],
   },
 };
+
+export const getClubInfo = (name) => {
+  const club = resolveClub(name);
+  const keys = club ? [club.name, ...(club.aliases || []), name] : [name];
+  for (const key of keys) {
+    if (clubsDatabase?.[key]) return clubsDatabase[key];
+  }
+  return null;
+};
+
 export default clubsDatabase;

@@ -34,7 +34,7 @@ export function buildPostMatchNotifications({
       totalLeagueRounds: rounds.totalLeagueRounds,
     }),
     pressaoTorcida: buildFanPressureNotification({ ...common, fixtures: updatedFixtures }),
-    lesaoTreino: buildTrainingInjury({ updatedPlayers, leagueRoundPlayed: rounds.leagueRoundPlayed, rng }),
+    lesaoTreino: buildTrainingInjury({ gameData, updatedPlayers, leagueRoundPlayed: rounds.leagueRoundPlayed, rng }),
     academyNotifs: buildAcademyNotifications(common),
     matchInjuryMsgs: buildMatchInjuryNotifications({ ...common, updatedPlayers }),
     suspensionMsgs: buildSuspensionNotifications({

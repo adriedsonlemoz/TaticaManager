@@ -19,7 +19,8 @@ React UI
  │   ├─ engine_fatigue
  │   ├─ engine_injuries
  │   ├─ engine_academy
- │   └─ engine_cpu_ai
+ │   ├─ cpu/
+ │   └─ engine_cpu_ai (fachada)
  └─ persistence / IndexedDB
 ```
 
@@ -34,6 +35,28 @@ React UI
 - `teamMetrics.js`: forma recente e força disponível de clubes CPU.
 
 A API pública de `engine.js` foi preservada para evitar mudanças em massa nos consumidores existentes.
+
+## IA dos clubes CPU
+- `src/engines/engine_cpu_ai.js`: fachada pública compatível; consumidores antigos continuam importando `CpuAI` pelo mesmo caminho.
+- `src/engines/cpu/cpuConfig.js`: limites de elenco, chances, intervalos e janelas de transferências.
+- `cpuRoster.js`: resolução/sincronização de rosters, necessidades posicionais, força do elenco e finanças de compra/venda.
+- `cpuRecruitment.js`: reposição e contratação de atletas gerados durante a janela.
+- `cpuTransfers.js`: liberação de expirados e transferências CPU×CPU com dinheiro, orçamento e mínimos de elenco.
+- `cpuContracts.js`: avisos, renovação, custos e agentes livres.
+- `cpuMorale.js`: multiplicador de moral compartilhado com o simulador.
+
+Transferências e reposições só acontecem em janelas abertas. O roster real participa da força efetiva usada em campo; mudanças de elenco atualizam essa força, mas clubes sem movimentação não sofrem deriva artificial. Jogadores expirados são removidos antes de virarem agentes livres e `teamId` é mantido consistente desde a geração do elenco.
+
+
+## Controlador principal
+- `src/app.jsx`: shell visual da aplicação; compõe o roteador, barra inferior e overlays.
+- `src/hooks/useGameController.js`: concentra estado React da carreira aberta, persistência, simulação, ações de elenco e props compartilhadas entre telas.
+- `src/hooks/useRoundMaintenance.js`: reage à mudança de rodada e aplica auto-bench, propostas e avisos contratuais sem misturar essas regras ao JSX.
+- `src/engines/app/gameControllerService.js`: mutações puras de venda rápida, salário, camisa e manutenção pós-rodada.
+- `src/components/app/GameScreenRouter.jsx`: resolve a tela ativa e injeta somente os props necessários.
+- `src/components/app/AppOverlays.jsx`: PlayerModal, toast e diálogos globais.
+
+O controlador reutiliza `lineupService.js` para alternar titulares, em vez de manter uma segunda regra de formação/suspensão dentro de `app.jsx`. Avisos periódicos usam `leagueRound`, enquanto indisponibilidade usa a próxima partida do calendário completo.
 
 ## Virada de temporada
 - `src/hooks/useRoundAdvance.js`: detecta o fim real do calendário e solicita a transição, sem montar regras anuais no hook.
@@ -61,22 +84,33 @@ A temporada só é encerrada quando o calendário completo termina. O snapshot d
 - `matchAcademyPostProcessor.js`: progressão periódica da categoria de base pela rodada da Liga.
 - `matchTransferPostProcessor.js`: atividade CPU e renovação do mercado pela rodada da Liga.
 - `matchStateUtils.js`: utilitários puros para artilharia por jogador, H2H, perfil do técnico e obras.
-- `matchSimulator.js`: simulação de campo.
+- `matchSimulator.js`: orquestrador puro da simulação de campo.
+- `matchSimulationRoster.js`: roster cacheado, onze ativo, autores de eventos e substituições reais da CPU.
+- `matchSimulationStrength.js`: forma, fadiga, moral, estilo do técnico, desfalques CPU, torcida e probabilidades-base.
+- `matchSimulationEvents.js`: linha do tempo de 90 minutos, gols, pênaltis, cartões, expulsões e ajustes táticos da CPU.
+- `matchSimulationStats.js`: posse, finalizações, chutes no alvo, escanteios e faltas com invariantes consistentes.
+- `matchSimulationConfig.js`: taxas e frases do simulador.
 - `matchPlayback.js`: reprodução e narração.
 - `matchPlayerStats.js`: estatísticas individuais.
 - `matchPostProcessor.js`: barril legado que reexporta os processadores especializados para compatibilidade.
 
+A simulação usa apenas atletas ativos: reservas só entram no pool de eventos após substituição e expulsos são removidos imediatamente. Segundo amarelo é rastreado dentro da própria partida, separado do acúmulo sazonal de três amarelos. O RNG opcional permite reproduzir partidas em testes sem alterar os consumidores existentes.
+
 A rodada de Liga não muta mais `gameData.fixtures`: o motor cria uma nova rodada, salva o novo array explicitamente e só então produz o próximo estado. A sincronização de `seasonGoals` também ocorre antes da preparação final dos jogadores. Desde a beta.27, `gameData.round` (calendário Liga + Copas) e `gameData.leagueRound` (Liga) são tratados por um contexto explícito no pós-jogo.
 
 ## Interface da partida
-- `src/components/ScreenMatchResult.jsx`: estado e transição entre pré-jogo, partida, intervalo e pós-jogo.
+- `src/components/ScreenMatchResult.jsx`: compositor das fases pré-jogo, ao vivo, intervalo e pós-jogo.
+- `src/hooks/useMatchPresentation.js`: estado efêmero da reprodução, timers, posse visual, pausa, som e roster local da partida.
+- `src/engines/match/matchPlayback.js`: agenda os eventos e só confirma o estado oficial depois que a partida realmente começa/termina.
+- `matchEventViewModel.js`: parser único de minuto, lado, autor, gol normal, pênalti, gol contra e cartões.
+- `matchFieldViewModel.js`: resolve lados, formação, posições adaptadas e snapshots do roster sem mutar o save.
+- `matchPresentationViewModel.js`: labels de competição, posse final e substituições locais puras.
 - `src/components/match/MatchHeader.jsx`: placar e status da partida.
-- `src/components/match/MatchField.jsx`: campo, formações e jogadores.
-- `src/components/match/MatchNarration.jsx`: feed de eventos.
-- `src/components/match/MatchBench.jsx`: banco e substituições realizadas.
-- `src/components/match/SubstitutionDialog.jsx`: fluxo de substituição.
-- `src/components/match/MatchLiveView.jsx`: composição da tela ao vivo e controles.
-- `src/components/match/MatchOverlays.jsx`: gol, pausa e som.
+- `MatchField.jsx` + `MatchPitchSvg.jsx` + `MatchPlayerMarkers.jsx` + `MatchFieldFooter.jsx`: composição visual do campo.
+- `MatchNarration.jsx`, `MatchBench.jsx`, `MatchLiveView.jsx` e `MatchOverlays.jsx`: narração, banco, controles e overlays.
+- `SubstitutionDialog.jsx`: substituição local durante o playback, sem alterar `isStarting`/minutos permanentes do save.
+
+O resultado da rodada pode ser pré-calculado para alimentar a narração, mas `gameData` só recebe esse estado quando a reprodução termina ou quando uma partida já iniciada é encerrada/auto-simulada. Sair no pré-jogo descarta o commit pendente. O simulador fornece snapshots dos rosters/11 ativos usados no jogo para impedir que a interface desenhe um elenco diferente daquele que produziu o resultado.
 
 
 ## Pós-jogo
@@ -92,12 +126,17 @@ As estatísticas secundárias exibidas no pós-jogo são produzidas/persistidas 
 
 
 ## Calendário e partidas
-- `src/components/ScreenMatches.jsx`: orquestra estado visual, filtros, dia selecionado e súmula.
+- `src/components/ScreenMatches.jsx`: orquestra apenas estado visual, filtros, dia selecionado e súmula.
 - `src/components/matches/`: calendário, próximos jogos, resultados recentes, detalhe do dia e diálogo de súmula.
-- `src/engines/matches/matchesViewModel.js`: monta eventos de Liga/Copa, histórico, próximos jogos e normaliza `calendarSlot` versus rodada da Liga.
+- `src/engines/matches/matchesViewModel.js`: fachada pública compatível que reexporta os serviços especializados.
+- `matchesConstants.js`: meses, dias, labels e cores das competições.
+- `matchResultService.js`: parsing seguro de placar, resultado do usuário e pênaltis.
+- `cupMatchResolver.js`: resolve confrontos ativos ou já disputados a partir dos slots de Copa.
+- `matchesCalendarService.js`: mapa diário, filtros, janela mensal e relação calendário ↔ rodada da Liga.
+- `matchesTimelineService.js`: próximos compromissos e resultados recentes de Liga/Copas.
 - `src/utils/matchDateUtils.js`: fonte única das datas de rodadas e jogos de Copa.
 
-Jogos de Copa já disputados também são resolvidos pelo view-model para permanecerem visíveis no calendário mensal.
+Jogos de Copa já disputados permanecem recuperáveis no calendário mensal e no histórico, enquanto saves legados sem `calendar` continuam usando `leagueRound` como fallback.
 
 
 ## Finanças
@@ -107,10 +146,17 @@ Jogos de Copa já disputados também são resolvidos pelo view-model para perman
 - `FinanceHistoryTab.jsx`: extrato compatível com registros modernos e legados.
 - `FinanceSponsorsTab.jsx`: contratos máster e naming rights.
 - `FinanceEvolutionTab.jsx`: gráfico e resumo acumulado da temporada.
-- `src/engines/finances/financeViewModel.js`: projeções, ofertas, assinatura de contratos, normalização do histórico e agregações.
-- `src/engines/engine_finances.js`: regras de TV, bilheteria, custos operacionais e risco financeiro.
+- `src/engines/finances/financeViewModel.js`: fachada de compatibilidade da camada financeira.
+- `financeMatch.js`: TV, estádio mandante, ocupação e bilheteria de casa/fora.
+- `financeRisk.js`: folha real, custos operacionais, baseline recorrente e risco financeiro.
+- `financeLedger.js`: carimbo de temporada/rodada, migração de legado, agregações e limite do extrato.
+- `financeProjection.js`: projeção da próxima rodada real da Liga e recomendações.
+- `financeSponsors.js`: ofertas, validação e assinatura de contratos comerciais.
+- `financeHistoryView.js`: parsing visual e série de evolução do extrato.
+- `src/engines/engine_finances.js`: fachada pública que preserva a API `FinanceEngine`.
+- `src/data/teamStadiumData.js`: metadados puros de capacidade/estádio consumíveis por engines sem React.
 
-A UI financeira não depende mais de `window.FinanceEngine` ou do antigo stub `window.getFinancialSuggestions`.
+A UI financeira não depende de globals. O ledger separa temporadas explicitamente e as regras periódicas usam `leagueRound`, enquanto o índice geral do calendário permanece reservado ao fluxo de partidas/Copas.
 
 
 ## Escalação
@@ -129,12 +175,16 @@ A UI financeira não depende mais de `window.FinanceEngine` ou do antigo stub `w
 - `src/engines/cups_engine.js`: fachada pública de compatibilidade; consumidores antigos continuam importando `CupsEngine` pelo mesmo caminho.
 - `src/engines/cups/cupConfig.js`: fonte única de fases, premiações e posições de calendário da Copa do Brasil, Libertadores e Sul-Americana.
 - `copaBrasilEngine.js`: inicialização, progressão e resultados da Copa do Brasil.
-- `continentalEngine.js`: grupos e mata-mata da Libertadores/Sul-Americana.
+- `continentalEngine.js`: fachada/orquestrador da Libertadores e Sul-Americana.
+- `continentalConfig.js`: elegibilidade e resolução da configuração de cada torneio continental.
+- `continentalGroup.js`: criação da fase de grupos, classificação, confrontos CPU×CPU e registro dos seis jogos do usuário.
+- `continentalKnockout.js`: escolha de adversários já não enfrentados, ida/volta, pênaltis e progressão do mata-mata.
+- `cupPrizeAccounting.js`: calcula o delta de `totalPrize` gerado por uma partida e o associa ao pós-jogo/caixa.
 - `cupQueries.js`: consultas de jogos atuais e próximos confrontos.
 - `cupSeason.js`: classificação e inicialização dos torneios a cada temporada.
-- `cupUtils.js`: confrontos, pênaltis, agregados e utilitários compartilhados.
+- `cupUtils.js`: confrontos, pênaltis, agregados e utilitários compartilhados; aleatoriedade aceita RNG opcional para testes determinísticos.
 
-`CalendarEngine.js` consome a mesma configuração de `cupConfig.js`, evitando divergência entre a rodada exibida e o slot realmente criado. A fase de grupos continental só encerra após os seis jogos (ida e volta contra três adversários), e as finais de Libertadores/Sul-Americana são tratadas como jogo único.
+`CalendarEngine.js` consome a mesma configuração de `cupConfig.js`, evitando divergência entre a rodada exibida e o slot realmente criado. A fase continental agora representa um grupo completo de quatro clubes: enquanto o usuário disputa seus seis jogos, os outros dois clubes jogam entre si em cada rodada, deixando todos com seis partidas na tabela. Clubes já enfrentados não podem ser sorteados novamente no mata-mata enquanto houver alternativas, e o clube original do usuário é excluído do pool. Premiações de qualquer Copa entram no caixa pelo delta real de `totalPrize`, eliminando fases registradas no torneio sem pagamento financeiro. As finais de Libertadores/Sul-Americana continuam como jogo único.
 
 ## Mercado
 - `src/components/ScreenMarket.jsx`: compositor/orquestrador da tela de transferências.
@@ -286,12 +336,23 @@ O antigo shim de `src/main.jsx` foi removido. Motores, componentes, regras e ban
 
 Os únicos usos de `window` mantidos no código são APIs do navegador: `location`, listeners de eventos e `AudioContext`/`webkitAudioContext`.
 
+## Persistência, schema de save e estado canônico
+- `src/engines/persistence/saveSchema.js`: fronteira única para carregar, migrar, normalizar e preparar uma carreira antes da gravação.
+- `src/engines/core/gameStateIntegrity.js`: invariantes de sessão do elenco do usuário e folha salarial.
+- `src/hooks/hooks_persistence.js`: mantém o IndexedDB/Dexie como transporte e delega a evolução do conteúdo ao schema da carreira.
+
+O banco físico continua em `BrasfootDB`/Dexie v1 para não perder carreiras existentes. A evolução lógica é separada: saves sem `saveSchemaVersion` são schema 0 e migram sequencialmente até o schema 3. Cada etapa é pequena e determinística; depois da cadeia, os invariantes atuais são reaplicados, tornando a operação idempotente. Um schema futuro é recusado antes de `onLoaded` ou de qualquer sobrescrita.
+
+No domínio do elenco, `players` é a fonte canônica do usuário. `teamRosters.user` é apenas um espelho compartilhado com engines que também operam clubes CPU e deve ser atualizado na mesma mutação de estado; `syncUserRosterState()` centraliza essa regra e recalcula `club.wage`. Para clubes CPU, `teamRosters[teamId]` é o roster canônico e `teams[].squad`/`leagues[serie][].squad` permanecem espelhos de compatibilidade reconciliados na fronteira de persistência.
+
+O schema 3 também normaliza Inbox/IDs, contadores de transferências, propriedade dos atletas e classificação. Isso substitui o modelo anterior em que cada tela tentava reparar apenas o pedaço de save que consumia.
+
 ## Compatibilidade
-O banco Dexie legado e o `appId` do Capacitor foram preservados no rename para evitar que saves existentes desapareçam para o usuário.
+O banco Dexie legado e o `appId` do Capacitor foram preservados no rename. Saves antigos são migrados pelo conteúdo, enquanto saves de schema mais novo são bloqueados explicitamente para evitar downgrade destrutivo.
 
 ## Próximos alvos
-1. Refatorar os componentes médios restantes antes da versão estável.
-2. Centralizar a aleatoriedade remanescente para tornar simulações determinísticas em testes quando necessário.
-3. Revisar regras ainda duplicadas de apresentação/estado entre partida ao vivo, resultado e calendário.
+1. Auditar o cadastro canônico de clubes CPU: hoje identidade/metadados ainda aparecem em `teams`, `leagues`, tabela, fixtures e Copas; a próxima etapa deve reduzir referências duplicadas sem quebrar saves.
+2. Refatorar os componentes médios restantes antes da versão estável.
+3. Continuar centralizando a aleatoriedade remanescente; simulador e IA CPU já aceitam RNG injetável nos fluxos críticos.
 4. Fazer uma revisão final de acessibilidade, estados vazios e responsividade antes da primeira versão estável.
 

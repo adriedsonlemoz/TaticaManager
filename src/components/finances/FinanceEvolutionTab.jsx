@@ -16,18 +16,24 @@ export function FinanceEvolutionTab({ history, summary, formatMoney }) {
   }
 
   const rows = [
-    { icon: '📅', label: 'Receitas de partidas', value: summary.ticket + summary.tv + summary.sponsor + summary.cup, color: C.green },
+    { icon: '📅', label: 'Receitas operacionais', value: summary.ticket + summary.tv + summary.sponsorRecurring + summary.cup, color: C.green },
     { icon: '🎟', label: 'Bilheteria total', value: summary.ticket, color: C.primary },
     { icon: '📺', label: 'Cotas de TV', value: summary.tv, color: C.blue },
-    { icon: '✍️', label: 'Patrocinadores', value: summary.sponsor, color: C.gold },
+    { icon: '✍️', label: 'Patrocínio por rodada', value: summary.sponsorRecurring, color: C.gold },
+    { icon: '🤝', label: 'Luvas comerciais', value: summary.sponsorSigning, color: C.gold },
     { icon: '🏆', label: 'Premiações de copa', value: summary.cup, color: C.gold },
-    { icon: '🤝', label: 'Vendas de jogadores', value: summary.transfersIn, color: C.green },
+    { icon: '💱', label: 'Vendas de jogadores', value: summary.transfersIn, color: C.green },
     { icon: '🛒', label: 'Compras de jogadores', value: -summary.transfersOut, color: C.red },
     { icon: '🏋️', label: 'Taxas de treinamento', value: -summary.training, color: C.red },
+    { icon: '🌱', label: 'Categoria de base', value: -summary.academy, color: C.red },
+    { icon: '🏥', label: 'Departamento médico', value: -summary.medical, color: C.red },
+    { icon: '📑', label: 'Renovações contratuais', value: -summary.contracts, color: C.red },
     { icon: '🏟️', label: 'Obras do estádio', value: -summary.stadium, color: C.red },
     { icon: '🔄', label: 'Atualização de mercado', value: -summary.market, color: C.red },
     { icon: '💸', label: 'Folha salarial total', value: -summary.wage, color: C.red },
     { icon: '🏢', label: 'Custos operacionais', value: -summary.opCost, color: C.red },
+    { icon: '➕', label: 'Outras receitas', value: summary.otherIncome, color: C.green },
+    { icon: '➖', label: 'Outras despesas', value: -summary.otherExpense, color: C.red },
   ].filter((row) => row.value !== 0);
 
   return (

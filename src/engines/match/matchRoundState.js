@@ -1,8 +1,11 @@
 import { FinanceEngine } from '../engine_finances.js';
+import { buildLeagueIntegrityReport, hasDoubleRoundRobinShape } from '../core/leagueEngine.js';
+import { syncUserRosterState } from '../core/gameStateIntegrity.js';
+import { appendFinancialEntry } from '../finances/financeLedger.js';
 import { accumulateScorers } from './matchPlayerStats.js';
 import { progressAcademy } from './matchAcademyPostProcessor.js';
 import { buildPostMatchNotifications } from './matchNotifications.js';
-import { preparePostMatchPlayers } from './matchPlayerPostProcessor.js';
+import { preparePostMatchPlayers, processMatchPlayers } from './matchPlayerPostProcessor.js';
 import { buildMatchRoundContext } from './matchRoundContext.js';
 import { processCpuTransfers, refreshTransferMarket } from './matchTransferPostProcessor.js';
 import {
@@ -21,7 +24,7 @@ export function calculateLeagueRoundFinances(gameData, leagueRound, updatedPlaye
   const operationalCost = (rounds.leagueRoundPlayed % 4 === 0 && FinanceEngine?.getOperationalCosts)
     ? FinanceEngine.getOperationalCosts(gameData)
     : 0;
-  const wage = updatedPlayers.reduce((sum, player) => sum + (player.wage || 0), 0);
+  const wage = FinanceEngine.getCurrentWage({ ...gameData, players: updatedPlayers });
   const income = (leagueRound.ticketIncome || 0) + tvIncome + sponsorIncome;
   const expense = wage + operationalCost;
 
@@ -36,15 +39,29 @@ export function calculateLeagueRoundFinances(gameData, leagueRound, updatedPlaye
   };
 }
 
-export function completeLeagueRound({ gameData, leagueRound, calculateMorale }) {
+export function completeLeagueRound({ gameData, leagueRound, calculateMorale, liveSubstitutions = [], rng = Math.random }) {
+  const hasCanonicalLeagueSchedule = hasDoubleRoundRobinShape(gameData.table, gameData.fixtures);
+  if (hasCanonicalLeagueSchedule) {
+    const integrity = buildLeagueIntegrityReport(leagueRound.table, leagueRound.fixtures);
+    if (!integrity.ok) {
+      throw new Error(`Integridade da Liga inválida antes do commit: ${integrity.errors.join('; ')}`);
+    }
+  }
+
   const rounds = buildMatchRoundContext(gameData, leagueRound.leagueIdx);
-  let updatedPlayers = leagueRound.updatedPlayers;
+  let updatedPlayers = processMatchPlayers({
+    gameData,
+    userMatchData: leagueRound.userMatchData,
+    allRawEvents: leagueRound.allRawEvents || [],
+    liveSubstitutions,
+    rng,
+  });
   const scorers = accumulateScorers(gameData.scorers || {}, leagueRound.allRawEvents || []);
   updatedPlayers = syncPlayerSeasonGoals(updatedPlayers, scorers);
 
   const finance = calculateLeagueRoundFinances(gameData, leagueRound, updatedPlayers, rounds);
-  const cpuTrades = processCpuTransfers(gameData, { leagueIdx: leagueRound.leagueIdx });
-  const academy = progressAcademy(gameData, { leagueIdx: leagueRound.leagueIdx });
+  const cpuTrades = processCpuTransfers(gameData, { leagueIdx: leagueRound.leagueIdx, rng });
+  const academy = progressAcademy(gameData, { leagueIdx: leagueRound.leagueIdx, rng });
   const notifications = buildPostMatchNotifications({
     gameData,
     userMatchData: leagueRound.userMatchData,
@@ -54,7 +71,7 @@ export function completeLeagueRound({ gameData, leagueRound, calculateMorale }) 
     allRawEvents: leagueRound.allRawEvents,
     leagueIdx: leagueRound.leagueIdx,
   });
-  const finalPlayers = preparePostMatchPlayers(gameData, updatedPlayers, notifications.lesaoTreino);
+  const finalPlayers = preparePostMatchPlayers(gameData, updatedPlayers, notifications.lesaoTreino, rng);
   const stadiumResult = advanceStadium(gameData.club?.stadium || {});
 
   const rawMorale = calculateMorale
@@ -68,7 +85,7 @@ export function completeLeagueRound({ gameData, leagueRound, calculateMorale }) 
     ? Math.round(startingPlayers.reduce((sum, player) => sum + (player.overall || 0), 0) / 11)
     : gameData.club?.strength;
 
-  const nextState = {
+  const nextState = syncUserRosterState({
     ...gameData,
     round: rounds.calendarIndexAfter,
     leagueRound: rounds.playedLeagueAfter,
@@ -79,7 +96,6 @@ export function completeLeagueRound({ gameData, leagueRound, calculateMorale }) 
     leagues: cpuTrades ? cpuTrades.leagues : gameData.leagues,
     teamRosters: cpuTrades ? cpuTrades.teamRosters : gameData.teamRosters,
     academy: academy !== undefined ? academy : gameData.academy,
-    players: finalPlayers,
     inbox: [
       ...notifications.jornal,
       ...notifications.rumores,
@@ -100,11 +116,8 @@ export function completeLeagueRound({ gameData, leagueRound, calculateMorale }) 
       managerProfile: buildManagerProfile(gameData.club?.managerProfile, gameData.club?.name, leagueRound.userMatchData),
       stadium: stadiumResult.stadium,
     },
-    market: refreshTransferMarket(gameData, { leagueIdx: leagueRound.leagueIdx }),
-    financialHistory: [{
-      round: rounds.calendarRoundPlayed,
-      leagueRound: rounds.leagueRoundPlayed,
-      competition: 'league',
+    market: refreshTransferMarket(gameData, { leagueIdx: leagueRound.leagueIdx, rng, extraFreeAgents: cpuTrades?.freeAgents || [] }),
+    financialHistory: appendFinancialEntry(gameData.financialHistory, {
       income: finance.income,
       expense: finance.expense,
       total: finance.income - finance.expense,
@@ -115,10 +128,16 @@ export function completeLeagueRound({ gameData, leagueRound, calculateMorale }) 
         cup: 0,
         wage: finance.wage,
         opCost: finance.operationalCost,
+        isHome: leagueRound.userMatchData?.userIsHome === true,
       },
-    }, ...(gameData.financialHistory || [])].slice(0, 100),
+    }, {
+      season: gameData.season,
+      round: rounds.calendarRoundPlayed,
+      leagueRound: rounds.leagueRoundPlayed,
+      competition: 'league',
+    }),
     scorers,
-  };
+  }, finalPlayers);
 
   return {
     nextState,

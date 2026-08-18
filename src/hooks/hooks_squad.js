@@ -2,6 +2,9 @@
 import React from 'react';
 import { FatigueEngine } from '../engines/engine_fatigue.js';
 import { evaluateTransferPurchase } from '../engines/market/transferRules.js';
+import { appendFinancialEntry } from '../engines/finances/financeLedger.js';
+import { applyUserPurchase } from '../engines/market/transferTransactions.js';
+import { syncUserRosterState } from '../engines/core/gameStateIntegrity.js';
 
 // hooks/hooks_squad.js — v4.6 (regra de elenco mínimo do time vendedor)
 
@@ -11,8 +14,8 @@ const useSquad = (gameData, setGameData, showToast, formatMoney) => {
   // ── Comprar Jogador ──
   const buyPlayer = React.useCallback((p) => {
     if (!gameData || !p) return false;
-
-    const eligibility = evaluateTransferPurchase(gameData, p, p.value);
+    const agreedPrice = p.agreedTransferFee ?? p.value;
+    const eligibility = evaluateTransferPurchase(gameData, p, agreedPrice);
     if (!eligibility.allowed) {
       showToast?.(
         `${eligibility.code === 'window_closed' ? '🚫 ' : eligibility.code === 'financial_crisis' ? '🚨 ' : eligibility.code === 'seller_min_squad' ? '🚫 ' : eligibility.code === 'reputation' ? '🤝 ' : ''}${eligibility.message}`,
@@ -22,75 +25,10 @@ const useSquad = (gameData, setGameData, showToast, formatMoney) => {
       return false;
     }
 
-    const shirt = Math.max(...(gameData.players || []).map(x => x.shirt || 0), 0) + 1;
-    const newWage = p.wage || 0;
-    const sourceTeamId = p.originTeamId ?? p.teamId;
-    const playerForUser = {
-      ...p,
-      originTeamId: undefined,
-      originTeamName: undefined,
-      teamId: 'user',
-      teamName: gameData.club.name,
-      isStarting: false,
-      shirt,
-      goals: 0,
-      assists: 0,
-      energy: 100,
-      injury: null,
-      discipline: p.discipline || { yellowCards: 0, suspendedUntilRound: null, disciplineHistory: [] },
-    };
-
-    setGameData(prev => {
-      const transaction = {
-        round: prev.round,
-        income: 0,
-        expense: p.value,
-        total: -p.value,
-        detail: { transfer: p.value, description: `Compra: ${p.name}` },
-      };
-
-      const updatedRosters = { ...(prev.teamRosters || {}) };
-      if (sourceTeamId != null && updatedRosters[sourceTeamId]) {
-        updatedRosters[sourceTeamId] = updatedRosters[sourceTeamId].filter(r => r.id !== p.id);
-      }
-      updatedRosters.user = [
-        ...(updatedRosters.user || []).filter(r => r.id !== p.id),
-        playerForUser,
-      ];
-
-      const removeFromPool = (arr) => (arr || []).map(team => {
-        if (sourceTeamId == null || String(team.id) !== String(sourceTeamId)) return team;
-        return { ...team, squad: (team.squad || []).filter(r => r.id !== p.id) };
-      });
-
-      return {
-        ...prev,
-        club: {
-          ...prev.club,
-          money: prev.club.money - p.value,
-          transferBudget: Math.max(0, (prev.club.transferBudget || 0) - p.value),
-          wage: (prev.club.wage || 0) + newWage,
-        },
-        players: [...(prev.players || []), playerForUser],
-        market: (prev.market || []).filter(x => x.id !== p.id),
-        watchlist: (prev.watchlist || []).filter(item => item.id !== p.id),
-        teamRosters: updatedRosters,
-        teams: removeFromPool(prev.teams),
-        leagues: {
-          ...(prev.leagues || {}),
-          A: removeFromPool(prev.leagues?.A),
-          B: removeFromPool(prev.leagues?.B),
-          C: removeFromPool(prev.leagues?.C),
-          D: removeFromPool(prev.leagues?.D),
-        },
-        financialHistory: [transaction, ...(prev.financialHistory || [])].slice(0, 50),
-        transfersFromTeam: (() => {
-          if (!sourceTeamId || p.originTeamName === 'Livre') return prev.transfersFromTeam || {};
-          const curr = prev.transfersFromTeam || {};
-          return { ...curr, [sourceTeamId]: (curr[sourceTeamId] || 0) + 1 };
-        })(),
-      };
-    });
+    // A validação acima alimenta a UI; a transação abaixo valida novamente
+    // dentro do estado mais recente. Isso impede duplo clique/ações simultâneas
+    // de gastarem o mesmo orçamento ou manterem o atleta em dois clubes.
+    setGameData((prev) => applyUserPurchase(prev, p, agreedPrice).state);
     showToast?.(`Contratado: ${p.name}!`);
     return true;
   }, [gameData, setGameData, showToast]);
@@ -149,16 +87,15 @@ const useSquad = (gameData, setGameData, showToast, formatMoney) => {
         return p;
       });
 
-      return {
+      return syncUserRosterState({
         ...prev,
         club: {
           ...prev.club,
           money: prev.club.money - 150000,
           lastTrainRound: prev.round,  // registra rodada do treino
         },
-        players: newPlayers,
-        financialHistory: [transaction, ...(prev.financialHistory || [])].slice(0, 50)
-      };
+        financialHistory: appendFinancialEntry(prev.financialHistory, transaction, { season: prev.season, round: prev.round, leagueRound: prev.leagueRound ?? prev.round, competition: 'training' })
+      }, newPlayers);
     });
 
     // FIX 1.1: setTimeout FORA do setGameData — lê evolvedPlayers capturado acima.
@@ -212,7 +149,7 @@ const useSquad = (gameData, setGameData, showToast, formatMoney) => {
             pendingLevel:    (prev.club.stadium?.level || 1) + 1,
           },
         },
-        financialHistory: [transaction, ...(prev.financialHistory || [])].slice(0, 50)
+        financialHistory: appendFinancialEntry(prev.financialHistory, transaction, { season: prev.season, round: prev.round, leagueRound: prev.leagueRound ?? prev.round, competition: 'stadium' })
       };
     });
     showToast('🏗️ Obras iniciadas! Conclusão em 4 rodadas.', 'success');

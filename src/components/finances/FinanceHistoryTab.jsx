@@ -34,7 +34,7 @@ export function FinanceHistoryTab({ history, formatMoney }) {
                   <Typography sx={{ color: C.txt1, fontWeight: 700, fontSize: '0.72rem', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                     {parsed.description}
                   </Typography>
-                  <Typography sx={{ color: C.txt3, fontSize: '0.54rem', mt: 0.1 }}>Rodada {entry?.round || '?'}</Typography>
+                  <Typography sx={{ color: C.txt3, fontSize: '0.54rem', mt: 0.1 }}>Temporada {entry?.season ?? 'legado'} · Rodada {entry?.leagueRound ?? entry?.round ?? '?'}</Typography>
                 </Box>
                 <Typography sx={{ color: parsed.positive ? C.green : C.red, fontWeight: 900, fontSize: '0.82rem', flexShrink: 0, ml: 0.8 }}>
                   {parsed.positive ? '+' : '-'}{formatMoney(Math.abs(parsed.value))}

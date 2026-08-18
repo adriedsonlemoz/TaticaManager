@@ -4,8 +4,7 @@ import { SETUP_PALETTE as P, SETUP_INPUT_STYLE as inputStyle, formatSetupMoney a
 import { SetupCardHeader, SetupNavRow, SetupSectionLabel, SetupShirt } from '../SetupUi.jsx';
 
 const SetupContractStep = ({
-  setupData, up, goCard, isCardValid, availableTeams, brand,
-  useExistingTeam, setUseExistingTeam, teamSearch, setTeamSearch,
+  setupData, up, goCard, isCardValid, brand,
   signing, setSigning, signed, setSigned, handleStartNewGame, savesList, setScreen,
 }) => {
     const b   = brand;
@@ -37,7 +36,7 @@ const SetupContractStep = ({
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <SetupCardHeader icon="✍️" step={6} title="Assinar Contrato" sub="REVISE TODOS OS DETALHES" />
+        <SetupCardHeader icon="✍️" step={5} title="Assinar Contrato" sub="REVISE TODOS OS DETALHES" />
 
         <Box sx={{ flex: 1, overflowY: 'auto', mb: 1 }}>
           <Box sx={{ bgcolor: P.surface, border: `1.5px solid ${P.border}`, borderRadius: '16px', overflow: 'hidden', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}>
@@ -61,8 +60,8 @@ const SetupContractStep = ({
                 { icon: '⚙️', label: 'DIFICULDADE', value: setupData.difficulty || 'Normal' },
                 { icon: '🎮', label: 'ESTILO',       value: `${STLS.find(s => s.id === setupData.managerStyle)?.icon || ''} ${setupData.managerStyle || 'Equilibrado'}` },
                 { icon: '📐', label: 'FORMAÇÃO',     value: setupData.managerFormation || '4-4-2' },
-                { icon: '🏟️', label: 'ESTÁDIO',      value: setupData.stadiumName || `Arena ${setupData.teamName}` },
-                { icon: '💰', label: 'ORÇAMENTO',    value: fmt(setupData.initialMoney) },
+                { icon: '🏟️', label: 'ESTÁDIO',      value: setupData.stadiumName || 'Não cadastrado' },
+                { icon: '💰', label: 'CAIXA INICIAL', value: fmt(setupData.initialMoney) },
                 { icon: '💾', label: 'SAVE',         value: `"${setupData.saveName}"` },
               ].map((row, i, arr) => (
                 <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.2, py: 0.7, borderBottom: i < arr.length - 1 ? `1px solid ${P.bg}` : 'none' }}>
@@ -102,7 +101,7 @@ const SetupContractStep = ({
         </Box>
 
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button onClick={() => goCard(5)} disabled={signing} sx={{ color: P.txt3, border: `1.5px solid ${P.border}`, borderRadius: '12px', fontWeight: 900, px: 2.5, minWidth: 80, bgcolor: 'transparent', '&:hover': { borderColor: P.green, color: P.green } }}>← Voltar</Button>
+          <Button onClick={() => goCard(4)} disabled={signing} sx={{ color: P.txt3, border: `1.5px solid ${P.border}`, borderRadius: '12px', fontWeight: 900, px: 2.5, minWidth: 80, bgcolor: 'transparent', '&:hover': { borderColor: P.green, color: P.green } }}>← Voltar</Button>
           <Button fullWidth disabled={signing} onClick={handleSign} sx={{ py: 1.5, fontWeight: 900, fontSize: '1.05rem', borderRadius: '12px', bgcolor: signing ? P.bg : P.green, color: signing ? P.txt3 : '#fff', boxShadow: signing ? 'none' : `0 4px 20px ${P.shadow}`, border: `1.5px solid ${signing ? P.border : P.green}`, '&:hover': { bgcolor: signing ? P.bg : P.greenDark }, transition: 'all 0.2s' }}>
             {signing ? '⌛ Assinando...' : '✍️ ASSINAR CONTRATO'}
           </Button>

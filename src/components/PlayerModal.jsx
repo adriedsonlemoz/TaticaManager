@@ -17,6 +17,7 @@ const PlayerModal = ({
   onSell,
   onUpdateShirt,
   onUpdateWage,
+  onRenewContract,
   formatMoney,
   showToast,
   currentRound,
@@ -68,6 +69,7 @@ const PlayerModal = ({
           allPlayers={allPlayers}
           formatMoney={formatMoney}
           onUpdateWage={onUpdateWage}
+          onRenewContract={onRenewContract}
           onClose={onClose}
           onSaved={() => setTab('info')}
         />

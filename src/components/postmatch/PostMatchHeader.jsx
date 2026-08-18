@@ -2,11 +2,12 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { THEME } from '../../theme.js';
 import { TeamIcon } from '../../data/database_branding.js';
+import { getMatchCompetitionLabel } from '../../engines/match/matchPresentationViewModel.js';
 
 const C = THEME;
 
 const PostMatchHeader = ({ gameData, matchResultData, liveScore, resultLabel, resultColor, matchDateStr }) => {
-  const { homeName, awayName, isCupMatch, cupLeg, cupLabel } = matchResultData;
+  const { homeName, awayName } = matchResultData;
 
   return (
     <Box sx={{
@@ -24,9 +25,7 @@ const PostMatchHeader = ({ gameData, matchResultData, liveScore, resultLabel, re
           <Typography sx={{ color: resultColor, fontWeight: 900, fontSize: '0.58rem', letterSpacing: 2 }}>{resultLabel}</Typography>
         </Box>
         <Typography sx={{ color: C.ink3, fontSize: '0.5rem', fontWeight: 700 }}>
-          {isCupMatch
-            ? `${cupLabel || '🏆 Copa'} · ${cupLeg === 'leg1' ? 'Jogo de Ida' : cupLeg === 'leg2' ? 'Jogo de Volta' : 'Jogo Único'}`
-            : `Série ${gameData?.serie} · Rod ${gameData?.round}`}
+          {getMatchCompetitionLabel(gameData, matchResultData)}
           {matchDateStr ? ` · ${matchDateStr}` : ''}
         </Typography>
       </Box>

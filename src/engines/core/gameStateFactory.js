@@ -1,113 +1,119 @@
 // Initial career/game-state factory.
 import { diexDatabase } from '../../data/database.js';
+import { getCareerSelectableClubs2026, resolveClub } from '../../data/clubCatalog.js';
+import { getTeamStadium } from '../../data/database_coaches.js';
 import { generatePlayer, generateSquad } from './playerFactory.js';
 import { generateFixtures, generateInitialTable } from './leagueEngine.js';
 
-const calcClubFinances = (serie, strength, overrideMoney) => {
-  if (overrideMoney !== undefined && overrideMoney !== null) {
-    const m = Math.max(10_000_000, Math.round(overrideMoney / 1_000_000) * 1_000_000);
-    return { money: m, budget: Math.round(m * 0.80 / 1_000_000) * 1_000_000 };
-  }
-  const configs = {
-    A: { base: 10_000_000, scale: 10_500_000, ref: 73 },
-    B: { base: 10_000_000, scale:  1_875_000, ref: 66 },
-    C: { base: 10_000_000, scale:    555_000, ref: 55 },
-    D: { base: 10_000_000, scale:    250_000, ref: 43 },
-  };
-  const cfg = configs[serie] || configs.B;
-  const raw    = cfg.base + (strength - cfg.ref) * cfg.scale;
-  const money  = Math.max(10_000_000, Math.round(raw / 1_000_000) * 1_000_000);
-  const budget = Math.round(money * 0.80 / 1_000_000) * 1_000_000;
-  return { money, budget };
-};
-
-
+// Nova carreira usa apenas clubes canônicos. Finanças personalizadas ficam reservadas
+// para uma futura criação de clubes próprios exclusivamente na Série D.
 
 // 🌟 ATUALIZADO: Motor para criar jogador aceitando dados reais 🌟
 
-const getInitialGameState = (teamName, managerName, serie = 'A', managerProfile = {}) => {
+const makeInvalidCareerClubError = (teamRef) => {
+  const error = new Error(`Clube inválido para nova carreira: ${String(teamRef ?? '')}`);
+  error.code = 'INVALID_CAREER_CLUB';
+  return error;
+};
+
+const getInitialGameState = (teamRef, managerName, legacySerieOrProfile = {}, maybeManagerProfile = {}) => {
   const db = diexDatabase;
+  const managerProfile = legacySerieOrProfile && typeof legacySerieOrProfile === 'object' && !Array.isArray(legacySerieOrProfile)
+    ? legacySerieOrProfile
+    : (maybeManagerProfile || {});
+  const dbTeam = resolveClub(teamRef);
+  const serie = String(dbTeam?.serie2026 || '').toUpperCase();
+  const hasCanonicalTeamId = Boolean(dbTeam?.id && String(teamRef ?? '') === String(dbTeam.id));
+  if (!dbTeam || !hasCanonicalTeamId || !['A','B','C','D'].includes(serie)) throw makeInvalidCareerClubError(teamRef);
 
-  // BUG FIX: incluir séries C e D na busca do time existente
-  const allDbTeams = [
-    ...(db.serieATeams || []), ...(db.serieBTeams || []),
-    ...(db.serieCTeams || []), ...(db.serieDTeams || []),
-  ];
-  const existingTeamId = allDbTeams.find(t => t.name === teamName)?.id || null;
+  // A identidade e a divisão vêm exclusivamente do catálogo canônico. Qualquer
+  // `serie` enviada pela interface ou por chamadas legadas é deliberadamente ignorada.
+  const teamName = dbTeam.name;
+  const existingTeamId = dbTeam.id;
+  const userStrength = dbTeam.strength || { A:78, B:70, C:60, D:50 }[serie] || 60;
+  const canonicalStadiumName = getTeamStadium(teamName) || null;
+  const userTeam = { id:'user', teamId:existingTeamId, name:teamName, strength:userStrength, isPlayer:true };
 
-  const strengthMap = { A: 78, B: 70, C: 60, D: 50 };
-  // Se for time real, usar money/budget do database; senão calcular pela série
-  const dbTeam = allDbTeams.find(t => t.name === teamName);
-  const userStrength = dbTeam?.strength || strengthMap[serie] || 60;
-  const userTeam = { id: 'user', name: teamName, strength: userStrength, isPlayer: true };
+  const poolA = (db.serieATeams || []).filter((team) => team.id !== existingTeamId)
+    .map((team) => ({ ...team, isPlayer:false, squad:generateSquad('A', team.name, team.strength, team.id) }));
+  const poolB = (db.serieBTeams || []).filter((team) => team.id !== existingTeamId)
+    .map((team) => ({ ...team, isPlayer:false, squad:generateSquad('B', team.name, team.strength, team.id) }));
+  const poolC = (db.serieCTeams || []).filter((team) => team.id !== existingTeamId)
+    .map((team) => ({ ...team, isPlayer:false, squad:generateSquad('C', team.name, team.strength, team.id) }));
+  const poolD = (db.serieDTeams || []).filter((team) => team.id !== existingTeamId)
+    .map((team) => ({ ...team, isPlayer:false, squad:generateSquad('D', team.name, team.strength, team.id) }));
 
-  const poolA = (db.serieATeams || []).filter(t => t.id !== existingTeamId)
-    .map(t => ({ ...t, isPlayer: false, squad: generateSquad('A', t.name, t.strength, t.id) }));
-  const poolB = (db.serieBTeams || []).filter(t => t.id !== existingTeamId)
-    .map(t => ({ ...t, isPlayer: false, squad: generateSquad('B', t.name, t.strength, t.id) }));
-  const poolC = (db.serieCTeams || []).filter(t => t.id !== existingTeamId)
-    .map(t => ({ ...t, isPlayer: false, squad: generateSquad('C', t.name, t.strength, t.id) }));
-  const poolD = (db.serieDTeams || []).filter(t => t.id !== existingTeamId)
-    .map(t => ({ ...t, isPlayer: false, squad: generateSquad('D', t.name, t.strength, t.id) }));
-
-  const allTeams = serie === 'A' ? [userTeam, ...poolA.slice(0, 19)]
-    : serie === 'B' ? [userTeam, ...poolB.slice(0, 19)]
-    : serie === 'C' ? [userTeam, ...poolC.slice(0, 19)]
-    : [userTeam, ...poolD.slice(0, 19)];
+  const selectedPool = serie === 'A' ? poolA : serie === 'B' ? poolB : serie === 'C' ? poolC : poolD;
+  const activeCpuPool = selectedPool.slice(0, 19);
+  const allTeams = [userTeam, ...activeCpuPool];
+  const leagues = {
+    A: serie === 'A' ? activeCpuPool : poolA,
+    B: serie === 'B' ? activeCpuPool : poolB,
+    C: serie === 'C' ? activeCpuPool : poolC,
+    D: serie === 'D' ? activeCpuPool : poolD,
+  };
+  const activeCpuIds = new Set(Object.values(leagues).flat().map((team) => String(team.id)));
+  const allSelectable = getCareerSelectableClubs2026();
+  const pyramidReserve = [poolA, poolB, poolC, poolD].flat()
+    .map(({ squad, ...team }) => team)
+    .concat(allSelectable.map((team) => ({ ...team, isPlayer:false })))
+    .filter((team, index, list) => {
+      const id = String(team?.id || '');
+      if (!id || id === existingTeamId || activeCpuIds.has(id)) return false;
+      return list.findIndex((candidate) => String(candidate?.id || '') === id) === index;
+    });
 
   const teamRosters = {};
-  allTeams.forEach(t => { if (t.squad) teamRosters[t.id] = t.squad; });
+  Object.values(leagues).flat().forEach((team) => { if (team.squad) teamRosters[team.id] = team.squad; });
 
-  const mktOvr = { A: 70, B: 63, C: 57, D: 50 }[serie] || 63;
+  const mktOvr = { A:70, B:63, C:57, D:50 }[serie] || 63;
+  const userPlayers = generateSquad(serie, teamName, { A:75, B:67, C:59, D:48 }[serie] || 67, 'user');
+  teamRosters.user = userPlayers;
 
   return {
-    season: 2026, serie, round: 0, morale: 60,
+    season:2026, serie, round:0, morale:60,
     club: {
-      name: teamName, manager: managerName,
+      teamId:existingTeamId,
+      name:teamName,
+      manager:managerName,
       managerProfile: {
-        age:                managerProfile.age        || 40,
-        nationality:        managerProfile.nationality || 'Brasileiro',
-        preferredFormation: managerProfile.formation   || '4-4-2',
-        style:              managerProfile.style       || 'Equilibrado',
-        experience: 0, wins: 0, draws: 0, losses: 0,
+        age:managerProfile.age || 40,
+        nationality:managerProfile.nationality || 'Brasileiro',
+        preferredFormation:managerProfile.formation || '4-4-2',
+        style:managerProfile.style || 'Equilibrado',
+        experience:0, wins:0, draws:0, losses:0,
       },
-      colorPrimary:   managerProfile.colorPrimary   || '#118a8b',
-      colorSecondary: managerProfile.colorSecondary || '#ffffff',
-      ...(() => {
-        // Times reais: usar money do database (se disponível); senão calcular pela série
-        // Times criados: respeitar initialMoney do setupData (slider do usuário)
-        const overrideMoney = dbTeam?.money != null ? null : managerProfile.initialMoney;
-        const base = dbTeam?.money
-          ? { money: dbTeam.money, budget: dbTeam.budget || Math.round(dbTeam.money * 0.80 / 1000) * 1000 }
-          : calcClubFinances(serie, userStrength, overrideMoney);
-        return { money: base.money, transferBudget: base.budget };
-      })(),
-      wage: 0,
-      formation: managerProfile.formation || '4-4-2',
-      sponsors: { master: null, stadium: null },
-      upgrades: {},
+      colorPrimary:managerProfile.colorPrimary || '#118a8b',
+      colorSecondary:managerProfile.colorSecondary || '#ffffff',
+      money:Number(dbTeam.money) || 0,
+      transferBudget:Number(dbTeam.budget) || Math.round((Number(dbTeam.money) || 0) * 0.80 / 1000) * 1000,
+      wage:userPlayers.reduce((sum, player) => sum + (Number(player.wage) || 0), 0),
+      formation:managerProfile.formation || '4-4-2',
+      sponsors:{ master:null, stadium:null },
+      upgrades:{},
       existingTeamId,
-      strength: userStrength,
-      // #64 Fidelidade da torcida — cresce com vitórias, cai com rebaixamento
-      fanLoyalty: dbTeam?.fanBase != null ? Math.round(dbTeam.fanBase * 100) : 50,
+      strength:userStrength,
+      fanLoyalty:dbTeam.fanBase != null ? Math.round(dbTeam.fanBase * 100) : 50,
       stadium: {
-        name: managerProfile.stadiumName || `Arena ${teamName}`,
-        capacity:    { A: 20000, B: 12000, C: 7000, D: 4000 }[serie] || 12000,
-        level: 1,
-        ticketPrice: { A: 50,    B: 30,    C: 20,   D: 12   }[serie] || 30,
+        name:canonicalStadiumName || 'Estádio não cadastrado',
+        capacity:{ A:20000, B:12000, C:7000, D:4000 }[serie] || 12000,
+        level:1,
+        ticketPrice:{ A:50, B:30, C:20, D:12 }[serie] || 30,
       },
     },
-    players:  generateSquad(serie, teamName, { A: 75, B: 67, C: 59, D: 48 }[serie] || 67),
-    teams:    allTeams,
+    players:userPlayers,
+    teams:allTeams,
     teamRosters,
-    table:    generateInitialTable(allTeams),
-    fixtures: generateFixtures(allTeams),
-    leagues:  { A: poolA, B: poolB, C: poolC, D: poolD },
-    market:   Array.from({ length: 15 }, () => {
-      const p = generatePlayer(null, 'Livre', mktOvr);
-      return p ? { ...p, teamName: 'Livre' } : null;
+    table:generateInitialTable(allTeams),
+    fixtures:generateFixtures(allTeams),
+    leagues,
+    pyramidReserve,
+    leaguePyramidVersion:1,
+    market:Array.from({ length:15 }, () => {
+      const player = generatePlayer(null, 'Livre', mktOvr);
+      return player ? { ...player, teamName:'Livre' } : null;
     }).filter(Boolean),
-    cups: null, scorers: {}, financialHistory: [],
+    cups:null, scorers:{}, financialHistory:[],
   };
 };
 

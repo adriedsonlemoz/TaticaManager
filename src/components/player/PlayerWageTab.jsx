@@ -1,7 +1,8 @@
 import React from 'react';
 import { Box, Button, Typography } from '@mui/material';
 import { THEME } from '../../theme.js';
-import { getContractLengthForWage, getRenewalOffer, validateWage } from '../../engines/player/playerProfileService.js';
+import { validateWage } from '../../engines/player/playerProfileService.js';
+import { calculateRenewalCost } from '../../engines/cpu/cpuContracts.js';
 
 const QUICK_WAGES = [
   { pct: 0.03, label: 'Baixo' },
@@ -10,7 +11,7 @@ const QUICK_WAGES = [
   { pct: 0.10, label: 'Estrela' },
 ];
 
-export default function PlayerWageTab({ player, allPlayers, formatMoney, onUpdateWage, onClose, onSaved }) {
+export default function PlayerWageTab({ player, allPlayers, formatMoney, onUpdateWage, onRenewContract, onClose, onSaved }) {
   const C = THEME;
   const [wageInput, setWageInput] = React.useState(String(player.wage || 0));
   const [wageError, setWageError] = React.useState('');
@@ -26,30 +27,31 @@ export default function PlayerWageTab({ player, allPlayers, formatMoney, onUpdat
       setWageError(parsed.error);
       return;
     }
+    const currentWage = Math.max(0, Number(player.wage) || 0);
+    if (parsed.value < currentWage) {
+      setWageError('O salário vigente não pode ser reduzido durante o contrato atual.');
+      return;
+    }
     const totalWage = (allPlayers || []).reduce((sum, candidate) => (
-      sum + (candidate.id === player.id ? parsed.value : (candidate.wage || 0))
+      sum + (String(candidate.id) === String(player.id) ? parsed.value : (Number(candidate.wage) || 0))
     ), 0);
-    // Mantém a regra histórica; o total pode ser usado futuramente para um aviso financeiro.
     void totalWage;
-    const contract = getContractLengthForWage(player, parsed.value);
-    onUpdateWage(player.id, parsed.value, contract);
+    onUpdateWage(player.id, parsed.value);
     setWageError('');
     onSaved?.();
   };
 
+  const renewalCost = calculateRenewalCost(player);
+  const canRenew = (Number(player.contract) || 0) <= 1;
   const handleRenew = () => {
-    const offer = getRenewalOffer(player);
-    const contract = getContractLengthForWage(player, offer.wage);
-    onUpdateWage(player.id, offer.wage, contract);
-    onClose();
+    if (!canRenew) return;
+    const renewed = onRenewContract?.(player.id);
+    if (renewed) onClose();
   };
 
-  const offer = getRenewalOffer(player);
-  const renewalLabel = offer.bonusPercent === 20
-    ? '🤝 RENOVAR (+20% bônus artilheiro)'
-    : offer.bonusPercent === 10
-      ? '🤝 RENOVAR (+10% bônus performance)'
-      : '🤝 RENOVAR CONTRATO';
+  const renewalLabel = canRenew
+    ? `🤝 RENOVAR CONTRATO · ${formatMoney(renewalCost)}`
+    : '✅ CONTRATO VÁLIDO';
 
   return (
     <Box sx={{ p: 2 }}>
@@ -101,7 +103,7 @@ export default function PlayerWageTab({ player, allPlayers, formatMoney, onUpdat
       </Box>
       {wageError && <Typography sx={{ color: C.red, fontWeight: 700, fontSize: '0.65rem', mb: 1 }}>{wageError}</Typography>}
 
-      <Button fullWidth variant="outlined" onClick={handleRenew} sx={{ mt: 1, py: 1.2, fontWeight: 900, color: C.green, borderColor: C.green, borderRadius: '8px', '&:hover': { bgcolor: 'rgba(50,168,82,0.1)' } }}>
+      <Button fullWidth variant="outlined" disabled={!canRenew} onClick={handleRenew} sx={{ mt: 1, py: 1.2, fontWeight: 900, color: C.green, borderColor: C.green, borderRadius: '8px', '&:hover': { bgcolor: 'rgba(50,168,82,0.1)' } }}>
         {renewalLabel}
       </Button>
     </Box>

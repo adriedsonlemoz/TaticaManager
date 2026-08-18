@@ -2,14 +2,17 @@ import React from 'react';
 import { generatePlayer } from '../engines/engine.js';
 import {
   MARKET_REFRESH_COST,
-  applyPlayerSale,
   createRefreshedMarket,
   enrichTransferPlayer,
   getMinimumAcceptedOffer,
   resolveNegotiationPlayer,
 } from '../engines/market/marketService.js';
+import { applyUserSale } from '../engines/market/transferTransactions.js';
+import { samePlayerId } from '../engines/market/marketIntegrity.js';
+import { setTransferListing } from '../engines/player/playerProfileService.js';
 import { buildMarketViewModel } from '../engines/market/marketViewModel.js';
 import { evaluateTransferPurchase } from '../engines/market/transferRules.js';
+import { appendFinancialEntry } from '../engines/finances/financeLedger.js';
 
 export default function useMarketController({ gameData, setGameData, buyPlayer, formatMoney, showToast }) {
   const [tab, setTabState] = React.useState('market');
@@ -28,8 +31,8 @@ export default function useMarketController({ gameData, setGameData, buyPlayer, 
 
   const selectedClub = view.allCpuTeams.find((team) => String(team.id) === String(selectedClubId)) || null;
   const storedRoster = selectedClub?.id != null ? gameData.teamRosters?.[selectedClub.id] : null;
-  const cpuRoster = Array.isArray(storedRoster) && storedRoster.length > 0 ? storedRoster : (selectedClub?.squad || []);
-  const isWatched = React.useCallback((id) => view.watchlist.some((item) => item.id === id), [view.watchlist]);
+  const cpuRoster = Array.isArray(storedRoster) ? storedRoster : (selectedClub?.squad || []);
+  const isWatched = React.useCallback((id) => view.watchlist.some((item) => samePlayerId(item, id)), [view.watchlist]);
 
   const setTab = React.useCallback((nextTab) => {
     setTabState(nextTab);
@@ -41,8 +44,8 @@ export default function useMarketController({ gameData, setGameData, buyPlayer, 
     event?.stopPropagation?.();
     setGameData((prev) => {
       const current = prev.watchlist || [];
-      if (current.some((item) => item.id === player.id)) {
-        return { ...prev, watchlist:current.filter((item) => item.id !== player.id) };
+      if (current.some((item) => samePlayerId(item, player))) {
+        return { ...prev, watchlist:current.filter((item) => !samePlayerId(item, player)) };
       }
       return {
         ...prev,
@@ -72,13 +75,12 @@ export default function useMarketController({ gameData, setGameData, buyPlayer, 
       ...prev,
       market:newMarket,
       club:{ ...prev.club, money:prev.club.money - MARKET_REFRESH_COST },
-      financialHistory:[{
-        round:prev.round,
+      financialHistory:appendFinancialEntry(prev.financialHistory, {
         income:0,
         expense:MARKET_REFRESH_COST,
         total:-MARKET_REFRESH_COST,
         detail:{ description:'Taxa: Atualização do Mercado' },
-      }, ...(prev.financialHistory || [])].slice(0, 50),
+      }, { season:prev.season, round:prev.round, leagueRound:prev.leagueRound ?? prev.round, competition:'market' }),
     }));
     showToast?.('Mercado atualizado com novos jogadores!', 'success');
     return true;
@@ -140,20 +142,27 @@ export default function useMarketController({ gameData, setGameData, buyPlayer, 
       showToast?.(`⚠️ ${player.name.split(' ')[0]} é titular. Remova da escalação antes de listar.`, 'warning');
       return false;
     }
-    setGameData((prev) => ({
-      ...prev,
-      players:(prev.players || []).map((item) => item.id === player.id ? { ...item, isListed:!item.isListed } : item),
-    }));
+    setGameData((prev) => setTransferListing(prev, player, !player.isListed));
     showToast?.(player.isListed ? `${player.name} removido da lista.` : `${player.name} colocado à venda!`, 'info');
     setSelected(null);
     return true;
   }, [setGameData, showToast]);
 
   const handleAcceptSell = React.useCallback((player, offerData) => {
-    setGameData((prev) => applyPlayerSale(prev, player, offerData));
+    const result = applyUserSale(gameData, player, offerData?.value, {
+      buyerTeamName: offerData?.team || null,
+      buyerTeamId: offerData?.teamId ?? null,
+      messageId: offerData?.msgId ?? null,
+    });
+    if (!result.ok) {
+      showToast?.(result.message || 'A proposta não pode mais ser concluída.', 'error');
+      return false;
+    }
+    setGameData(result.state);
     showToast?.(`${player.name} vendido por ${formatMoney(offerData.value)}!`, 'success');
     setSelected(null);
-  }, [setGameData, showToast, formatMoney]);
+    return true;
+  }, [gameData, setGameData, showToast, formatMoney]);
 
   return {
     tab,

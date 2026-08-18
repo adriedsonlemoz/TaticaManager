@@ -10,6 +10,7 @@ import {
   getSeasonProgress,
   normalizeScorerForTransfer,
 } from '../src/engines/table/tableViewModel.js';
+import { sortLeagueTable } from '../src/engines/core/leagueEngine.js';
 
 const tests = [];
 const test = (name, fn) => tests.push([name, fn]);
@@ -22,22 +23,22 @@ test('Série A mantém G4, pré-G6, Sul-Americana e Z4', () => {
   assert.equal(getLeagueZone(16, 'A').type, 'relegation');
 });
 
-test('Séries B/C/D preservam acesso e queda/corte', () => {
+test('Séries B/C preservam acesso/queda e D possui somente acesso', () => {
   assert.equal(getLeagueZone(0, 'B').label, 'Acesso Série A');
   assert.equal(getLeagueZone(16, 'B').label, 'Rebaixamento C');
   assert.equal(getLeagueZone(0, 'C').label, 'Acesso Série B');
   assert.equal(getLeagueZone(16, 'C').label, 'Rebaixamento D');
-  assert.equal(getLeagueZone(16, 'D').label, 'Zona de Corte');
+  assert.equal(getLeagueZone(16, 'D').type, 'neutral');
 });
 
 test('Movimento só aparece quando a temporada termina', () => {
   assert.equal(getSeasonMovement(0, 'B', false), null);
   assert.equal(getSeasonMovement(0, 'B', true).label, 'Acesso → Série A');
-  assert.equal(getSeasonMovement(16, 'D', true).label, 'Eliminado');
+  assert.equal(getSeasonMovement(16, 'D', true), null);
 });
 
-test('Progresso usa o tamanho real do calendário e fallback de 38 rodadas', () => {
-  assert.deepEqual(getSeasonProgress({ round: 2, fixtures: [1, 2, 3] }), { currentRound: 2, totalRounds: 3, isSeasonEnd: false });
+test('Progresso usa leagueRound quando calendário geral contém Copas', () => {
+  assert.deepEqual(getSeasonProgress({ round: 9, leagueRound: 2, fixtures: [1, 2, 3] }), { currentRound: 2, totalRounds: 3, isSeasonEnd: false });
   assert.deepEqual(getSeasonProgress({ round: 38, fixtures: [] }), { currentRound: 38, totalRounds: 38, isSeasonEnd: true });
 });
 
@@ -69,10 +70,12 @@ test('Artilheiros descartam formato numérico legado, ordenam e limitam', () => 
 });
 
 test('Status de compra respeita caixa e orçamento de transferências', () => {
-  const scorer = { id: '9', name: 'Centroavante', value: 1_000_000 };
-  assert.equal(getScorerPurchaseStatus({ club: { money: 500_000, transferBudget: 2_000_000 }, players: [] }, scorer).reason, 'cash');
-  assert.equal(getScorerPurchaseStatus({ club: { money: 2_000_000, transferBudget: 500_000 }, players: [] }, scorer).reason, 'budget');
-  assert.equal(getScorerPurchaseStatus({ club: { money: 2_000_000, transferBudget: 2_000_000 }, players: [] }, scorer).canBuy, true);
+  const scorer = { id: '9', name: 'Centroavante', value: 1_000_000, teamId: null, teamName: 'Livre' };
+  const market = [scorer];
+  assert.equal(getScorerPurchaseStatus({ club: { money: 500_000, transferBudget: 2_000_000 }, players: [], market }, scorer).reason, 'cash');
+  assert.equal(getScorerPurchaseStatus({ club: { money: 2_000_000, transferBudget: 500_000 }, players: [], market }, scorer).reason, 'budget');
+  assert.equal(getScorerPurchaseStatus({ club: { money: 2_000_000, transferBudget: 0 }, players: [], market }, scorer).reason, 'budget');
+  assert.equal(getScorerPurchaseStatus({ club: { money: 2_000_000, transferBudget: 2_000_000 }, players: [], market }, scorer).canBuy, true);
 });
 
 test('Jogador já pertencente ao clube não pode ser recomprado', () => {
@@ -99,6 +102,25 @@ test('View-model reúne classificação, legenda e artilharia', () => {
   assert.equal(vm.standings.length, 1);
   assert.equal(vm.legend.length, getLeagueLegend('A').length);
   assert.equal(vm.scorers[0].name, 'Atacante');
+});
+
+
+test('saldo de gols prevalece sobre confronto direto no desempate', () => {
+  const table = [
+    { id:'a', name:'A', pts:10, w:3, d:1, l:1, p:5, gf:9, ga:4 },
+    { id:'b', name:'B', pts:10, w:3, d:1, l:1, p:5, gf:8, ga:5 },
+  ];
+  const fixtures = [[{ home:{id:'b'}, away:{id:'a'}, played:true, result:'2-0' }]];
+  assert.equal(sortLeagueTable(table, fixtures)[0].id, 'a');
+});
+
+test('gols pró prevalecem sobre confronto direto quando saldo também empata', () => {
+  const table = [
+    { id:'a', name:'A', pts:10, w:3, d:1, l:1, p:5, gf:10, ga:6 },
+    { id:'b', name:'B', pts:10, w:3, d:1, l:1, p:5, gf:9, ga:5 },
+  ];
+  const fixtures = [[{ home:{id:'b'}, away:{id:'a'}, played:true, result:'3-0' }]];
+  assert.equal(sortLeagueTable(table, fixtures)[0].id, 'a');
 });
 
 let passed = 0;

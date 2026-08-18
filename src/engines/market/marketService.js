@@ -1,6 +1,9 @@
 // Regras puras do mercado. Mantém ScreenMarket focado em estado e apresentação.
 
 import { getTransferFunds } from './transferRules.js';
+import { appendFinancialEntry } from '../finances/financeLedger.js';
+import { applyUserSale } from './transferTransactions.js';
+import { samePlayerId } from './marketIntegrity.js';
 
 export const MARKET_REFRESH_COST = 200000;
 
@@ -11,14 +14,32 @@ export function getMarketOverallRange(serie = 'A') {
   return { min: 48, max: 56 };
 }
 
-export function createRefreshedMarket(gameData, playerFactory) {
+export function createRefreshedMarket(gameData, playerFactory, rng = Math.random) {
   const { min, max } = getMarketOverallRange(gameData.serie || 'A');
-  const count = gameData.market?.length || 15;
-  return Array.from({ length: count }, () => {
-    const overall = min + Math.floor(Math.random() * (max - min + 1));
+  // Atletas liberados por clubes são patrimônio do save, não resultados de uma
+  // busca descartável. Uma atualização substitui apenas a vitrine gerada.
+  const preserved = (gameData.market || []).filter((player) => Boolean(player?.previousTeam));
+  const seen = new Set(preserved.map((player) => player?.id == null ? null : String(player.id)).filter(Boolean));
+  const generated = [];
+  let attempts = 0;
+  while (generated.length < 15 && attempts < 100) {
+    attempts += 1;
+    const overall = min + Math.floor(rng() * (max - min + 1));
     const player = playerFactory?.(null, 'Livre', overall) || null;
-    return player ? { ...player, teamName: 'Livre' } : null;
-  }).filter(Boolean);
+    const key = player?.id == null ? null : String(player.id);
+    if (!player || !key || seen.has(key)) continue;
+    seen.add(key);
+    generated.push({
+      ...player,
+      teamName: 'Livre',
+      teamId: null,
+      originTeamId: null,
+      originTeamName: null,
+      isStarting: false,
+      isListed: true,
+    });
+  }
+  return [...preserved, ...generated];
 }
 
 const MARKET_POSITION_ALIASES = Object.freeze({
@@ -78,7 +99,10 @@ export function enrichTransferPlayer(gameData, player, finalPrice) {
   const originTeamId = player.teamId ?? originTeam?.id ?? null;
   return {
     ...player,
-    value: finalPrice,
+    // O preço negociado é o custo da operação, não o valor de mercado do atleta.
+    // Mantê-los separados evita desvalorizar o jogador ao fechar uma proposta menor.
+    value: Math.max(0, Number(player.value) || 0),
+    agreedTransferFee: Math.max(0, Number(finalPrice) || 0),
     originTeamName,
     originTeamId,
     teamId: originTeamId,
@@ -88,7 +112,7 @@ export function enrichTransferPlayer(gameData, player, finalPrice) {
 
 export function resolveNegotiationPlayer(gameData, stalePlayer) {
   if (stalePlayer.teamName === 'Livre') {
-    return (gameData.market || []).find(player => player.id === stalePlayer.id) || null;
+    return (gameData.market || []).find(player => samePlayerId(player, stalePlayer)) || null;
   }
   const allTeams = [
     ...(gameData.teams || []), ...(gameData.leagues?.A || []), ...(gameData.leagues?.B || []),
@@ -98,7 +122,7 @@ export function resolveNegotiationPlayer(gameData, stalePlayer) {
   const roster = team?.id != null && Array.isArray(gameData.teamRosters?.[team.id])
     ? gameData.teamRosters[team.id]
     : (team?.squad || []);
-  return roster.find(player => player.id === stalePlayer.id) || null;
+  return roster.find(player => samePlayerId(player, stalePlayer)) || null;
 }
 
 export function getMinimumAcceptedOffer(player) {
@@ -106,66 +130,28 @@ export function getMinimumAcceptedOffer(player) {
 }
 
 export function applyPlayerSale(state, player, offerData) {
-  const updatedPlayers = (state.players || []).filter(item => item.id !== player.id);
-  const transaction = {
-    round: state.round, income: offerData.value, expense: 0, total: offerData.value,
-    detail: { description: `Venda: ${player.name} → ${offerData.team}` },
-  };
-  const allTeams = [
-    ...(state.teams || []),
-    ...(state.leagues?.A || []), ...(state.leagues?.B || []),
-    ...(state.leagues?.C || []), ...(state.leagues?.D || []),
-  ];
-  const buyerTeam = allTeams.find(team => team.name === offerData.team) || null;
-  const playerForCPU = {
-    ...player,
-    teamName: offerData.team,
-    teamId: buyerTeam?.id ?? player.teamId ?? null,
-    isStarting: false,
-    isListed: false,
-  };
-  const updateSquad = teams => (teams || []).map(team =>
-    team.name === offerData.team
-      ? { ...team, squad: [...(team.squad || []).filter(item => item.id !== player.id), playerForCPU] }
-      : team
-  );
-  const updatedRosters = { ...(state.teamRosters || {}) };
-  if (buyerTeam?.id) {
-    const currentRoster = updatedRosters[buyerTeam.id] || buyerTeam.squad || [];
-    updatedRosters[buyerTeam.id] = [
-      ...currentRoster.filter(item => item.id !== player.id), playerForCPU,
-    ];
-  }
-  if (updatedRosters.user) updatedRosters.user = updatedRosters.user.filter(item => item.id !== player.id);
-  return {
-    ...state,
-    players: updatedPlayers,
-    club: {
-      ...state.club,
-      money: (state.club?.money || 0) + offerData.value,
-      transferBudget: (state.club?.transferBudget || 0) + offerData.value,
-      wage: Math.max(0, (state.club?.wage || 0) - (player.wage || 0)),
-    },
-    financialHistory: [transaction, ...(state.financialHistory || [])].slice(0, 50),
-    inbox: (state.inbox || []).filter(message => message.id !== offerData.msgId),
-    teamRosters: updatedRosters,
-    teams: updateSquad(state.teams),
-    leagues: {
-      ...(state.leagues || {}),
-      A: updateSquad(state.leagues?.A),
-      B: updateSquad(state.leagues?.B),
-      C: updateSquad(state.leagues?.C),
-      D: updateSquad(state.leagues?.D),
-    },
-  };
+  const result = applyUserSale(state, player, offerData?.value, {
+    buyerTeamName: offerData?.team || null,
+    buyerTeamId: offerData?.teamId ?? null,
+    messageId: offerData?.msgId ?? null,
+  });
+  return result.ok ? result.state : state;
 }
+
+export function getPlayerSaleOffers(inbox, playerId) {
+  return (inbox || [])
+    .filter(item => item.actionData?.type === 'sell' && samePlayerId(item.actionData?.player, playerId))
+    .map(message => ({
+      team: message.from || message.sender,
+      teamId: message.actionData?.teamId ?? null,
+      value: Math.max(0, Number(message.actionData?.value) || 0),
+      msgId: message.id,
+    }))
+    .sort((a, b) => b.value - a.value || String(a.msgId).localeCompare(String(b.msgId)));
+}
+
 export function findPlayerSaleOffer(inbox, playerId) {
-  const message = (inbox || []).find(item =>
-    item.actionData?.type === 'sell' && item.actionData?.player?.id === playerId
-  );
-  return message
-    ? { team: message.from || message.sender, value: message.actionData.value, msgId: message.id }
-    : null;
+  return getPlayerSaleOffers(inbox, playerId)[0] || null;
 }
 
 export function groupPlayersForSale(players, inbox) {
@@ -175,13 +161,13 @@ export function groupPlayersForSale(players, inbox) {
   const offerIds = new Set(
     (inbox || [])
       .filter(item => item.actionData?.type === 'sell')
-      .map(item => item.actionData?.player?.id)
+      .map(item => item.actionData?.player?.id == null ? null : String(item.actionData.player.id))
   );
 
   [...(players || [])]
     .sort((a, b) => (b.overall || 0) - (a.overall || 0))
     .forEach(player => {
-      if (offerIds.has(player.id)) withOffer.push(player);
+      if (offerIds.has(player.id == null ? null : String(player.id))) withOffer.push(player);
       else if (player.isListed) listed.push(player);
       else rest.push(player);
     });
@@ -222,12 +208,12 @@ export function buildScoutAnalysis(gameData) {
     ...(gameData.leagues?.B || []).flatMap(team => team.squad || []),
     ...(gameData.leagues?.C || []).flatMap(team => team.squad || []),
     ...(gameData.leagues?.D || []).flatMap(team => team.squad || []),
-  ].filter(player => player && player.id && player.overall).map(player => [player.id, player])).values());
+  ].filter(player => player && player.id && player.overall).map(player => [String(player.id), player])).values());
 
-  const ownedIds = new Set(myPlayers.map(player => player.id));
+  const ownedIds = new Set(myPlayers.map(player => String(player.id)));
   const budget = getTransferFunds(gameData).available;
   const recommendations = allSources
-    .filter(player => !ownedIds.has(player.id))
+    .filter(player => !ownedIds.has(String(player.id)))
     .map(player => {
       let score = 0;
       const positionUrgency = weakPos.indexOf(player.position);
@@ -257,8 +243,8 @@ export function getWatchlistPlayerState(gameData, watchItem) {
     ...(gameData.leagues?.B || []).flatMap(team => team.squad || []),
     ...(gameData.leagues?.C || []).flatMap(team => team.squad || []),
     ...(gameData.leagues?.D || []).flatMap(team => team.squad || []),
-  ].find(player => player?.id === watchItem.id);
-  const isOwned = (gameData.players || []).some(player => player.id === watchItem.id);
+  ].find(player => samePlayerId(player, watchItem));
+  const isOwned = (gameData.players || []).some(player => samePlayerId(player, watchItem));
   const price = Number(live?.value ?? watchItem.value) || 0;
   const funds = getTransferFunds(gameData);
   const afford = funds.cash >= price && (!funds.budgetLimited || funds.transferBudget >= price);

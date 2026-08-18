@@ -1,4 +1,4 @@
-export const SETUP_TOTAL_STEPS = 6;
+export const SETUP_TOTAL_STEPS = 5;
 
 export const SETUP_PALETTE = {
   bg: '#f2f7f4', surface: '#ffffff', border: '#ddeae3', green: '#10b981',

@@ -1,8 +1,11 @@
 import { CalendarEngine } from '../CalendarEngine.js';
 import { CupsEngine } from '../cups_engine.js';
-import { DisciplineEngine } from '../engine_discipline.js';
-import { FatigueEngine } from '../engine_fatigue.js';
+import { appendCupPrizeToEvents, getCupPrizeDelta } from '../cups/cupPrizeAccounting.js';
 import { FinanceEngine } from '../engine_finances.js';
+import { appendFinancialEntry } from '../finances/financeLedger.js';
+import { syncUserRosterState } from '../core/gameStateIntegrity.js';
+import { processMatchPlayers, preparePostMatchPlayers } from './matchPlayerPostProcessor.js';
+import { buildManagerProfile, isUserMatchTeam, updateHeadToHead } from './matchStateUtils.js';
 import { simulateMatch } from './matchSimulator.js';
 
 export function simulateCupRound({ gameData, calendarEntry, tactics, starters }) {
@@ -13,10 +16,17 @@ export function simulateCupRound({ gameData, calendarEntry, tactics, starters })
   const isLeg2 = calendarEntry.leg === 'leg2';
   const cupHome = isLeg2 ? tie.away : tie.home;
   const cupAway = isLeg2 ? tie.home : tie.away;
-  const userIsHome = Boolean(cupHome?.isPlayer);
+  const clubName = gameData.club?.name || '';
+  const detectedHome = isUserMatchTeam(cupHome, clubName);
+  const detectedAway = isUserMatchTeam(cupAway, clubName);
+  if (detectedHome === detectedAway) {
+    return { inactive: false, identityError: true };
+  }
+  const userIsHome = detectedHome;
+  const userIsAway = detectedAway;
   const match = {
-    home: { ...cupHome, id: cupHome?.isPlayer ? 'user' : cupHome?.id, isPlayer: userIsHome },
-    away: { ...cupAway, id: cupAway?.isPlayer ? 'user' : cupAway?.id, isPlayer: !userIsHome },
+    home: { ...cupHome, id: userIsHome ? 'user' : cupHome?.id, isPlayer: userIsHome },
+    away: { ...cupAway, id: userIsAway ? 'user' : cupAway?.id, isPlayer: userIsAway },
     _isLeg2: isLeg2,
     _cpuAggrDiff: (() => {
       if (!isLeg2 || !tie.leg1?.played) return 0;
@@ -35,23 +45,32 @@ export function simulateCupRound({ gameData, calendarEntry, tactics, starters })
     attendance = finances.attendance;
     ticketIncome = finances.ticketRevenue;
   }
-  attendance = Math.min(attendance, gameData.club?.stadium?.capacity || 15000);
 
   const userMatchData = {
     ...result,
+    userIsHome,
     homeName: match.home?.name || cupHome?.name,
     awayName: match.away?.name || cupAway?.name,
+    homeId: match.home?.id,
+    awayId: match.away?.id,
+    homeIsPlayer: Boolean(match.home?.isPlayer),
+    awayIsPlayer: Boolean(match.away?.isPlayer),
     attendance,
     income: ticketIncome,
     isCupMatch: true,
     cupLabel: info.label,
     cupPhase: calendarEntry.phase,
     cupLeg: calendarEntry.leg,
+    leagueRound: gameData.leagueRound ?? 0,
+    calendarRound: (gameData.round || 0) + 1,
+    preMatchTable: (gameData.table || []).map((row) => ({ ...row })),
   };
 
-  const cupEvents = [];
+  let cupEvents = [];
   const cupKey = calendarEntry.cupKey;
   let cups = { ...(gameData.cups || {}) };
+  const beforeCup = cups[cupKey];
+
   if (cupKey === 'copaBrasil') {
     cups = {
       ...cups,
@@ -68,11 +87,13 @@ export function simulateCupRound({ gameData, calendarEntry, tactics, starters })
       cupEvents.push({ cup: 'Copa do Brasil', msg: `Pênaltis: ${penalties.home} × ${penalties.away}`, color: '#00695c', earned: 0 });
     }
     if (after.status === 'champion') {
-      cupEvents.push({ cup: 'Copa do Brasil', msg: '🏆 CAMPEÕES DA COPA DO BRASIL!', color: '#00695c', earned: CupsEngine.COPA_PRIZES?.['Campeão'] || 73400000 });
+      cupEvents.push({ cup: 'Copa do Brasil', msg: '🏆 CAMPEÕES DA COPA DO BRASIL!', color: '#00695c', earned: 0 });
     } else if (after.status === 'eliminated') {
-      cupEvents.push({ cup: 'Copa do Brasil', msg: 'Eliminados da Copa do Brasil.', color: '#b71c1c', earned: info.tie?.prize || 0 });
+      cupEvents.push({ cup: 'Copa do Brasil', msg: 'Eliminados da Copa do Brasil.', color: '#b71c1c', earned: 0 });
     } else if (calendarEntry.leg === 'leg1') {
       cupEvents.push({ cup: 'Copa do Brasil', msg: `${after.phaseLabel} — Jogo de Ida jogado.`, color: '#00695c', earned: 0 });
+    } else if (beforeCup?.phaseLabel !== after?.phaseLabel) {
+      cupEvents.push({ cup: 'Copa do Brasil', msg: `Classificados para ${after.phaseLabel}.`, color: '#00695c', earned: 0 });
     }
   } else {
     cups = {
@@ -82,38 +103,33 @@ export function simulateCupRound({ gameData, calendarEntry, tactics, starters })
         : CupsEngine.registerKnockoutLegResult(cups[cupKey], calendarEntry.leg, result.homeGoals, result.awayGoals, info.prizeMap, info.scheduleMap),
     };
     const after = cups[cupKey];
+    const color = cupKey === 'sulAmericana' ? '#b71c1c' : '#1a237e';
     if (after?.status === 'champion') {
-      cupEvents.push({ cup: info.label, msg: `🏆 CAMPEÕES DA ${info.label.toUpperCase()}!`, color: '#1a237e', earned: info.prizeMap?.['Campeão'] || 0 });
+      cupEvents.push({ cup: info.label, msg: `🏆 CAMPEÕES DA ${info.label.toUpperCase()}!`, color, earned: 0 });
     } else if (after?.status === 'eliminated') {
       cupEvents.push({ cup: info.label, msg: `Eliminados da ${info.label}.`, color: '#b71c1c', earned: 0 });
+    } else if (beforeCup?.phase === 'group' && after?.phase === 'knockout') {
+      cupEvents.push({ cup: info.label, msg: 'Classificados às Oitavas de Final!', color, earned: 0 });
     } else if (calendarEntry.leg === 'leg1') {
-      cupEvents.push({ cup: info.label, msg: 'Jogo de Ida jogado.', color: '#1a237e', earned: 0 });
+      cupEvents.push({ cup: info.label, msg: info.isGroup ? 'Jogo da fase de grupos concluído.' : 'Jogo de Ida jogado.', color, earned: 0 });
+    } else if (beforeCup?.phaseLabel !== after?.phaseLabel) {
+      cupEvents.push({ cup: info.label, msg: `Classificados para ${after.phaseLabel}.`, color, earned: 0 });
     }
   }
 
-  let players = [...(gameData.players || [])];
-  if (DisciplineEngine?.clearSuspensionAndResetCards) {
-    players = DisciplineEngine.clearSuspensionAndResetCards(players, (gameData.round || 0) + 1);
-  }
-  if (DisciplineEngine?.processMatchDisciplineEvents) {
-    players = DisciplineEngine.processMatchDisciplineEvents(
-      players,
-      userMatchData.events || [],
-      (gameData.round || 0) + 1,
-      (result.rawEvents || []).filter((event) => event.isPlayer),
-    );
-  }
-  if (FatigueEngine?.applyMatchFatigue) {
-    const myGoals = userIsHome ? result.homeGoals : result.awayGoals;
-    const oppGoals = userIsHome ? result.awayGoals : result.homeGoals;
-    players = FatigueEngine.applyMatchFatigue(players, myGoals, oppGoals);
-  }
+  const cupPrizeDelta = getCupPrizeDelta(beforeCup, cups[cupKey]);
+  const prizeColor = cupKey === 'copaBrasil' ? '#00695c' : cupKey === 'sulAmericana' ? '#b71c1c' : '#1a237e';
+  cupEvents = appendCupPrizeToEvents(cupEvents, {
+    cup: cupKey === 'copaBrasil' ? 'Copa do Brasil' : info.label,
+    color: prizeColor,
+    earned: cupPrizeDelta,
+  });
 
-  const cupEarned = cupEvents.reduce((sum, event) => sum + (event.earned || 0), 0);
-  const wage = players.reduce((sum, player) => sum + (player.wage || 0), 0);
-  const operationalCost = (((gameData.round || 0) + 1) % 4 === 0 && FinanceEngine?.getOperationalCosts)
-    ? FinanceEngine.getOperationalCosts(gameData)
-    : 0;
+  const cupEarned = cupPrizeDelta;
+  const wage = (Array.isArray(gameData.players) ? gameData.players : []).reduce((sum, player) => sum + (player?.wage || 0), 0);
+  // Custos operacionais pertencem ao ciclo da Liga (a cada 4 rodadas) e não
+  // devem ser cobrados novamente quando um slot de Copa cai no mesmo período.
+  const operationalCost = 0;
   const income = ticketIncome + cupEarned;
   const expense = wage + operationalCost;
 
@@ -124,32 +140,39 @@ export function simulateCupRound({ gameData, calendarEntry, tactics, starters })
     allRawEvents: result.rawEvents || [],
     cups,
     cupEvents,
-    players,
     finance: { ticketIncome, cupEarned, wage, operationalCost, income, expense },
   };
 }
 
-export function buildCupPostMatchState(gameData, cupRound) {
+export function buildCupPostMatchState(gameData, cupRound, { liveSubstitutions = [], rng = Math.random } = {}) {
   const { userMatchData, userIsHome, finance } = cupRound;
+  const processedPlayers = processMatchPlayers({
+    gameData,
+    userMatchData,
+    allRawEvents: cupRound.allRawEvents || [],
+    liveSubstitutions,
+    rng,
+  });
+  const players = preparePostMatchPlayers(gameData, processedPlayers, {}, rng);
   const myGoals = userIsHome ? (userMatchData.homeGoals || 0) : (userMatchData.awayGoals || 0);
   const oppGoals = userIsHome ? (userMatchData.awayGoals || 0) : (userMatchData.homeGoals || 0);
   const diff = myGoals - oppGoals;
   const loyaltyDelta = diff > 0 ? (diff >= 3 ? 2 : 1) : diff < 0 ? (diff <= -3 ? -2 : -1) : 0;
 
-  return {
+  return syncUserRosterState({
     ...gameData,
     round: (gameData.round || 0) + 1,
     cups: cupRound.cups,
-    players: cupRound.players,
+    h2hHistory: updateHeadToHead(gameData.h2hHistory, gameData.club?.name, userMatchData),
     club: {
       ...(gameData.club || {}),
       money: (gameData.club?.money || 0) + finance.income - finance.expense,
       wage: finance.wage,
       fanLoyalty: Math.max(5, Math.min(100, (gameData.club?.fanLoyalty ?? 50) + loyaltyDelta)),
+      managerProfile: buildManagerProfile(gameData.club?.managerProfile, gameData.club?.name, userMatchData),
     },
     inbox: (gameData.inbox || []).filter((message) => message?.id),
-    financialHistory: [{
-      round: (gameData.round || 0) + 1,
+    financialHistory: appendFinancialEntry(gameData.financialHistory, {
       income: finance.income,
       expense: finance.expense,
       total: finance.income - finance.expense,
@@ -160,7 +183,13 @@ export function buildCupPostMatchState(gameData, cupRound) {
         sponsor: 0,
         wage: finance.wage,
         opCost: finance.operationalCost,
+        isHome: Boolean(userIsHome),
       },
-    }, ...(gameData.financialHistory || [])].slice(0, 100),
-  };
+    }, {
+      season: gameData.season,
+      round: (gameData.round || 0) + 1,
+      leagueRound: gameData.leagueRound ?? 0,
+      competition: 'cup',
+    }),
+  }, players);
 }

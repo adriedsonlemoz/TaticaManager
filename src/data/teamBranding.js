@@ -2,6 +2,7 @@
 // teamBranding.js — Cores primárias/secundárias de todos os times
 // Para logos reais e estádios, ver database_branding.js
 import React from 'react';
+import { resolveClub } from './clubCatalog.js';
 
 export const teamBranding = {
 
@@ -92,10 +93,40 @@ export const teamBranding = {
   "Nacional AM":   { primary: '#E30613', secondary: '#000000' },
   "Humaitá":       { primary: '#006437', secondary: '#FFFFFF' },
   "Plácido Castro":{ primary: '#E30613', secondary: '#FFFFFF' },
+  // ── CLUBES 2026 ADICIONAIS / NOMES CANÔNICOS ──
+  "Vitória":             { primary: '#E30613', secondary: '#000000' },
+  "América-MG":          { primary: '#006437', secondary: '#FFFFFF' },
+  "Anápolis":            { primary: '#0057A8', secondary: '#FFFFFF' },
+  "Barra-SC":            { primary: '#0038A8', secondary: '#F7B500' },
+  "Inter de Limeira":    { primary: '#000000', secondary: '#FFFFFF' },
+  "Itabaiana":           { primary: '#0038A8', secondary: '#E30613' },
+  "Maranhão":            { primary: '#E30613', secondary: '#F7B500' },
+  "Santa Cruz":          { primary: '#E30613', secondary: '#000000' },
+  "Ypiranga-RS":         { primary: '#006437', secondary: '#F7B500' },
+  "Gama":                { primary: '#006437', secondary: '#FFFFFF' },
+  "Uberlândia":          { primary: '#006437', secondary: '#FFFFFF' },
+  "ASA":                 { primary: '#000000', secondary: '#FFFFFF' },
+  "São José-RS":         { primary: '#0038A8', secondary: '#FFFFFF' },
+  "Goiatuba":            { primary: '#0038A8', secondary: '#FFFFFF' },
+  "Luverdense":          { primary: '#006437', secondary: '#FFFFFF' },
+  "Portuguesa-SP":       { primary: '#E30613', secondary: '#006437' },
+  "São Luiz-RS":         { primary: '#E30613', secondary: '#FFFFFF' },
+  "Cianorte":            { primary: '#F7B500', secondary: '#000000' },
+  "América-RN":          { primary: '#E30613', secondary: '#FFFFFF' },
+
 };
 
-export const getTeamBranding = (name) =>
-  teamBranding[name] || { primary: '#374151', secondary: '#FFFFFF' };
+const brandCandidates = (name) => {
+  const club = resolveClub(name);
+  return club ? [club.name, ...(club.aliases || []), name] : [name];
+};
+
+export const getTeamBranding = (name) => {
+  for (const key of brandCandidates(name)) {
+    if (teamBranding[key]) return teamBranding[key];
+  }
+  return { primary: '#374151', secondary: '#FFFFFF' };
+};
 
 export const TeamIcon = ({ name, size = 40 }) => {
   const brand = getTeamBranding(name);

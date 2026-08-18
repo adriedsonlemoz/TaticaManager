@@ -10,7 +10,7 @@ const TABS = [
 ];
 
 export function FinanceHeader({ gameData, overview, formatMoney, currentTab, onTabChange }) {
-  const { totalWage, estimatedBalance, status } = overview;
+  const { totalWage, estimatedBalance, status, currentLeagueRound } = overview;
   const riskColor = status?.status === 'critico'
     ? C.red
     : status?.status === 'alerta'
@@ -56,7 +56,7 @@ export function FinanceHeader({ gameData, overview, formatMoney, currentTab, onT
           ))}
         </Box>
 
-        {(gameData?.round || 0) > 30 && (
+        {currentLeagueRound > 30 && (
           <Box sx={{ mt: 0.8, bgcolor: `${C.yellow}10`, border: `1px solid ${C.yellow}30`, borderRadius: '8px', px: 1.2, py: 0.6, display: 'flex', alignItems: 'center', gap: 0.7 }}>
             <Typography sx={{ fontSize: '0.8rem' }}>📈</Typography>
             <Typography sx={{ color: C.yellow, fontWeight: 700, fontSize: '0.58rem' }}>
@@ -74,7 +74,9 @@ export function FinanceHeader({ gameData, overview, formatMoney, currentTab, onT
           <Box sx={{ flex: 1 }}>
             <Typography sx={{ color: riskColor, fontWeight: 900, fontSize: '0.72rem', lineHeight: 1 }}>{status.label}</Typography>
             <Typography sx={{ color: C.txt2, fontSize: '0.58rem', fontWeight: 700, mt: 0.2 }}>
-              Saldo cobre aprox. {status.runway} rodada{status.runway !== 1 ? 's' : ''} de despesas recorrentes
+              {status.runway >= 999
+                ? 'Receitas fixas cobrem os custos recorrentes, mas o caixa atual exige atenção.'
+                : `Saldo cobre aprox. ${status.runway} rodada${status.runway !== 1 ? 's' : ''} do déficit recorrente.`}
             </Typography>
           </Box>
         </Box>

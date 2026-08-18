@@ -13,6 +13,7 @@ import { advanceUserRoster } from '../src/engines/season/seasonRoster.js';
 import { buildDifficultyProgression, buildNextSeasonClub, nextSeasonMoney } from '../src/engines/season/seasonClub.js';
 import { generateNextSeason } from '../src/engines/core/seasonEngine.js';
 import { prepareSeasonTransition } from '../src/engines/season/seasonTransitionService.js';
+import { buildLeagueScheduleReport, generateFixtures, generateInitialTable, rebuildLeagueTable } from '../src/engines/core/leagueEngine.js';
 
 let passed = 0;
 const test = (name, fn) => {
@@ -87,6 +88,7 @@ test('objetivo meio de tabela falha abaixo de 14º', () => assert.equal(evaluate
 test('objetivo sobreviver passa em 16º', () => assert.equal(evaluateSeasonObjective({ objective: 'survive', serie: 'A', position: 16 }).success, true));
 test('objetivo sobreviver falha no Z4', () => assert.equal(evaluateSeasonObjective({ objective: 'survive', serie: 'A', position: 17 }).success, false));
 test('objetivo incompatível de acesso na Série A não demite', () => assert.equal(evaluateSeasonObjective({ objective: 'promotion', serie: 'A', position: 20 }).applicable, false));
+test('objetivo sobreviver na Série D é legado não aplicável porque não existe divisão abaixo', () => assert.equal(evaluateSeasonObjective({ objective: 'survive', serie: 'D', position: 20 }).applicable, false));
 
 // Calendário completo precisa terminar, não apenas a Liga.
 test('fim da Liga não encerra temporada se ainda há Copa no calendário', () => assert.equal(isSeasonScheduleComplete(baseState({ calendar: Array.from({ length: 40 }, () => ({})), round: 38 })), false));
@@ -181,6 +183,81 @@ test('generateNextSeason renova orçamento de transferências', () => {
   const next = generateNextSeason(baseState());
   assert.equal(next.club.transferBudget, Math.round(next.club.money * 0.8 / 1000) * 1000);
 });
+test('jogador do usuário que vence contrato vira agente livre na nova temporada', () => {
+  const state = baseState();
+  state.players[0] = { ...state.players[0], contract: 1 };
+  state.teamRosters = { user: state.players };
+  const expiredId = state.players[0].id;
+  const next = generateNextSeason(state);
+  assert.equal(next.players.some((player) => player.id === expiredId), false);
+  const free = next.market.find((player) => player.id === expiredId);
+  assert.ok(free);
+  assert.equal(free.teamId, null);
+  assert.equal(free.teamName, 'Livre');
+  assert.deepEqual(next.teamRosters.user.map((player) => player.id), next.players.map((player) => player.id));
+});
+
+test('virada não descarta agentes livres quando mais de 15 contratos vencem', () => {
+  const state = baseState();
+  state.players = state.players.map((player) => ({ ...player, contract: 1 }));
+  state.teamRosters = { user: state.players };
+  const expiredIds = new Set(state.players.map((player) => player.id));
+  const next = generateNextSeason(state);
+  const releasedIds = new Set(next.market.map((player) => player.id));
+  assert.equal(next.market.length >= expiredIds.size, true);
+  expiredIds.forEach((id) => assert.equal(releasedIds.has(id), true));
+});
+
+test('transferência CPU persiste na virada e contrato avança uma temporada', () => {
+  const state = baseState();
+  const roster = Array.from({ length:20 }, (_, index) => ({
+    ...players[index % players.length],
+    id:`a1-persist-${index}`,
+    name:`CPU Persist ${index}`,
+    teamId:'a1', teamName:'Flamengo',
+    age:24, overall:index === 19 ? 82 : 70,
+    contract:index === 18 ? 1 : 3,
+    isStarting:index < 11,
+  }));
+  const persistentId = roster[19].id;
+  const expiringId = roster[18].id;
+  const cpuTeam = { id:'a1', name:'Flamengo', strength:87, money:7_000_000, budget:3_000_000, squad:roster };
+  state.leagues = { A:[cpuTeam], B:[], C:[], D:[] };
+  state.teams = [cpuTeam];
+  state.teamRosters = { user:state.players, a1:roster };
+  const next = generateNextSeason(state, () => 0.8);
+  const migratedRoster = next.teamRosters['br-flamengo'];
+  const persisted = migratedRoster.find((player) => player.id === persistentId);
+  assert.ok(persisted);
+  assert.equal(persisted.teamId, 'br-flamengo');
+  assert.equal(persisted.contract, 2);
+  assert.equal(migratedRoster.some((player) => player.id === expiringId), false);
+  assert.equal(next.market.some((player) => player.id === expiringId), true);
+});
+test('generateNextSeason preserva confronto direto acumulado da carreira', () => {
+  const state = baseState();
+  state.h2hHistory = { Rival: { w:3, d:1, l:2 } };
+  const next = generateNextSeason(state);
+  assert.deepEqual(next.h2hHistory.Rival, { w:3, d:1, l:2 });
+});
+test('generateNextSeason limpa marcadores transacionais da temporada encerrada', () => {
+  const state = baseState();
+  state.lastMatchCommit = { id:'old' };
+  state.lastRoundMaintenance = { key:'s2026|r38' };
+  const next = generateNextSeason(state);
+  assert.equal(next.lastMatchCommit, null);
+  assert.equal(next.lastRoundMaintenance, null);
+});
+test('generateNextSeason saneia ids duplicados legados da caixa de entrada', () => {
+  const state = baseState();
+  state.inbox = [
+    { id:'jornal_r1', subject:'mais novo' },
+    { id:'jornal_r1', subject:'duplicado antigo' },
+    { id:'outro', subject:'preservar' },
+  ];
+  const next = generateNextSeason(state);
+  assert.deepEqual(next.inbox.map((message) => message.subject), ['mais novo', 'preservar']);
+});
 test('view-model usa snapshot antigo mesmo após reset dos jogadores', () => {
   const next = generateNextSeason(baseState());
   const vm = buildSeasonEndViewModel(next);
@@ -221,6 +298,46 @@ test('transição aprovada adiciona uma entrada ao histórico', () => {
   const result = prepareSeasonTransition(state);
   assert.equal(result.status, 'advanced');
   assert.equal(result.nextState.careerHistory.length, 2);
+});
+
+
+// Beta 47 — classificação canônica e barreira de encerramento.
+test('virada moderna bloqueia se faltar qualquer jogo da Liga', () => {
+  const modernTeams = Array.from({ length:20 }, (_, index) => ({ id:index === 0 ? 'user' : `m${index}`, name:index === 0 ? 'Meu Clube' : `Moderno ${index}` }));
+  const fixtures = generateFixtures(modernTeams).map((round) => round.map((match) => ({ ...match, played:true, result:'0 - 0' })));
+  fixtures[37][9] = { ...fixtures[37][9], played:false, result:null };
+  const state = {
+    ...baseState({ objective:'promotion', round:38, leagueRound:38 }),
+    table:generateInitialTable(modernTeams),
+    fixtures,
+  };
+  const transition = prepareSeasonTransition(state);
+  assert.equal(transition.status, 'invalid-season');
+  assert.match(transition.reason, /379\/380/);
+});
+
+test('virada moderna reconstrói tabela final e cria nova Liga com 20 clubes únicos', () => {
+  const modernTeams = Array.from({ length:20 }, (_, index) => ({ id:index === 0 ? 'user' : `m${index}`, name:index === 0 ? 'Meu Clube' : `Moderno ${String(index).padStart(2, '0')}` }));
+  const fixtures = generateFixtures(modernTeams).map((round, roundIndex) => round.map((match, matchIndex) => ({
+    ...match,
+    played:true,
+    result:(roundIndex + matchIndex) % 3 === 0 ? '1 - 0' : (roundIndex + matchIndex) % 3 === 1 ? '0 - 1' : '1 - 1',
+  })));
+  const canonical = rebuildLeagueTable(generateInitialTable(modernTeams), fixtures);
+  const state = {
+    ...baseState({ objective:'promotion', round:38, leagueRound:38 }),
+    table:canonical.map((row) => ({ ...row, pts:999, p:999 })), // corrupção persistida deve ser ignorada
+    fixtures,
+  };
+  const transition = prepareSeasonTransition(state);
+  assert.equal(transition.status, 'advanced');
+  assert.equal(transition.finalTable.every((row) => row.p === 38), true);
+  assert.equal(transition.nextState.teams.length, 20);
+  assert.equal(new Set(transition.nextState.teams.map((team) => String(team.id))).size, 20);
+  assert.equal(transition.nextState.teams.filter((team) => team.id === 'user').length, 1);
+  const schedule = buildLeagueScheduleReport(transition.nextState.table, transition.nextState.fixtures);
+  assert.equal(schedule.ok, true, schedule.errors.join(', '));
+  assert.equal(transition.nextState.fixtures.length, 38);
 });
 
 console.log(`\nSeason end smoke: ${passed}/${passed} verificações aprovadas.`);

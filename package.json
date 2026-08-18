@@ -1,6 +1,6 @@
 {
   "name": "tatica-manager",
-  "version": "1.0.0-beta.28",
+  "version": "1.0.0-beta.52",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -17,11 +17,23 @@
     "test:medical": "node scripts/smoke-medical.mjs",
     "test:squad": "node scripts/smoke-squad.mjs",
     "test:field": "node scripts/smoke-field.mjs",
-    "test:smoke": "npm run test:nextmatch && npm run test:table && npm run test:inbox && npm run test:career && npm run test:academy && npm run test:match-engine && npm run test:navigation && npm run test:home && npm run test:medical && npm run test:squad && npm run test:field && npm run test:boot-about && npm run test:market && npm run test:match-post && npm run test:season-end",
+    "test:smoke": "npm run test:nextmatch && npm run test:table && npm run test:league-season && npm run test:inbox && npm run test:career && npm run test:academy && npm run test:match-engine && npm run test:cpu-ai && npm run test:match-simulator && npm run test:navigation && npm run test:home && npm run test:medical && npm run test:squad && npm run test:field && npm run test:boot-about && npm run test:market && npm run test:continental && npm run test:match-post && npm run test:season-end && npm run test:matches-app && npm run test:finances && npm run test:match-live && npm run test:match-commit && npm run test:save-schema && npm run test:club-identity && npm run test:pyramid && npm run test:new-career",
     "test:boot-about": "node scripts/smoke-boot-about.mjs",
     "test:market": "node scripts/smoke-market.mjs",
     "test:match-post": "node scripts/smoke-match-post.mjs",
-    "test:season-end": "node scripts/smoke-season-end.mjs"
+    "test:season-end": "node scripts/smoke-season-end.mjs",
+    "test:matches-app": "node scripts/smoke-matches-app.mjs",
+    "test:continental": "node scripts/smoke-continental.mjs",
+    "test:match-simulator": "node scripts/smoke-match-simulator.mjs",
+    "test:cpu-ai": "node scripts/smoke-cpu-ai.mjs",
+    "test:finances": "node scripts/smoke-finances.mjs",
+    "test:match-live": "node scripts/smoke-match-live.mjs",
+    "test:match-commit": "node scripts/smoke-match-commit.mjs",
+    "test:league-season": "node scripts/smoke-league-season.mjs",
+    "test:save-schema": "node scripts/smoke-save-schema.mjs",
+    "test:club-identity": "node scripts/smoke-club-identity.mjs",
+    "test:pyramid": "node scripts/smoke-pyramid.mjs",
+    "test:new-career": "node scripts/smoke-new-career.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",

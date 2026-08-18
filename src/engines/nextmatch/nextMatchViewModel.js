@@ -2,6 +2,8 @@ import { CalendarEngine } from '../CalendarEngine.js';
 import { DisciplineEngine } from '../engine_discipline.js';
 import { getLineupValidation } from '../lineup/lineupRules.js';
 import { resolveMatchInfo } from '../../utils/matchDateUtils.js';
+import { isUserMatchTeam } from '../match/matchStateUtils.js';
+import { findNextPlayableCalendarSlot } from '../calendar/idleCalendarAdvance.js';
 
 export const NEXT_MATCH_POSITION_ORDER = {
   GOL: 0,
@@ -31,33 +33,36 @@ export const getSeasonEndSummary = (gameData) => {
   return { seasonOver, row, position, calendarLength };
 };
 
-const resolveLeagueIndex = (gameData, calendarEntry, isCalendarCup) => {
+const resolveLeagueIndex = (gameData, calendarEntry, isCalendarCup, slotIndex = gameData.round) => {
   if (!isCalendarCup) return calendarEntry?.leagueIdx ?? gameData.round;
 
   const calendar = gameData.calendar || [];
-  for (let index = gameData.round + 1; index < calendar.length; index += 1) {
+  for (let index = slotIndex + 1; index < calendar.length; index += 1) {
     if (calendar[index]?.type === 'league') return calendar[index].leagueIdx;
   }
 
-  for (let index = gameData.round - 1; index >= 0; index -= 1) {
+  for (let index = slotIndex - 1; index >= 0; index -= 1) {
     if (calendar[index]?.type === 'league') return calendar[index].leagueIdx;
   }
 
-  return gameData.round;
+  return slotIndex;
 };
 
 export const resolveNextMatchContext = (gameData) => {
   const calendar = gameData.calendar || [];
-  const calendarEntry = calendar[gameData.round];
+  const playable = findNextPlayableCalendarSlot(gameData);
+  const slotIndex = playable.slotIndex;
+  const calendarEntry = calendar[slotIndex];
   const isCalendarCup = calendarEntry?.type === 'cup';
   const cupInfo = isCalendarCup && CalendarEngine?.getCupMatchForCalendarSlot
     ? CalendarEngine.getCupMatchForCalendarSlot(gameData.cups, calendarEntry)
     : { hasCupMatch: false };
   const isCupRound = !!cupInfo?.hasCupMatch;
-  const leagueIdx = resolveLeagueIndex(gameData, calendarEntry, isCalendarCup);
+  const leagueIdx = resolveLeagueIndex(gameData, calendarEntry, isCalendarCup, slotIndex);
   const leagueMatches = leagueIdx >= 0 ? (gameData.fixtures?.[leagueIdx] || []) : [];
+  const clubName = gameData?.club?.name || '';
   const leagueMatch = !isCupRound
-    ? leagueMatches.find((match) => match.home?.isPlayer || match.away?.isPlayer) || null
+    ? leagueMatches.find((match) => isUserMatchTeam(match?.home, clubName) || isUserMatchTeam(match?.away, clubName)) || null
     : null;
 
   let displayHome;
@@ -87,9 +92,18 @@ export const resolveNextMatchContext = (gameData) => {
     matchLabel = `Série ${gameData.serie} · Rodada ${(leagueIdx >= 0 ? leagueIdx : (calendarEntry?.leagueIdx ?? gameData.round)) + 1}/${gameData.fixtures?.length || 0}`;
   }
 
+  const idleOnly = playable.skippedSlots > 0 && !calendarEntry;
+  const homeIsUser = isUserMatchTeam(displayHome, clubName);
+  const awayIsUser = isUserMatchTeam(displayAway, clubName);
+  if (displayHome) displayHome = { ...displayHome, isPlayer: homeIsUser && !awayIsUser };
+  if (displayAway) displayAway = { ...displayAway, isPlayer: awayIsUser && !homeIsUser };
+  const userSide = homeIsUser !== awayIsUser ? (homeIsUser ? 'home' : 'away') : null;
+
   return {
     calendar,
     calendarEntry,
+    slotIndex,
+    skippedSlots: playable.skippedSlots,
     isCalendarCup,
     cupInfo,
     isCupRound,
@@ -97,10 +111,13 @@ export const resolveNextMatchContext = (gameData) => {
     leagueMatch,
     displayHome,
     displayAway,
-    matchLabel,
+    userSide,
+    identityValid: idleOnly || Boolean(userSide),
+    idleOnly,
+    matchLabel: idleOnly ? 'Calendário · descanso' : matchLabel,
     matchInfoSecondary,
     competition,
-    matchInfo: resolveMatchInfo(gameData, gameData.round),
+    matchInfo: resolveMatchInfo(gameData, slotIndex),
   };
 };
 
@@ -153,14 +170,18 @@ export const getRecentLeagueForm = (gameData, limit = 5) => {
   // gameData.round é índice do calendário completo e pode conter slots de Copa.
   // Por isso a forma recente é derivada apenas das rodadas de Liga realmente jogadas.
   for (let leagueIdx = fixtures.length - 1; leagueIdx >= 0 && results.length < limit; leagueIdx -= 1) {
-    const match = (fixtures[leagueIdx] || []).find((item) => item.home?.isPlayer || item.away?.isPlayer);
+    const clubName = gameData?.club?.name || '';
+    const match = (fixtures[leagueIdx] || []).find((item) => (
+      isUserMatchTeam(item?.home, clubName) || isUserMatchTeam(item?.away, clubName)
+    ));
     if (!match?.played || !match.result) continue;
 
     const [homeGoals, awayGoals] = String(match.result)
       .split('-')
       .map((value) => Number.parseInt(value.trim(), 10) || 0);
-    const userGoals = match.home?.isPlayer ? homeGoals : awayGoals;
-    const opponentGoals = match.home?.isPlayer ? awayGoals : homeGoals;
+    const userWasHome = isUserMatchTeam(match.home, clubName) && !isUserMatchTeam(match.away, clubName);
+    const userGoals = userWasHome ? homeGoals : awayGoals;
+    const opponentGoals = userWasHome ? awayGoals : homeGoals;
     results.push(userGoals > opponentGoals ? 'V' : userGoals < opponentGoals ? 'D' : 'E');
   }
 
@@ -212,13 +233,13 @@ export const buildNextMatchViewModel = (gameData) => {
   const match = resolveNextMatchContext(gameData);
   const validation = getLineupValidation(gameData);
   const starters = (gameData.players || []).filter((player) => player.isStarting);
-  const nextRound = gameData.round + 1;
+  const nextRound = (Number.isFinite(Number(match.slotIndex)) ? Number(match.slotIndex) : gameData.round) + 1;
   const illegalStarters = starters.filter((player) =>
     !!player.injury || DisciplineEngine.isPlayerSuspended(player, nextRound)
   );
-  const isFullyReady = validation.isValid && illegalStarters.length === 0;
+  const isFullyReady = validation.isValid && illegalStarters.length === 0 && match.identityValid;
 
-  const isUserHome = !!match.displayHome?.isPlayer;
+  const isUserHome = match.userSide === 'home';
   const opponent = isUserHome ? match.displayAway : match.displayHome;
   const userRow = gameData.table?.find((team) => team.id === 'user') || {};
   const opponentRow = gameData.table?.find((team) =>

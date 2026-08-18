@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Button, Typography } from '@mui/material';
 import { TeamIcon } from '../../data/database_branding.js';
-import { teamBranding } from '../../data/teamBranding.js';
+import { getTeamBranding } from '../../data/teamBranding.js';
 import BootRoundBar from './BootRoundBar.jsx';
 
 const getToneColor = (tone, C) => {
@@ -79,10 +79,11 @@ const CareerHistory = ({ save, theme }) => {
 
 const BootSaveCard = ({ save, featured, expanded, loading, onToggle, onLoad, onDelete, theme }) => {
   const C = theme;
-  const branding = teamBranding?.[save.clubName];
+  const branding = getTeamBranding(save.clubName);
   const serieColor = getSerieColor(save.serie, C);
   const difficultyColor = getToneColor(save.difficultyStyle.tone, C);
   const isLoading = loading === save.name;
+  const incompatible = save.incompatible === true;
 
   return (
     <Box sx={{ bgcolor: featured ? '#fffdf7' : C.bgCard, border: `1.5px solid ${featured ? C.borderAcc : C.border}`, borderRadius: '14px', overflow: 'hidden', boxShadow: featured ? `0 4px 20px ${C.shadow}, inset 0 1px 0 rgba(255,255,255,0.7)` : `0 2px 8px ${C.shadow}` }}>
@@ -148,6 +149,11 @@ const BootSaveCard = ({ save, featured, expanded, loading, onToggle, onLoad, onD
             </Box>
           )}
 
+          {incompatible && (
+            <Box sx={{ bgcolor:`${C.red}10`, border:`1px solid ${C.red}40`, borderRadius:'5px', px:0.6, py:0.25, mb:0.4 }}>
+              <Typography sx={{ color:C.red, fontSize:'0.56rem', fontWeight:900 }}>⚠ SAVE DE VERSÃO MAIS NOVA · SCHEMA {save.saveSchemaVersion}</Typography>
+            </Box>
+          )}
           <Typography sx={{ color: C.ink3, fontSize: '0.6rem', fontWeight: 700, mb: 0.3 }}>🕐 {save.savedAtLabel}</Typography>
           <BootRoundBar progress={save.progress} theme={C} />
         </Box>
@@ -161,7 +167,7 @@ const BootSaveCard = ({ save, featured, expanded, loading, onToggle, onLoad, onD
       {expanded && <CareerHistory save={save} theme={C} />}
 
       <Box sx={{ display: 'flex', borderTop: `1px solid ${C.border}` }}>
-        <Button onClick={onLoad} disabled={Boolean(loading)} sx={{ flex: 2, py: 1.2, borderRadius: 0, bgcolor: isLoading ? C.primaryDim : C.green, color: '#fff', fontWeight: 900, fontSize: '0.88rem', borderRight: '1px solid rgba(0,0,0,0.1)', '&:hover': { bgcolor: C.primaryDim }, '&:disabled': { bgcolor: C.bgDark, color: C.ink3 } }}>{isLoading ? '⏳ Carregando...' : '▶ JOGAR'}</Button>
+        <Button onClick={onLoad} disabled={Boolean(loading) || incompatible} sx={{ flex: 2, py: 1.2, borderRadius: 0, bgcolor: isLoading ? C.primaryDim : C.green, color: '#fff', fontWeight: 900, fontSize: '0.88rem', borderRight: '1px solid rgba(0,0,0,0.1)', '&:hover': { bgcolor: C.primaryDim }, '&:disabled': { bgcolor: C.bgDark, color: C.ink3 } }}>{incompatible ? '⚠ ATUALIZE O JOGO' : isLoading ? '⏳ Carregando...' : '▶ JOGAR'}</Button>
         <Button onClick={onDelete} disabled={Boolean(loading)} sx={{ flex: 0.8, py: 1.2, borderRadius: 0, bgcolor: 'transparent', color: C.red, fontWeight: 900, fontSize: '0.75rem', '&:hover': { bgcolor: `${C.red}10` } }}>🗑 DELETAR</Button>
       </Box>
     </Box>

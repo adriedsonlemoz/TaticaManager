@@ -26,11 +26,14 @@ const AMATEUR_NAMES = [
   'FC Renascença',
 ];
 
-const buildOpponentPool = (serie, userTeamId) => {
-  const poolA = (diexDatabase.serieATeams || []).filter((t) => t.id !== userTeamId);
-  const poolB = (diexDatabase.serieBTeams || []).filter((t) => t.id !== userTeamId);
-  const poolC = (diexDatabase.serieCTeams || []).filter((t) => t.id !== userTeamId);
-  const poolD = (diexDatabase.serieDTeams || []).filter((t) => t.id !== userTeamId);
+const buildOpponentPool = (gameData, serie, userTeamId) => {
+  const source = (key, fallback) => Array.isArray(gameData?.leagues?.[key]) && gameData.leagues[key].length
+    ? gameData.leagues[key]
+    : fallback;
+  const poolA = source('A', diexDatabase.serieATeams || []).filter((t) => t.id !== userTeamId);
+  const poolB = source('B', diexDatabase.serieBTeams || []).filter((t) => t.id !== userTeamId);
+  const poolC = source('C', diexDatabase.serieCTeams || []).filter((t) => t.id !== userTeamId);
+  const poolD = source('D', diexDatabase.serieDTeams || []).filter((t) => t.id !== userTeamId);
 
   return shuffle(
     serie === 'A' ? [...poolA, ...poolB]
@@ -84,7 +87,7 @@ const resolveSafeRounds = (gameData, desiredRounds) => {
 export const initCopaBrasil = (gameData) => {
   const serie = gameData.serie || 'A';
   const { phases, schedule } = getCopaConfigForSerie(serie);
-  const pool = buildOpponentPool(serie, gameData.club.existingTeamId);
+  const pool = buildOpponentPool(gameData, serie, gameData.club.existingTeamId);
   const userTeam = {
     id: 'user',
     name: gameData.club.name,

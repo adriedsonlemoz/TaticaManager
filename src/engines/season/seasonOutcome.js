@@ -1,10 +1,16 @@
-import { sortLeagueTable } from '../core/leagueEngine.js';
+import { hasDoubleRoundRobinShape, rebuildLeagueTable, sortLeagueTable } from '../core/leagueEngine.js';
 import { evaluateSeasonObjective } from './seasonObjective.js';
+import { getSeasonFinancialHistory } from '../finances/financeLedger.js';
 
 const SERIE_ORDER = Object.freeze({ A: 0, B: 1, C: 2, D: 3 });
 
 export function getFinalTable(gameData = {}) {
-  return sortLeagueTable([...(gameData.table || [])], gameData.fixtures || []);
+  const table = [...(gameData.table || [])];
+  const fixtures = gameData.fixtures || [];
+  // Em uma Liga completa, os fixtures são a fonte canônica. Saves/testes legados
+  // com calendário parcial continuam usando a tabela persistida para não apagar histórico.
+  if (hasDoubleRoundRobinShape(table, fixtures)) return rebuildLeagueTable(table, fixtures);
+  return sortLeagueTable(table, fixtures);
 }
 
 export function getUserFinalPosition(table = []) {
@@ -60,7 +66,7 @@ export function buildSeasonSnapshot(prevState = {}, finalTable = getFinalTable(p
   const sortedScorers = [...players].sort((a, b) => seasonGoals(b) - seasonGoals(a) || (Number(b.overall) || 0) - (Number(a.overall) || 0));
   const sortedAssists = [...players].sort((a, b) => (Number(b.assists) || 0) - (Number(a.assists) || 0) || (Number(b.overall) || 0) - (Number(a.overall) || 0));
   const sortedOverall = [...players].sort((a, b) => (Number(b.overall) || 0) - (Number(a.overall) || 0));
-  const history = prevState.financialHistory || [];
+  const history = getSeasonFinancialHistory(prevState.financialHistory || [], prevState.season);
   const finance = history.reduce((acc, entry) => {
     const income = Number(entry?.income) || (entry?.isPositive === true ? Number(entry?.value) || 0 : 0);
     const expense = Number(entry?.expense) || (entry?.isPositive === false ? Number(entry?.value) || 0 : 0);

@@ -35,16 +35,19 @@ export const PostMatchCardHead = ({ label, icon, color }) => (
 );
 
 export const PostMatchStatRow = ({ label, h, a, lower }) => {
-  const total = (h + a) || 1;
-  const pct = (h / total) * 100;
-  const homeWins = lower ? h <= a : h >= a;
+  const home = Number.isFinite(Number(h)) ? Math.max(0, Number(h)) : 0;
+  const away = Number.isFinite(Number(a)) ? Math.max(0, Number(a)) : 0;
+  const total = home + away || 1;
+  const pct = (home / total) * 100;
+  const homeBetter = lower ? home < away : home > away;
+  const awayBetter = lower ? away < home : away > home;
 
   return (
     <Box sx={{ mb: 1 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.3 }}>
-        <Typography sx={{ color: homeWins ? C.ink : C.ink3, fontWeight: homeWins ? 900 : 600, fontSize: '0.82rem', width: 32, textAlign: 'right', mr: 0.8 }}>{h}</Typography>
+        <Typography sx={{ color: homeBetter ? C.ink : C.ink3, fontWeight: homeBetter ? 900 : 600, fontSize: '0.82rem', width: 32, textAlign: 'right', mr: 0.8 }}>{home}</Typography>
         <Typography sx={{ flex: 1, textAlign: 'center', color: C.ink2, fontWeight: 700, fontSize: '0.56rem', letterSpacing: 0.5 }}>{label}</Typography>
-        <Typography sx={{ color: !homeWins ? C.ink : C.ink3, fontWeight: !homeWins ? 900 : 600, fontSize: '0.82rem', width: 32, ml: 0.8 }}>{a}</Typography>
+        <Typography sx={{ color: awayBetter ? C.ink : C.ink3, fontWeight: awayBetter ? 900 : 600, fontSize: '0.82rem', width: 32, ml: 0.8 }}>{away}</Typography>
       </Box>
       <Box sx={{ display: 'flex', height: 4, borderRadius: 2, overflow: 'hidden', bgcolor: C.bgCardAlt }}>
         <Box sx={{ width: `${pct}%`, bgcolor: C.green, transition: 'width 0.5s ease' }} />

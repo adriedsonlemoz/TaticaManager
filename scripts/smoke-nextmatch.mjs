@@ -4,6 +4,7 @@ import {
   getAggregateInfo,
   getRecentLeagueForm,
   getSeasonEndSummary,
+  resolveNextMatchContext,
   sortNextMatchPlayers,
 } from '../src/engines/nextmatch/nextMatchViewModel.js';
 
@@ -66,6 +67,36 @@ const ordered = sortNextMatchPlayers([
 ]);
 assert.deepEqual(ordered.map((player) => player.position), ['GOL', 'ZAG', 'CA']);
 
+
+const skippedContext = resolveNextMatchContext({
+  round:0,
+  club:{ name:'User' },
+  cups:{},
+  calendar:[
+    { type:'cup', cupKey:'copaBrasil', leg:'leg1' },
+    { type:'league', leagueIdx:0 },
+  ],
+  fixtures:[[{ home:{ id:'user', name:'User', isPlayer:true }, away:{ id:'cpu', name:'CPU' } }]],
+});
+assert.equal(skippedContext.slotIndex, 1, 'pré-jogo deve apontar para a próxima partida real');
+assert.equal(skippedContext.skippedSlots, 1, 'pré-jogo deve informar quantas datas inativas serão puladas');
+assert.equal(skippedContext.calendarEntry.type, 'league');
+assert.equal(skippedContext.userSide, 'home');
+
+
+const idleOnlyContext = resolveNextMatchContext({
+  round:0,
+  club:{ name:'User' },
+  cups:{},
+  calendar:[
+    { type:'cup', cupKey:'copaBrasil', leg:'leg1' },
+    { type:'cup', cupKey:'libertadores', leg:'leg1' },
+  ],
+  fixtures:[],
+});
+assert.equal(idleOnlyContext.idleOnly, true, 'calendário com apenas datas inativas deve expor etapa de descanso');
+assert.equal(idleOnlyContext.skippedSlots, 2, 'etapa final deve avançar todas as datas inativas restantes');
+
 const season = getSeasonEndSummary({
   round: 2,
   calendar: [{}, {}],
@@ -75,4 +106,4 @@ const season = getSeasonEndSummary({
 assert.equal(season.seasonOver, true);
 assert.equal(season.position, 1);
 
-console.log('nextMatch smoke tests: 10/10 OK');
+console.log('nextMatch smoke tests: 16/16 OK');

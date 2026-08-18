@@ -4,6 +4,7 @@ import { Box } from '@mui/material';
 import { THEME as C } from '../theme.js';
 import {
   applySponsorContract,
+  canSignSponsor,
   buildFinanceOverview,
   generateSponsorOffers,
   getFinancialSuggestions,
@@ -16,7 +17,10 @@ import { FinanceEvolutionTab } from './finances/FinanceEvolutionTab.jsx';
 
 const ScreenFinances = ({ gameData, setGameData, formatMoney, showToast }) => {
   const [currentTab, setCurrentTab] = React.useState(0);
-  const [offers] = React.useState(() => generateSponsorOffers(gameData));
+  const offers = React.useMemo(
+    () => generateSponsorOffers(gameData),
+    [gameData?.season, gameData?.serie, gameData?.club?.strength],
+  );
 
   const overview = React.useMemo(() => buildFinanceOverview(gameData), [gameData]);
   const suggestions = React.useMemo(
@@ -25,9 +29,15 @@ const ScreenFinances = ({ gameData, setGameData, formatMoney, showToast }) => {
   );
 
   const handleSignSponsor = React.useCallback((type, offer) => {
+    const validation = canSignSponsor(gameData, type, offer);
+    if (!validation.ok) {
+      showToast(validation.reason, 'warning');
+      return false;
+    }
     setGameData((prev) => applySponsorContract(prev, type, offer));
     showToast(`Contrato assinado com ${offer.name}! +${formatMoney(offer.val)} em caixa.`);
-  }, [setGameData, showToast, formatMoney]);
+    return true;
+  }, [gameData, setGameData, showToast, formatMoney]);
 
   return (
     <Box sx={{ bgcolor: C.bg, minHeight: '100vh', pb: 12 }}>

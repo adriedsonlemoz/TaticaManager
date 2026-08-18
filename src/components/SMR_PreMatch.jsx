@@ -3,6 +3,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { THEME } from '../theme.js';
 import { TeamIcon } from '../data/database_branding.js';
+import { getUserMatchSide } from '../engines/match/matchPresentationViewModel.js';
 
 // SMR_PreMatch.jsx — Step -1: Tela de pré-jogo
 // Exibe escalação inicial, dados do adversário e botão para iniciar a partida.
@@ -27,11 +28,37 @@ const SMR_PreMatch = ({ gameData, matchResultData, headerJSX, onStart }) => {
   if (!matchResultData) return null;
 
   const { homeName, awayName } = matchResultData;
-  const isUserH = homeName === gameData?.club?.name;
-  const opp     = isUserH ? { name: awayName } : { name: homeName };
-  const oppRow  = gameData?.table?.find(t => t.name === opp.name) || {};
-  const oppPos  = (gameData?.table?.findIndex(t => t.name === opp.name) ?? -1) + 1;
-  const starters = (gameData?.players || []).filter(p => p.isStarting);
+  const userSide = getUserMatchSide(gameData, matchResultData);
+  if (userSide !== 'home' && userSide !== 'away') {
+    return (
+      <Box sx={{ bgcolor: C.bg, minHeight: '100vh', pb: 1 }}>
+        {headerJSX}
+        <Box sx={{ px: 1.5, pt: 1.5 }}>
+          <SMR_Card accent={`${C.red}70`}>
+            <SMR_CardHead label="PARTIDA BLOQUEADA" icon="🚫" color={C.red} />
+            <Box sx={{ p: 1.5 }}>
+              <Typography sx={{ color: C.ink, fontWeight: 900, fontSize: '0.78rem', mb: 0.5 }}>
+                Não foi possível identificar com segurança qual equipe é o seu clube.
+              </Typography>
+              <Typography sx={{ color: C.ink2, fontSize: '0.62rem' }}>
+                A escalação não será posicionada nem a partida iniciada para evitar associar seus jogadores ao adversário.
+              </Typography>
+            </Box>
+          </SMR_Card>
+        </Box>
+      </Box>
+    );
+  }
+  const isUserH = userSide === 'home';
+  const opp = userSide === 'home' ? { name: awayName } : { name: homeName };
+  const preMatchTable = matchResultData?.preMatchTable || gameData?.table || [];
+  const oppRow  = preMatchTable.find(t => t.name === opp.name) || {};
+  const oppPos  = preMatchTable.findIndex(t => t.name === opp.name) + 1;
+  const userRoster = matchResultData?.rosters?.[userSide];
+  const activeIds = new Set((matchResultData?.activeLineups?.[userSide] || []).map((id) => String(id)));
+  const starters = Array.isArray(userRoster) && userRoster.length
+    ? userRoster.filter(p => activeIds.size ? activeIds.has(String(p.id)) : p.isStarting)
+    : (gameData?.players || []).filter(p => p.isStarting);
 
   const posColor = {
     GOL: '#f59e0b',
@@ -61,7 +88,7 @@ const SMR_PreMatch = ({ gameData, matchResultData, headerJSX, onStart }) => {
               <Box>
                 <Typography sx={{ color: C.ink3, fontSize: '0.56rem', fontWeight: 700 }}>LOCAL</Typography>
                 <Typography sx={{ color: C.ink, fontWeight: 900, fontSize: '0.82rem' }}>
-                  {isUserH ? gameData?.club?.stadium?.name || 'Estádio' : `Estádio do ${awayName}`}
+                  {isUserH ? gameData?.club?.stadium?.name || 'Estádio' : `Estádio do ${homeName}`}
                 </Typography>
               </Box>
               <Box sx={{ textAlign: 'right' }}>
@@ -73,7 +100,7 @@ const SMR_PreMatch = ({ gameData, matchResultData, headerJSX, onStart }) => {
             </Box>
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 0.8 }}>
               {[
-                { l: 'RODADA',    v: gameData?.round + 1 },
+                { l: 'RODADA',    v: matchResultData?.isCupMatch ? (matchResultData?.cupPhase || 'Copa') : (matchResultData?.leagueRound || 1) },
                 { l: 'TEMPORADA', v: gameData?.season || 2026 },
                 { l: 'SÉRIE',     v: `Série ${gameData?.serie}` },
               ].map((s, i) => (

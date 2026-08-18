@@ -42,6 +42,7 @@ ok(Boolean(poorTreat.error));
 const treated = treatInjuryState(state, 'inj');
 eq(treated.state.club.money, 1_500_000);
 eq(treated.state.players.find(p => p.id === 'inj').injury.roundsLeft, 1);
+eq(treated.state.teamRosters.user.find(p => p.id === 'inj').injury.roundsLeft, 1, 'DM deve sincronizar teamRosters.user na mesma transação');
 eq(treated.state.financialHistory[0].expense, 500_000);
 ok(treated.state.financialHistory[0].detail.description.includes('João Lesão'));
 const healed = treatInjuryState({ ...state, players:state.players.map(p => p.id === 'inj' ? { ...p, injury:{ ...p.injury, roundsLeft:1 } } : p) }, 'inj');

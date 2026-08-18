@@ -6,6 +6,7 @@ import { THEME } from '../theme.js';
 import { TeamIcon } from '../data/database_branding.js';
 import JerseyBadge from './player/JerseyBadge.jsx';
 import { posColor, ovrColor } from '../utils/playerVisuals.js';
+import { appendFinancialEntry } from '../engines/finances/financeLedger.js';
 
 // components/ScreenStadium.js — v6.0 (Obras com prazo, progresso visual)
 const ScreenStadium = ({ gameData, setGameData, formatMoney, showToast }) => {
@@ -36,7 +37,7 @@ const ScreenStadium = ({ gameData, setGameData, formatMoney, showToast }) => {
 
   const saveTicketPrice = () => { setGameData(prev=>({...prev,club:{...prev.club,stadium:{...prev.club.stadium,ticketPrice}}})); setTicketDirty(false); showToast(`Ingresso: ${formatMoney(ticketPrice)}!`,'success'); };
   const saveName = () => { if(!newName.trim())return; setGameData(prev=>({...prev,club:{...prev.club,stadium:{...prev.club.stadium,name:newName.trim()}}})); setIsEditingName(false); showToast('Nome atualizado!','success'); };
-  const sellAds = () => { const cd=stad.adCooldown||0, round=gameData.round||0; if(round<cd)return showToast(`Disponível Rod ${cd}`,'warning'); const val=Math.floor(capacity*55+repPoints*80000); setGameData(prev=>({...prev,club:{...prev.club,money:prev.club.money+val,stadium:{...prev.club.stadium,adCooldown:round+5}},financialHistory:[{round,income:val,expense:0,total:val,detail:{description:'Publicidade Estádio'}},...(prev.financialHistory||[])].slice(0,30)})); showToast(`Anúncios: ${formatMoney(val)}!`,'success'); };
+  const sellAds = () => { const cd=stad.adCooldown||0, round=gameData.round||0; if(round<cd)return showToast(`Disponível Rod ${cd}`,'warning'); const val=Math.floor(capacity*55+repPoints*80000); setGameData(prev=>({...prev,club:{...prev.club,money:prev.club.money+val,stadium:{...prev.club.stadium,adCooldown:round+5}},financialHistory:appendFinancialEntry(prev.financialHistory,{income:val,expense:0,total:val,detail:{description:'Publicidade Estádio'}},{season:prev.season,round,leagueRound:prev.leagueRound??prev.round,competition:'stadium'})})); showToast(`Anúncios: ${formatMoney(val)}!`,'success'); };
   const startUpgrade = () => {
     if (underConstruction > 0) return showToast(`🏗️ Obras em andamento! Conclusão em ${underConstruction} rodada${underConstruction>1?'s':''}.`,'warning');
     if (money < upgradeCost) return showToast('Verba insuficiente!','error');
@@ -51,7 +52,7 @@ const ScreenStadium = ({ gameData, setGameData, formatMoney, showToast }) => {
           pendingLevel:(prev.club.stadium?.level||1)+1,
         }
       },
-      financialHistory:[{round:prev.round,income:0,expense:upgradeCost,total:-upgradeCost,detail:{description:'Obras: Expansão do Estádio (em andamento)'}},...(prev.financialHistory||[])].slice(0,30)
+      financialHistory:appendFinancialEntry(prev.financialHistory,{income:0,expense:upgradeCost,total:-upgradeCost,detail:{description:'Obras: Expansão do Estádio (em andamento)'}},{season:prev.season,round:prev.round,leagueRound:prev.leagueRound??prev.round,competition:'stadium'})
     }));
     showToast(`🏗️ Obras iniciadas! +${Math.floor(capacity*0.25).toLocaleString('pt-BR')} lugares em 4 rodadas.`,'success');
   };

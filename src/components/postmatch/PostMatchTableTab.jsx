@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { THEME } from '../../theme.js';
 import { TeamIcon } from '../../data/database_branding.js';
 import { sortLeagueTable } from '../../engines/engine.js';
+import { isPostMatchUserTeam } from './postMatchViewModel.js';
 
 const C = THEME;
 
@@ -68,11 +69,11 @@ const PositionPopup = ({ positionChange }) => {
 const PostMatchTableTab = ({ gameData, positionChange, showPositionPopup }) => {
   const sorted = sortLeagueTable ? sortLeagueTable(gameData?.table || []) : (gameData?.table || []);
   const serie = gameData?.serie || 'A';
-  const userPosition = sorted.findIndex(team => team.id === 'user') + 1;
+  const userPosition = sorted.findIndex(team => isPostMatchUserTeam(team, gameData)) + 1;
   const userInTop10 = userPosition > 0 && userPosition <= 10;
   const displayRows = userInTop10
     ? sorted.slice(0, 10)
-    : [...sorted.slice(0, 9), sorted.find(team => team.id === 'user')].filter(Boolean);
+    : [...sorted.slice(0, 9), sorted.find(team => isPostMatchUserTeam(team, gameData))].filter(Boolean);
 
   return (
     <>
@@ -87,7 +88,7 @@ const PostMatchTableTab = ({ gameData, positionChange, showPositionPopup }) => {
 
         {displayRows.map((team, rowIndex) => {
           const index = sorted.findIndex(row => row.id === team.id);
-          const isUser = team.id === 'user';
+          const isUser = isPostMatchUserTeam(team, gameData);
           const zoneColor = getZoneColor(serie, index);
           const goalDifference = (team.gf || 0) - (team.ga || 0);
           const zone = getZoneLabel(serie, index);

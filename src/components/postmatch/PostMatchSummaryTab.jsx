@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { THEME } from '../../theme.js';
 import { PostMatchCard, PostMatchCardHead, PostMatchStatRow } from './PostMatchUi.jsx';
 import { parsePostMatchGoal, parsePostMatchCard } from './postMatchViewModel.js';
+import { getUserMatchSide } from '../../engines/match/matchPresentationViewModel.js';
 
 const C = THEME;
 
@@ -13,9 +14,9 @@ const PostMatchSummaryTab = ({
   resultLabel,
   resultColor,
   matchDateStr,
-  subsDone,
-  eventGroups,
-  stats,
+  subsDone = [],
+  eventGroups = { goals:[], yellows:[], reds:[] },
+  stats = {},
 }) => {
   const {
     homeName,
@@ -25,7 +26,16 @@ const PostMatchSummaryTab = ({
     cupKey,
     cupLabel,
   } = matchResultData;
-  const { goals, yellows, reds } = eventGroups;
+  const userSide = getUserMatchSide(gameData, matchResultData);
+  const groups = eventGroups && typeof eventGroups === 'object' ? eventGroups : {};
+  const goals = Array.isArray(groups.goals) ? groups.goals : [];
+  const yellows = Array.isArray(groups.yellows) ? groups.yellows : [];
+  const reds = Array.isArray(groups.reds) ? groups.reds : [];
+  const substitutions = Array.isArray(subsDone) ? subsDone : [];
+  const safeStats = stats && typeof stats === 'object' ? stats : {};
+  const possessionStats = safeStats.possession && typeof safeStats.possession === 'object'
+    ? safeStats.possession
+    : { home: 50, away: 50 };
 
   return (
     <>
@@ -34,7 +44,7 @@ const PostMatchSummaryTab = ({
         <Typography sx={{ color: C.ink3, fontSize: '0.65rem', fontWeight: 700, mt: 0.3, whiteSpace: 'pre-line' }}>
           {isCupMatch
             ? `${cupLabel || '🏆 Copa'} · ${cupLeg === 'leg1' ? 'Jogo de Ida' : cupLeg === 'leg2' ? 'Jogo de Volta' : 'Jogo Único'}`
-            : `${homeName} × ${awayName} · Rod ${gameData?.round}`}
+            : `${homeName} × ${awayName} · Rod ${matchResultData?.leagueRound || gameData?.leagueRound || 1}`}
           {matchDateStr ? `\n${matchDateStr}` : ''}
         </Typography>
       </Box>
@@ -73,7 +83,7 @@ const PostMatchSummaryTab = ({
           {goals.length === 0 ? (
             <Typography sx={{ color: C.ink3, fontSize: '0.72rem', fontStyle: 'italic' }}>Nenhum gol marcado</Typography>
           ) : goals.map((event, index) => {
-            const { min, scorer, isHome } = parsePostMatchGoal(event, homeName);
+            const { min, scorer, isHome } = parsePostMatchGoal(event, homeName, awayName);
             return (
               <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.6 }}>
                 <Box sx={{ bgcolor: C.bgCardAlt, borderRadius: '5px', px: 0.6, py: 0.2, minWidth: 28, textAlign: 'center' }}>
@@ -90,14 +100,14 @@ const PostMatchSummaryTab = ({
         </Box>
       </PostMatchCard>
 
-      {subsDone.length > 0 && (
+      {substitutions.length > 0 && (
         <PostMatchCard>
           <PostMatchCardHead label="SUBSTITUIÇÕES" icon="🔄" color={C.gold} />
           <Box sx={{ px: 1.5, py: 1 }}>
-            {subsDone.map((sub, index) => (
+            {substitutions.map((sub, index) => (
               <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.5 }}>
                 <Box sx={{ bgcolor: C.bgCardAlt, borderRadius: '5px', px: 0.6, py: 0.2, minWidth: 28, textAlign: 'center' }}>
-                  <Typography sx={{ color: C.ink3, fontFamily: 'monospace', fontSize: '0.6rem', fontWeight: 700 }}>{String(sub.min).replace(/'$/, '')}'</Typography>
+                  <Typography sx={{ color: C.ink3, fontFamily: 'monospace', fontSize: '0.6rem', fontWeight: 700 }}>{sub.min === 'HT' ? 'HT' : `${String(sub.min).replace(/'$/, '')}'`}</Typography>
                 </Box>
                 <Typography sx={{ fontSize: '0.85rem' }}>🔄</Typography>
                 <Box sx={{ flex: 1 }}>
@@ -136,20 +146,15 @@ const PostMatchSummaryTab = ({
         <PostMatchCardHead label="ESTATÍSTICAS" icon="📊" />
         <Box sx={{ px: 1.5, pt: 0.5, pb: 1 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.8 }}>
-            <Typography sx={{ color: homeName === gameData?.club?.name ? C.green : C.ink2, fontWeight: 900, fontSize: '0.68rem' }}>{homeName}</Typography>
-            <Typography sx={{ color: awayName === gameData?.club?.name ? C.green : C.ink2, fontWeight: 900, fontSize: '0.68rem' }}>{awayName}</Typography>
+            <Typography sx={{ color: userSide === 'home' ? C.green : C.ink2, fontWeight: 900, fontSize: '0.68rem' }}>{homeName}</Typography>
+            <Typography sx={{ color: userSide === 'away' ? C.green : C.ink2, fontWeight: 900, fontSize: '0.68rem' }}>{awayName}</Typography>
           </Box>
-          <PostMatchStatRow label="POSSE (%)" h={stats.possession.home} a={stats.possession.away} />
-          <PostMatchStatRow label="FINALIZAÇÕES" h={stats.homeShots} a={stats.awayShots} />
-          <PostMatchStatRow label="NO ALVO" h={stats.homeOnTarget} a={stats.awayOnTarget} />
-          <PostMatchStatRow label="ESCANTEIOS" h={stats.homeCorners} a={stats.awayCorners} />
-          <PostMatchStatRow label="FALTAS" h={stats.homeFouls} a={stats.awayFouls} lower />
-          <PostMatchStatRow
-            label="AMARELOS"
-            h={yellows.filter(event => event.includes(homeName)).length}
-            a={yellows.filter(event => event.includes(awayName)).length}
-            lower
-          />
+          <PostMatchStatRow label="POSSE (%)" h={possessionStats.home} a={possessionStats.away} />
+          <PostMatchStatRow label="FINALIZAÇÕES" h={safeStats.homeShots} a={safeStats.awayShots} />
+          <PostMatchStatRow label="NO ALVO" h={safeStats.homeOnTarget} a={safeStats.awayOnTarget} />
+          <PostMatchStatRow label="ESCANTEIOS" h={safeStats.homeCorners} a={safeStats.awayCorners} />
+          <PostMatchStatRow label="FALTAS" h={safeStats.homeFouls} a={safeStats.awayFouls} lower />
+          <PostMatchStatRow label="AMARELOS" h={safeStats.homeYellows || 0} a={safeStats.awayYellows || 0} lower />
         </Box>
       </PostMatchCard>
     </>

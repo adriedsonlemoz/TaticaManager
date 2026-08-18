@@ -97,13 +97,14 @@ assert.deepEqual(accepted.trashMsgIds, ['offer']);
 
 const renewal = CpuAI.applyContractRenewal(
   [{ id: 'p1', name: 'Jogador', wage: 10000, contract: 1 }],
-  { money: 100000, wage: 10000 },
+  { money: 300000, wage: 10000 },
   'p1', 20000, () => 0,
 );
 assert.equal(renewal.error, null);
 assert.equal(renewal.players[0].contract, 3);
 assert.equal(renewal.players[0].wage, 11000);
-assert.equal(renewal.club.money, 80000);
+assert.equal(renewal.club.money, 60000);
+assert.equal(renewal.transaction.expense, 240000);
 assert.equal(renewal.club.wage, 11000);
 
 console.log('inbox smoke tests: 12/12 OK');

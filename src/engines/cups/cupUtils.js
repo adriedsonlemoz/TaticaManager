@@ -1,7 +1,7 @@
-export const shuffle = (arr = []) => {
+export const shuffle = (arr = [], rng = Math.random) => {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
@@ -44,20 +44,20 @@ export const findFreeRound = (
   return preferredRound;
 };
 
-export const simGoals = (strA, strB) => {
+export const simGoals = (strA, strB, rng = Math.random) => {
   const total = strA + strB || 1;
   const probA = (strA / total) * 0.034 * 1.05;
   const probB = (strB / total) * 0.034;
   let gA = 0;
   let gB = 0;
   for (let minute = 1; minute <= 90; minute++) {
-    if (Math.random() < probA) gA++;
-    if (Math.random() < probB) gB++;
+    if (rng() < probA) gA++;
+    if (rng() < probB) gB++;
   }
   return [gA, gB];
 };
 
-export const simPenalties = (homeStrength, awayStrength) => {
+export const simPenalties = (homeStrength, awayStrength, rng = Math.random) => {
   const diff = ((homeStrength || 75) - (awayStrength || 75)) / 10;
   const homeConv = Math.min(0.90, Math.max(0.60, 0.75 + diff * 0.05));
   const awayConv = Math.min(0.90, Math.max(0.60, 0.75 - diff * 0.05));
@@ -65,21 +65,21 @@ export const simPenalties = (homeStrength, awayStrength) => {
   let pA = 0;
   let pB = 0;
   for (let i = 0; i < 5; i++) {
-    if (Math.random() < homeConv) pA++;
-    if (Math.random() < awayConv) pB++;
+    if (rng() < homeConv) pA++;
+    if (rng() < awayConv) pB++;
   }
 
   let kicks = 0;
   while (pA === pB && kicks < 20) {
-    if (Math.random() < homeConv) pA++;
-    if (Math.random() < awayConv) pB++;
+    if (rng() < homeConv) pA++;
+    if (rng() < awayConv) pB++;
     kicks++;
   }
   if (pA === pB) pA++;
   return [pA, pB];
 };
 
-const decideSingleMatch = (tie) => {
+const decideSingleMatch = (tie, rng = Math.random) => {
   if (!tie.leg1?.played) return tie;
   const homeGoals = tie.leg1.home ?? 0;
   const awayGoals = tie.leg1.away ?? 0;
@@ -89,7 +89,7 @@ const decideSingleMatch = (tie) => {
   if (homeGoals > awayGoals) winner = tie.home;
   else if (awayGoals > homeGoals) winner = tie.away;
   else {
-    const [pH, pA] = simPenalties(tie.home?.strength, tie.away?.strength);
+    const [pH, pA] = simPenalties(tie.home?.strength, tie.away?.strength, rng);
     penalties = { home: pH, away: pA };
     winner = pH > pA ? tie.home : tie.away;
   }
@@ -104,8 +104,8 @@ const decideSingleMatch = (tie) => {
   };
 };
 
-export const decideTie = (tie) => {
-  if (!tie?.leg2) return decideSingleMatch(tie);
+export const decideTie = (tie, rng = Math.random) => {
+  if (!tie?.leg2) return decideSingleMatch(tie, rng);
   if (!tie.leg1?.played || !tie.leg2?.played) return tie;
 
   const homeAggr = tie.leg1.home + tie.leg2.away;
@@ -116,7 +116,7 @@ export const decideTie = (tie) => {
   if (homeAggr > awayAggr) winner = tie.home;
   else if (awayAggr > homeAggr) winner = tie.away;
   else {
-    const [pH, pA] = simPenalties(tie.home?.strength, tie.away?.strength);
+    const [pH, pA] = simPenalties(tie.home?.strength, tie.away?.strength, rng);
     penalties = { home: pH, away: pA };
     winner = pH > pA ? tie.home : tie.away;
   }
@@ -124,8 +124,8 @@ export const decideTie = (tie) => {
   return { ...tie, decided: true, winner, penalties, homeAggr, awayAggr };
 };
 
-export const makeTie = (home, away, phase, prize, leg1Round, leg2Round = null) => ({
-  id: Math.random().toString(36).substring(2, 10),
+export const makeTie = (home, away, phase, prize, leg1Round, leg2Round = null, rng = Math.random) => ({
+  id: rng().toString(36).substring(2, 10),
   phase,
   home,
   away,

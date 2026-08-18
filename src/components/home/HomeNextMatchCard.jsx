@@ -35,6 +35,28 @@ export default function HomeNextMatchCard({ viewModel, onNavigate }) {
   const { season, nextMatch, recentForm } = viewModel;
   const serieColor = getSerieColor(viewModel.clubSummary.serie);
 
+  if (!season.seasonOver && nextMatch?.type === 'idle') {
+    return (
+      <Box sx={{ px: 2, mb: 1.5 }}>
+        <HomeSectionTitle>PRÓXIMA ETAPA</HomeSectionTitle>
+        <Box component="button" type="button" onClick={() => onNavigate('next_match')} sx={{
+          width:'100%', bgcolor:HOME_THEME.card, border:'1.5px solid #fde68a', borderRadius:'14px',
+          px:2, py:1.5, display:'flex', alignItems:'center', gap:1.2, cursor:'pointer', textAlign:'left',
+          boxShadow:HOME_THEME.shadow, font:'inherit',
+        }}>
+          <Typography sx={{ fontSize:'2rem' }}>⏭️</Typography>
+          <Box sx={{ flex:1 }}>
+            <Typography sx={{ color:'#92400e', fontWeight:900, fontSize:'0.82rem' }}>Avançar calendário</Typography>
+            <Typography sx={{ color:HOME_THEME.ink3, fontSize:'0.56rem', fontWeight:700 }}>
+              {nextMatch.skippedSlots} data(s) sem partida · descanso e recuperação do elenco
+            </Typography>
+          </Box>
+          <Typography sx={{ color:'#92400e', fontWeight:900 }}>→</Typography>
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ px: 2, mb: 1.5 }}>
       <HomeSectionTitle>PRÓXIMA PARTIDA</HomeSectionTitle>

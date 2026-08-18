@@ -39,8 +39,8 @@ export default function LineupHeader({ club, currentRound, avgOvr, startersCount
         </Box>
         {info.desc && <Box sx={{ display:'flex', gap:0.8, mt:0.7, alignItems:'center' }}>
           <Typography sx={{ color:C.txt3, fontSize:'0.58rem', fontWeight:700 }}>{info.desc}</Typography>
-          {info.atk !== 0 && <Box sx={{ bgcolor:info.atk>0?`${C.red}15`:`${C.blue}15`, border:`1px solid ${info.atk>0?C.red:C.blue}40`, borderRadius:'5px', px:0.6, py:0.1 }}><Typography sx={{ color:info.atk>0?C.red:C.blue, fontWeight:900, fontSize:'0.5rem' }}>⚔️{info.atk>0?'+':''}{info.atk}</Typography></Box>}
-          {info.def !== 0 && <Box sx={{ bgcolor:info.def>0?`${C.blue}15`:`${C.red}15`, border:`1px solid ${info.def>0?C.blue:C.red}40`, borderRadius:'5px', px:0.6, py:0.1 }}><Typography sx={{ color:info.def>0?C.blue:C.red, fontWeight:900, fontSize:'0.5rem' }}>🛡️{info.def>0?'+':''}{info.def}</Typography></Box>}
+          {info.atk !== 0 && <Box sx={{ bgcolor:info.atk>0?`${C.red}15`:`${C.blue}15`, border:`1px solid ${info.atk>0?C.red:C.blue}40`, borderRadius:'5px', px:0.6, py:0.1 }}><Typography sx={{ color:info.atk>0?C.red:C.blue, fontWeight:900, fontSize:'0.5rem' }}>ATQ {info.atk>0?'+':''}{info.atk}</Typography></Box>}
+          {info.def !== 0 && <Box sx={{ bgcolor:info.def>0?`${C.blue}15`:`${C.red}15`, border:`1px solid ${info.def>0?C.blue:C.red}40`, borderRadius:'5px', px:0.6, py:0.1 }}><Typography sx={{ color:info.def>0?C.blue:C.red, fontWeight:900, fontSize:'0.5rem' }}>DEF {info.def>0?'+':''}{info.def}</Typography></Box>}
         </Box>}
       </Box>
 

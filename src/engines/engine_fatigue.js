@@ -34,6 +34,10 @@ export const FatigueEngine = {
   // ── Calcular nova energia após rodada (#26, #29, #30, #44) ───
   calculateNewEnergy: (player, opts = {}) => {
     const { difficultyMult = 1.0, isCupMatch = false } = opts;
+    const explicitMinutes = Number(opts?.minutes);
+    const playedMinutes = Number.isFinite(explicitMinutes)
+      ? Math.max(0, Math.min(120, explicitMinutes))
+      : (player.isStarting ? 90 : 0);
     let energy = player.energy ?? 100;
     const age  = player.age || 25;
     const C    = FatigueEngine.CONSTANTS;
@@ -45,7 +49,7 @@ export const FatigueEngine = {
       return Math.min(100, energy + recovery);
     }
 
-    if (player.isStarting) {
+    if (playedMinutes > 0) {
       const loss = Math.floor(
         Math.random() * (C.LOSS_STARTER_MAX - C.LOSS_STARTER_MIN + 1)
       ) + C.LOSS_STARTER_MIN;
@@ -60,7 +64,8 @@ export const FatigueEngine = {
                      : age < 21 ? 0.88   // jovens: recuperam melhor
                      : 1.0;
 
-      const finalLoss = Math.round(loss * posMult * cupMult * diffMult * ageMult);
+      const minuteMult = playedMinutes / 90;
+      const finalLoss = Math.round(loss * posMult * cupMult * diffMult * ageMult * minuteMult);
       return Math.max(0, energy - finalLoss);
     }
 

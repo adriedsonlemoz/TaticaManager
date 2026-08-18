@@ -3,6 +3,12 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { THEME } from '../theme.js';
 import { FORMATION_SLOTS } from '../engines/lineup/lineupRules.js';
+import { parseMatchGoalEvent } from '../engines/match/matchEventViewModel.js';
+import {
+  buildHalftimeEventSummary,
+  buildHalftimeSubstitutionSuggestions,
+} from '../engines/match/matchHalftimeViewModel.js';
+import { MAX_LIVE_SUBSTITUTIONS, normalizeLiveSubstitutions } from '../engines/match/matchSubstitutionViewModel.js';
 
 // SMR_Halftime.jsx — Step 1: Tela de intervalo
 // Mostra stats do 1T, permite substituições e ajuste tático antes do 2T.
@@ -25,64 +31,69 @@ const SMR_CardHead = ({ label, icon, color }) => (
 
 const FORMATIONS = Object.keys(FORMATION_SLOTS);
 const STYLES = [
-  { id: 'Defensivo',   icon: '🛡️', desc: '-3% gols sofridos' },
-  { id: 'Equilibrado', icon: '⚖️',  desc: 'Neutro'           },
-  { id: 'Ofensivo',    icon: '⚔️',  desc: '+4% chance de gol'},
+  { id: 'Defensivo',   icon: '🛡️', desc: 'Bloco mais baixo' },
+  { id: 'Equilibrado', icon: '⚖️',  desc: 'Postura neutra'    },
+  { id: 'Ofensivo',    icon: '⚔️',  desc: 'Linhas mais altas' },
 ];
 
 const SMR_Halftime = ({
   gameData,
   matchResultData,
-  possession,
-  goalEvts,
-  yellowEvts,
-  subsDone,
+  possession = { home:50, away:50 },
+  goalEvts = [],
+  yellowEvts = [],
+  subsDone = [],
   isUserH,
   headerJSX,
   subsDialogJSX,
-  parseGoal,
   setShowSubs,
   setSelectedStarter,
-  setGameData,
+  liveFormation,
+  liveStyle,
+  livePlayers = [],
+  onApplyTactics,
   onStart2T,
 }) => {
-  const { homeName, awayName } = matchResultData;
+  const homeName = String(matchResultData?.homeName ?? '');
+  const awayName = String(matchResultData?.awayName ?? '');
 
   // Estado local das mudanças táticas do intervalo
-  const [selForm,  setSelForm]  = React.useState(
-    gameData?.club?.managerProfile?.formation ||
-    gameData?.club?.managerProfile?.preferredFormation || '4-4-2'
-  );
-  const [selStyle, setSelStyle] = React.useState(
-    gameData?.club?.managerProfile?.style || 'Equilibrado'
-  );
+  const currentFormation = liveFormation || gameData?.club?.formation || gameData?.club?.managerProfile?.formation || '4-4-2';
+  const currentStyle = liveStyle || gameData?.club?.managerProfile?.style || 'Equilibrado';
+  const [selForm, setSelForm] = React.useState(currentFormation);
+  const [selStyle, setSelStyle] = React.useState(currentStyle);
 
-  const currentFormation = gameData?.club?.managerProfile?.formation  || '4-4-2';
-  const currentStyle     = gameData?.club?.managerProfile?.style      || 'Equilibrado';
-
-  const goals1T   = goalEvts.filter(e => { const m = parseInt(e.match(/^(\d+)'/)?.[1] || 99); return m <= 45; });
-  const yellows1T = yellowEvts.filter(e => { const m = parseInt(e.match(/^(\d+)'/)?.[1] || 99); return m <= 45; });
-  const hGols1T   = goals1T.filter(e => e.includes(homeName)).length;
-  const aGols1T   = goals1T.filter(e => e.includes(awayName)).length;
-  const hPoss     = possession.home;
-  const aPoss     = possession.away;
+  const substitutions = React.useMemo(() => normalizeLiveSubstitutions(subsDone), [subsDone]);
+  const halftimeSummary = React.useMemo(() => buildHalftimeEventSummary({
+    goalEvents:goalEvts,
+    yellowEvents:yellowEvts,
+    homeName,
+    awayName,
+  }), [goalEvts, yellowEvts, homeName, awayName]);
+  const suggestions = React.useMemo(() => buildHalftimeSubstitutionSuggestions({
+    players:livePlayers,
+    subsDone:substitutions,
+    matchRound:matchResultData?.calendarRound ?? 0,
+  }), [livePlayers, substitutions, matchResultData?.calendarRound]);
+  const goals1T = halftimeSummary.goals;
+  const hGols1T = halftimeSummary.score.home;
+  const aGols1T = halftimeSummary.score.away;
+  const hPoss = Number.isFinite(Number(possession?.home)) ? Number(possession.home) : 50;
+  const aPoss = Number.isFinite(Number(possession?.away)) ? Number(possession.away) : 50;
+  const [startingSecondHalf, setStartingSecondHalf] = React.useState(false);
 
   const handleStart2T = () => {
-    if (selForm !== currentFormation || selStyle !== currentStyle) {
-      setGameData(prev => ({
-        ...prev,
-        club: {
-          ...prev.club,
-          managerProfile: {
-            ...(prev.club?.managerProfile || {}),
-            formation: selForm,
-            style: selStyle,
-          },
-        },
-      }));
+    if (startingSecondHalf) return;
+    setStartingSecondHalf(true);
+    const started = onStart2T?.();
+    if (started !== true) {
+      setStartingSecondHalf(false);
+      return;
     }
-    setShowSubs(false);
-    onStart2T();
+    if (selForm !== currentFormation || selStyle !== currentStyle) {
+      onApplyTactics?.({ formation: selForm, style: selStyle });
+    }
+    setShowSubs?.(false);
   };
 
   const changed = selForm !== currentFormation || selStyle !== currentStyle;
@@ -113,7 +124,7 @@ const SMR_Halftime = ({
               { l: 'POSSE',       v: `${hPoss}%`, v2: `${aPoss}%`, icon: '⚽' },
               { l: 'GOLS',        v: hGols1T,     v2: aGols1T,      icon: '🥅' },
               { l: 'FINALIZAÇÕES',v: Math.max(hGols1T, Math.floor(hPoss / 9)), v2: Math.max(aGols1T, Math.floor(aPoss / 9)), icon: '🎯' },
-              { l: 'AMARELOS',    v: yellows1T.filter(e => e.includes(homeName)).length, v2: yellows1T.filter(e => e.includes(awayName)).length, icon: '🟨' },
+              { l: 'AMARELOS',    v: halftimeSummary.yellowCards.home, v2: halftimeSummary.yellowCards.away, icon: '🟨' },
             ].map((s, i) => (
               <Box key={i} sx={{ bgcolor: C.bgCard, border: `1px solid ${C.border}`, borderRadius: '8px', p: 0.6, textAlign: 'center' }}>
                 <Typography sx={{ fontSize: '0.68rem', lineHeight: 1, mb: 0.15 }}>{s.icon}</Typography>
@@ -134,7 +145,10 @@ const SMR_Halftime = ({
             <SMR_CardHead label="GOLS DO 1º TEMPO" icon="⚽" />
             <Box sx={{ px: 1.5, py: 0.8 }}>
               {goals1T.map((g, i) => {
-                const { min, scorer, isHome } = parseGoal(g);
+                const parsed = parseMatchGoalEvent(g, homeName, awayName);
+                const min = parsed.minuteLabel || parsed.minute || '';
+                const scorer = parsed.scorer;
+                const isHome = parsed.side === 'home';
                 return (
                   <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.45 }}>
                     <Box sx={{ bgcolor: C.bgCardAlt, borderRadius: '5px', px: 0.6, py: 0.2, minWidth: 28, textAlign: 'center' }}>
@@ -153,40 +167,29 @@ const SMR_Halftime = ({
         )}
 
         {/* Sugestões de substituição */}
-        {(() => {
-          const tired = (gameData?.players || [])
-            .filter(p => p.isStarting && (p.energy ?? 100) < 55)
-            .sort((a, b) => (a.energy ?? 100) - (b.energy ?? 100));
-          if (!tired.length) return null;
-          return (
-            <Box sx={{ bgcolor: `${C.red}08`, border: `1px solid ${C.red}30`, borderRadius: '10px', p: 1.1, mb: 1.2 }}>
-              <Typography sx={{ color: C.red, fontWeight: 900, fontSize: '0.58rem', letterSpacing: 0.8, mb: 0.6 }}>⚠️ SUBSTITUIÇÕES RECOMENDADAS</Typography>
-              {tired.slice(0, 3).map(p => {
-                const alt = (gameData?.players || [])
-                  .filter(q => !q.isStarting && q.position === p.position && !q.injury)
-                  .sort((a, b) => b.overall - a.overall)[0];
-                return (
-                  <Box key={p.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.7, mb: 0.4 }}>
-                    <Typography sx={{ color: (p.energy ?? 100) < 35 ? C.red : C.orange, fontWeight: 900, fontSize: '0.58rem', minWidth: 80 }}>
-                      ↓ {p.name.split(' ').pop()} ⚡{p.energy ?? 100}%
-                    </Typography>
-                    <Typography sx={{ color: C.ink3, fontSize: '0.6rem' }}>→</Typography>
-                    {alt
-                      ? <Typography sx={{ color: C.green, fontWeight: 900, fontSize: '0.58rem' }}>↑ {alt.name.split(' ').pop()} ({alt.overall})</Typography>
-                      : <Typography sx={{ color: C.ink3, fontSize: '0.54rem', fontStyle: 'italic' }}>sem reserva</Typography>}
-                  </Box>
-                );
-              })}
-            </Box>
-          );
-        })()}
+        {suggestions.length > 0 && (
+          <Box sx={{ bgcolor: `${C.red}08`, border: `1px solid ${C.red}30`, borderRadius: '10px', p: 1.1, mb: 1.2 }}>
+            <Typography sx={{ color: C.red, fontWeight: 900, fontSize: '0.58rem', letterSpacing: 0.8, mb: 0.6 }}>⚠️ SUBSTITUIÇÕES RECOMENDADAS</Typography>
+            {suggestions.map(({ outgoing, incoming, energy, outgoingName, incomingName }) => (
+              <Box key={outgoing?.id ?? outgoingName} sx={{ display: 'flex', alignItems: 'center', gap: 0.7, mb: 0.4 }}>
+                <Typography sx={{ color: energy < 35 ? C.red : C.orange, fontWeight: 900, fontSize: '0.58rem', minWidth: 80 }}>
+                  ↓ {outgoingName} ⚡{energy}%
+                </Typography>
+                <Typography sx={{ color: C.ink3, fontSize: '0.6rem' }}>→</Typography>
+                {incoming
+                  ? <Typography sx={{ color: C.green, fontWeight: 900, fontSize: '0.58rem' }}>↑ {incomingName} ({Number.isFinite(Number(incoming.overall)) ? Number(incoming.overall) : 0})</Typography>
+                  : <Typography sx={{ color: C.ink3, fontSize: '0.54rem', fontStyle: 'italic' }}>sem reserva disponível</Typography>}
+              </Box>
+            ))}
+          </Box>
+        )}
 
         {/* Botão de substituições */}
-        {subsDone.length < 3 && (
-          <Box onClick={() => { setShowSubs(true); setSelectedStarter(null); }} sx={{ bgcolor: C.bgCard, border: `1.5px solid ${C.gold}50`, borderRadius: '12px', py: 0.9, mb: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.9, cursor: 'pointer', '&:active': { bgcolor: `${C.gold}08` } }}>
+        {substitutions.length < MAX_LIVE_SUBSTITUTIONS && (
+          <Box onClick={() => { setShowSubs?.(true); setSelectedStarter?.(null); }} sx={{ bgcolor: C.bgCard, border: `1.5px solid ${C.gold}50`, borderRadius: '12px', py: 0.9, mb: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.9, cursor: 'pointer', '&:active': { bgcolor: `${C.gold}08` } }}>
             <Typography sx={{ color: C.gold, fontWeight: 900, fontSize: '0.76rem' }}>🔄 Fazer Substituições</Typography>
             <Box sx={{ bgcolor: `${C.gold}20`, borderRadius: '10px', px: 0.7, py: 0.15 }}>
-              <Typography sx={{ color: C.gold, fontWeight: 900, fontSize: '0.62rem' }}>{3 - subsDone.length} restante{3 - subsDone.length !== 1 ? 's' : ''}</Typography>
+              <Typography sx={{ color: C.gold, fontWeight: 900, fontSize: '0.62rem' }}>{MAX_LIVE_SUBSTITUTIONS - substitutions.length} restante{MAX_LIVE_SUBSTITUTIONS - substitutions.length !== 1 ? 's' : ''}</Typography>
             </Box>
           </Box>
         )}
@@ -237,10 +240,10 @@ const SMR_Halftime = ({
 
       {/* Botão INICIAR 2T */}
       <Box sx={{ position: 'fixed', bottom: 62, left: 0, right: 0, zIndex: 50, px: 1.5, pb: 1.5, pt: 1.5, background: `linear-gradient(transparent 0%,${C.bg} 35%)`, boxShadow: `0 -12px 28px ${C.bg}` }}>
-        <Box onClick={handleStart2T} sx={{ bgcolor: C.green, borderRadius: '14px', py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, cursor: 'pointer', boxShadow: `0 0 28px ${C.green}50`, '&:active': { filter: 'brightness(0.88)' } }}>
+        <Box onClick={startingSecondHalf ? undefined : handleStart2T} sx={{ bgcolor: C.green, borderRadius: '14px', py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, cursor: startingSecondHalf ? 'default' : 'pointer', opacity: startingSecondHalf ? 0.7 : 1, boxShadow: `0 0 28px ${C.green}50`, '&:active': { filter: 'brightness(0.88)' } }}>
           <Typography sx={{ fontSize: '1.1rem', lineHeight: 1 }}>▶</Typography>
           <Box>
-            <Typography sx={{ color: '#000', fontWeight: 900, fontSize: '0.92rem', lineHeight: 1 }}>INICIAR 2º TEMPO</Typography>
+            <Typography sx={{ color: '#000', fontWeight: 900, fontSize: '0.92rem', lineHeight: 1 }}>{startingSecondHalf ? 'INICIANDO 2º TEMPO…' : 'INICIAR 2º TEMPO'}</Typography>
             {changed && <Typography sx={{ color: 'rgba(0,0,0,0.6)', fontSize: '0.5rem', fontWeight: 700, lineHeight: 1, mt: 0.1 }}>Com mudanças táticas</Typography>}
           </Box>
         </Box>

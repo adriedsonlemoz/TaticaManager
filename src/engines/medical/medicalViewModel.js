@@ -1,4 +1,6 @@
 import { getPlayerAvailability, getUpcomingRound } from '../core/playerStatus.js';
+import { syncUserRosterState } from '../core/gameStateIntegrity.js';
+import { appendFinancialEntry } from '../finances/financeLedger.js';
 
 export const MEDICAL_COSTS = Object.freeze({
   TREAT_INJURY: 500_000,
@@ -18,7 +20,7 @@ function addMedicalExpense(state, expense, description) {
     detail: { description },
   };
 
-  return [transaction, ...(state.financialHistory || [])].slice(0, 50);
+  return appendFinancialEntry(state.financialHistory, transaction, { season: state.season, round: state.round, leagueRound: state.leagueRound ?? state.round, competition: 'medical' });
 }
 
 export function buildMedicalViewModel(gameData = {}) {
@@ -90,12 +92,11 @@ export function treatInjuryState(gameData = {}, playerId) {
   });
 
   return {
-    state: {
+    state: syncUserRosterState({
       ...gameData,
       club: { ...(gameData.club || {}), money: number(gameData.club?.money) - MEDICAL_COSTS.TREAT_INJURY },
-      players: nextPlayers,
       financialHistory: addMedicalExpense(gameData, MEDICAL_COSTS.TREAT_INJURY, `Tratamento médico: ${player.name}`),
-    },
+    }, nextPlayers),
     message: `${playerFirstName(player)} tratado! -1 rodada de lesão.`,
   };
 }
@@ -117,12 +118,11 @@ export function recoverPlayerEnergyState(gameData = {}, playerId) {
   ));
 
   return {
-    state: {
+    state: syncUserRosterState({
       ...gameData,
       club: { ...(gameData.club || {}), money: number(gameData.club?.money) - MEDICAL_COSTS.RECOVER_ENERGY },
-      players,
       financialHistory: addMedicalExpense(gameData, MEDICAL_COSTS.RECOVER_ENERGY, `Recuperação física: ${player.name}`),
-    },
+    }, players),
     message: `${playerFirstName(player)} recuperou energia!`,
   };
 }
@@ -138,15 +138,14 @@ export function runPhysioSessionState(gameData = {}) {
   }
 
   return {
-    state: {
+    state: syncUserRosterState({
       ...gameData,
       club: { ...(gameData.club || {}), money: number(gameData.club?.money) - MEDICAL_COSTS.PHYSIO_SESSION },
-      players: players.map((player) => ({
-        ...player,
-        energy: Math.min(100, Math.max(0, Number(player.energy ?? 100) || 0) + 15),
-      })),
       financialHistory: addMedicalExpense(gameData, MEDICAL_COSTS.PHYSIO_SESSION, 'Sessão coletiva de fisioterapia'),
-    },
+    }, players.map((player) => ({
+      ...player,
+      energy: Math.min(100, Math.max(0, Number(player.energy ?? 100) || 0) + 15),
+    }))),
     message: 'Sessão coletiva de fisioterapia realizada! +15% energia para todos.',
   };
 }

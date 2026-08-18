@@ -14,6 +14,7 @@ import {
   buildPostMatchStats,
   getLeaguePositionChange,
   getPostMatchResultMeta,
+  getPostMatchRoundContext,
 } from './postmatch/postMatchViewModel.js';
 
 const C = THEME;
@@ -33,21 +34,26 @@ const ScreenPostMatch = ({
   const [tab, setTab] = React.useState(0);
   const [showPositionPopup, setShowPositionPopup] = React.useState(false);
   const [acknowledged, setAcknowledged] = React.useState(false);
+  const beforePlayers = Array.isArray(playersBefore) ? playersBefore : [];
+  const afterPlayers = Array.isArray(gameData?.players) ? gameData.players : [];
+  const postRawEvents = Array.isArray(rawEvents) ? rawEvents : [];
 
-  const matchRound = Math.max(0, (gameData?.round || 1) - 1);
-  const nextCalendarRound = (gameData?.round || 0) + 1;
+  const { matchCalendarIndex, nextCalendarRound } = getPostMatchRoundContext({
+    gameData,
+    matchResultData,
+  });
 
   const playedMatchInfo = React.useMemo(
-    () => resolveMatchInfo(gameData, matchRound),
-    [gameData, matchRound],
+    () => resolveMatchInfo(gameData, matchCalendarIndex),
+    [gameData, matchCalendarIndex],
   );
 
   const desfalques = React.useMemo(() => {
-    if (!playersBefore.length || !gameData?.players?.length) {
+    if (!beforePlayers.length || !afterPlayers.length) {
       return { suspensions: [], injuries: [], hasBlockers: false };
     }
-    return PostMatchAgent.analyzeDesfalques(playersBefore, gameData.players, rawEvents, nextCalendarRound);
-  }, [playersBefore, gameData?.players, rawEvents, nextCalendarRound]);
+    return PostMatchAgent.analyzeDesfalques(beforePlayers, afterPlayers, postRawEvents, nextCalendarRound);
+  }, [beforePlayers, afterPlayers, postRawEvents, nextCalendarRound]);
 
   const sortedTable = React.useMemo(
     () => (sortLeagueTable ? sortLeagueTable(gameData?.table || []) : (gameData?.table || [])),
@@ -75,10 +81,11 @@ const ScreenPostMatch = ({
 
   if (!matchResultData) return null;
 
-  const { resultLabel, resultKind } = getPostMatchResultMeta({ gameData, matchResultData, liveScore });
+  const { resultLabel, resultKind, score } = getPostMatchResultMeta({ gameData, matchResultData, liveScore });
   const resultColor = resultKind === 'win' ? C.green : resultKind === 'loss' ? C.red : C.gold;
-  const eventGroups = buildPostMatchEventGroups(matchResultData.events || []);
-  const stats = buildPostMatchStats({ matchResultData, liveScore, possession });
+  const matchEvents = Array.isArray(matchResultData.events) ? matchResultData.events : [];
+  const eventGroups = buildPostMatchEventGroups(matchEvents);
+  const stats = buildPostMatchStats({ matchResultData, liveScore:score, possession, events:matchEvents });
   const hasDesfalques = desfalques.suspensions.length > 0 || desfalques.injuries.length > 0;
   const isBlocked = desfalques.hasBlockers && !acknowledged;
 
@@ -99,7 +106,7 @@ const ScreenPostMatch = ({
       <PostMatchHeader
         gameData={gameData}
         matchResultData={matchResultData}
-        liveScore={liveScore}
+        liveScore={score}
         resultLabel={resultLabel}
         resultColor={resultColor}
         matchDateStr={playedMatchInfo.fullStrWithYear}
@@ -122,7 +129,7 @@ const ScreenPostMatch = ({
           <PostMatchSummaryTab
             gameData={gameData}
             matchResultData={matchResultData}
-            liveScore={liveScore}
+            liveScore={score}
             resultLabel={resultLabel}
             resultColor={resultColor}
             matchDateStr={playedMatchInfo.fullStrWithYear}

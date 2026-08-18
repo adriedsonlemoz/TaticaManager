@@ -4,7 +4,9 @@ import { getNextMatchColor } from './nextMatchPresentation.js';
 
 const NextMatchHeader = ({ viewModel, canPlay, simulating, startMatchSimulation, onAutoSimulate, setScreen, theme }) => {
   const matchColor = getNextMatchColor(viewModel.competition, theme);
-  const { isCupRound, matchLabel, matchInfo, matchInfoSecondary, isFullyReady, validation, starters, illegalStarters } = viewModel;
+  const { isCupRound, matchLabel, matchInfo, matchInfoSecondary, isFullyReady, validation, starters, illegalStarters, identityValid, skippedSlots = 0 } = viewModel;
+  const pendingIdleAdvance = skippedSlots > 0;
+  const canAutoSimulate = canPlay && !pendingIdleAdvance && isFullyReady;
 
   return (
     <Box sx={{
@@ -44,33 +46,36 @@ const NextMatchHeader = ({ viewModel, canPlay, simulating, startMatchSimulation,
             '&:active': canPlay ? { filter: 'brightness(0.88)' } : {},
           }}>
             <Typography sx={{ fontSize: '0.9rem', lineHeight: 1 }}>
-              {simulating ? '⏳' : !isFullyReady ? '🚫' : isCupRound ? '🏆' : '▶'}
+              {simulating ? '⏳' : pendingIdleAdvance ? '⏭️' : !isFullyReady ? '🚫' : isCupRound ? '🏆' : '▶'}
             </Typography>
             <Box>
               <Typography sx={{ color: canPlay ? '#000' : theme.txt3, fontWeight: 900, fontSize: '0.65rem', lineHeight: 1, whiteSpace: 'nowrap' }}>
                 {simulating ? 'SIMULANDO...'
-                  : !validation.isValid ? `${starters.length}/11`
-                    : illegalStarters.length > 0 ? `${illegalStarters.length} INAPTO`
-                      : isCupRound ? 'JOGAR COPA' : 'JOGAR PARTIDA'}
+                  : pendingIdleAdvance ? `AVANÇAR ${skippedSlots} DATA${skippedSlots > 1 ? 'S' : ''}`
+                  : !identityValid ? 'ERRO DE EQUIPE'
+                    : !validation.isComplete ? `${validation.uniqueStarterCount}/11`
+                      : !validation.isValid ? 'ESCALAÇÃO INVÁLIDA'
+                        : illegalStarters.length > 0 ? `${illegalStarters.length} INAPTO`
+                          : isCupRound ? 'JOGAR COPA' : 'JOGAR PARTIDA'}
               </Typography>
               <Typography sx={{ color: canPlay ? '#00000080' : theme.txt3, fontSize: '0.48rem', fontWeight: 700, lineHeight: 1 }}>
-                com animação
+                {pendingIdleAdvance ? 'descanso antes do jogo' : 'com animação'}
               </Typography>
             </Box>
           </Box>
 
           <Box sx={{ display: 'flex', gap: 0.5 }}>
-            <Box onClick={canPlay ? onAutoSimulate : undefined} sx={{
+            <Box onClick={canAutoSimulate ? onAutoSimulate : undefined} sx={{
               flex: 1,
-              bgcolor: canPlay ? `${theme.teal}15` : theme.cardAlt,
-              border: `1.5px solid ${canPlay ? theme.teal : theme.border}`,
+              bgcolor: canAutoSimulate ? `${theme.teal}15` : theme.cardAlt,
+              border: `1.5px solid ${canAutoSimulate ? theme.teal : theme.border}`,
               borderRadius: '9px', px: 1, py: 0.6,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.4,
-              cursor: canPlay ? 'pointer' : 'default',
-              '&:active': canPlay ? { filter: 'brightness(0.88)' } : {},
+              cursor: canAutoSimulate ? 'pointer' : 'default',
+              '&:active': canAutoSimulate ? { filter: 'brightness(0.88)' } : {},
             }}>
               <Typography sx={{ fontSize: '0.75rem', lineHeight: 1 }}>⚡</Typography>
-              <Typography sx={{ color: canPlay ? theme.teal : theme.txt3, fontWeight: 900, fontSize: '0.58rem', lineHeight: 1, whiteSpace: 'nowrap' }}>
+              <Typography sx={{ color: canAutoSimulate ? theme.teal : theme.txt3, fontWeight: 900, fontSize: '0.58rem', lineHeight: 1, whiteSpace: 'nowrap' }}>
                 Simular
               </Typography>
             </Box>
@@ -87,7 +92,19 @@ const NextMatchHeader = ({ viewModel, canPlay, simulating, startMatchSimulation,
         </Box>
       </Box>
 
-      {!isFullyReady && (
+      {pendingIdleAdvance && (
+        <Box sx={{
+          mt: 0.8, bgcolor: `${theme.yellow}10`, border: `1px solid ${theme.yellow}50`,
+          borderRadius: '8px', px: 1.2, py: 0.6, display: 'flex', alignItems: 'center', gap: 0.7,
+        }}>
+          <Typography sx={{ fontSize: '0.8rem' }}>⏭️</Typography>
+          <Typography sx={{ color: theme.yellow, fontWeight: 900, fontSize: '0.62rem' }}>
+            {skippedSlots} data(s) sem partida serão processadas antes de validar a escalação.
+          </Typography>
+        </Box>
+      )}
+
+      {!pendingIdleAdvance && !isFullyReady && (
         <Box onClick={() => setScreen('lineup')} sx={{
           mt: 0.8, bgcolor: `${theme.red}08`, border: `1px solid ${theme.red}40`,
           borderRadius: '8px', px: 1.2, py: 0.6, cursor: 'pointer',
@@ -96,7 +113,17 @@ const NextMatchHeader = ({ viewModel, canPlay, simulating, startMatchSimulation,
         }}>
           <Typography sx={{ fontSize: '0.8rem' }}>📋</Typography>
           <Typography sx={{ color: theme.red, fontWeight: 900, fontSize: '0.62rem' }}>
-            {illegalStarters.length > 0 ? `${illegalStarters.length} jogador(es) inapto(s) na escalação — corrigir` : 'Escalação incompleta — corrigir'}
+            {!identityValid
+              ? 'Não foi possível identificar o lado do seu clube — partida bloqueada'
+              : illegalStarters.length > 0
+                ? `${illegalStarters.length} jogador(es) inapto(s) na escalação — corrigir`
+                : !validation.isComplete
+                  ? `Escalação incompleta (${validation.uniqueStarterCount}/11) — corrigir`
+                  : !validation.formationValid
+                    ? 'Formação inválida — corrigir'
+                    : !validation.hasGoalkeeper
+                      ? 'Escalação sem goleiro — corrigir'
+                      : 'Escalação inválida — corrigir'}
           </Typography>
         </Box>
       )}

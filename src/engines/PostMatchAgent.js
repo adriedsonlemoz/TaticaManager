@@ -1,128 +1,115 @@
 // @migrated to ES module
-// engines/PostMatchAgent.js — v1.0
-// ─────────────────────────────────────────────────────────────────────────────
-// Agente responsável por analisar o estado IMEDIATAMENTE após uma partida
-// e produzir alertas acionáveis para o jogador.
-//
-// Responsabilidades:
-//   • Detectar jogadores que ficaram SUSPENSOS durante este jogo
-//     (vermelho direto, segundo amarelo, 3 amarelos acumulados)
-//   • Detectar jogadores que saíram LESIONADOS durante este jogo
-//   • Classificar a gravidade de cada ocorrência
-//   • Retornar dados estruturados para a UI mostrar no ScreenPostMatch
-//
-// A UI (ScreenPostMatch) usa esses dados para:
-//   1. Exibir o painel "DESFALQUES PARA O PRÓXIMO JOGO"
-//   2. Bloquear a saída até o usuário reconhecer os desfalques críticos
-//
-// O agente NÃO modifica estado — apenas lê e analisa.
-// ─────────────────────────────────────────────────────────────────────────────
+// engines/PostMatchAgent.js — v1.1
+// Analisa desfalques novos causados pela partida sem modificar o estado.
+
+const idKey = (value) => value == null ? null : String(value);
+const samePlayerId = (left, right) => {
+  const leftKey = idKey(left);
+  const rightKey = idKey(right);
+  return leftKey != null && rightKey != null && leftKey === rightKey;
+};
+const nonNegativeInt = (value, fallback = 0) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, Math.trunc(number)) : fallback;
+};
+const SEVERITY_ORDER = { high:0, medium:1, low:2 };
+
+const playerEvents = (rawEvents, player) => (
+  (Array.isArray(rawEvents) ? rawEvents : []).filter((event) => {
+    if (!event || typeof event !== 'object' || event.isPlayer === false) return false;
+    if (event.playerId != null && player?.id != null) return samePlayerId(event.playerId, player.id);
+    const eventName = String(event.playerName ?? '').trim();
+    const playerName = String(player?.name ?? '').trim();
+    return Boolean(eventName && playerName && eventName === playerName);
+  })
+);
 
 export const PostMatchAgent = {
-
-  /**
-   * analyzeDesfalques
-   * Compara o estado dos jogadores ANTES e DEPOIS do jogo para descobrir
-   * quem ficou indisponível como consequência desta partida.
-   *
-   * @param {object[]} playersBefore  — gameData.players antes do setGameData
-   * @param {object[]} playersAfter   — gameData.players após o setGameData
-   * @param {object[]} rawEvents      — rawEvents da simulação (para motivo do cartão)
-   * @param {number}   nextRound      — gameData.round + 1 (próxima rodada a jogar)
-   * @returns {object} { suspensions: [], injuries: [], hasBlockers: boolean }
-   */
-  analyzeDesfalques: (playersBefore, playersAfter, rawEvents = [], nextRound) => {
+  analyzeDesfalques: (playersBefore, playersAfter, rawEvents = [], nextRound = 0) => {
+    const before = Array.isArray(playersBefore) ? playersBefore : [];
+    const after = Array.isArray(playersAfter) ? playersAfter : [];
+    const round = Math.max(0, nonNegativeInt(nextRound));
     const suspensions = [];
-    const injuries    = [];
+    const injuries = [];
 
-    playersAfter.forEach(pAfter => {
-      const pBefore = playersBefore.find(p => p.id === pAfter.id);
+    after.forEach((pAfter) => {
+      const pBefore = before.find((player) => (
+        samePlayerId(player?.id, pAfter?.id)
+        || (player?.id == null && pAfter?.id == null && player?.name === pAfter?.name)
+      ));
       if (!pBefore) return;
 
-      // ── SUSPENSÃO nova ──────────────────────────────────────────
-      const wasSusp = pBefore.discipline?.suspendedUntilRound != null
-        && nextRound <= pBefore.discipline.suspendedUntilRound;
-      const isNowSusp = pAfter.discipline?.suspendedUntilRound != null
-        && nextRound <= pAfter.discipline.suspendedUntilRound;
+      const beforeUntil = Number(pBefore.discipline?.suspendedUntilRound);
+      const afterUntil = Number(pAfter.discipline?.suspendedUntilRound);
+      const wasSuspended = Number.isFinite(beforeUntil) && round <= beforeUntil;
+      const isNowSuspended = Number.isFinite(afterUntil) && round <= afterUntil;
 
-      if (!wasSusp && isNowSusp) {
-        // Descobre o motivo pelo rawEvents
-        const playerRawEvents = rawEvents.filter(e =>
-          e.playerId === pAfter.id || e.playerName === pAfter.name
-        );
-        const hasRedDirect      = playerRawEvents.some(e => e.type === 'red_direct');
-        const hasSecondYellow   = playerRawEvents.some(e => e.type === 'red_second_yellow');
-        const yellowCount       = playerRawEvents.filter(e => e.type === 'yellow').length;
-        const accumulatedYellow = !hasRedDirect && !hasSecondYellow; // suspensão por acúmulo (3 amarelos)
+      if (!wasSuspended && isNowSuspended) {
+        const events = playerEvents(rawEvents, pAfter);
+        const hasRedDirect = events.some((event) => event.type === 'red_direct');
+        const hasSecondYellow = events.some((event) => event.type === 'red_second_yellow' || event.type === 'red');
+        const yellowCount = events.filter((event) => event.type === 'yellow').length;
+        const roundsLeft = Math.max(1, Math.trunc(afterUntil - round + 1));
 
-        const roundsLeft = pAfter.discipline.suspendedUntilRound - nextRound + 1;
-
-        let reason, icon, severity;
+        let reason;
+        let icon;
+        let severity;
         if (hasRedDirect) {
-          reason   = 'Cartão vermelho direto';
-          icon     = '🟥';
-          severity = 'high'; // 2 rodadas
+          reason = 'Cartão vermelho direto';
+          icon = '🟥';
+          severity = 'high';
         } else if (hasSecondYellow) {
-          reason   = 'Segundo amarelo';
-          icon     = '🟨🟥';
-          severity = 'medium'; // 1 rodada
+          reason = 'Segundo amarelo';
+          icon = '🟨🟥';
+          severity = 'medium';
         } else {
-          reason   = `3 amarelos acumulados (${(pBefore.discipline?.yellowCards || 0) + yellowCount} no total)`;
-          icon     = '🟨🟨🟨';
+          const previousYellows = nonNegativeInt(pBefore.discipline?.yellowCards);
+          reason = `3 amarelos acumulados (${previousYellows + yellowCount} no total)`;
+          icon = '🟨🟨🟨';
           severity = 'medium';
         }
 
         suspensions.push({
-          player:    pAfter,
+          player:pAfter,
           reason,
           icon,
           severity,
           roundsLeft,
-          wasStarter: pBefore.isStarting,
+          wasStarter:Boolean(pBefore.isStarting),
         });
       }
 
-      // ── LESÃO nova ─────────────────────────────────────────────
-      const wasInjured = !!pBefore.injury;
-      const isNowInjured = !!pAfter.injury;
-
+      const wasInjured = Boolean(pBefore.injury);
+      const isNowInjured = Boolean(pAfter.injury);
       if (!wasInjured && isNowInjured) {
-        const roundsLeft  = pAfter.injury?.roundsLeft ?? 1;
-        const injuryType  = pAfter.injury?.type || 'Lesão';
-        const isTraining  = injuryType.includes('Treino');
-
+        const roundsLeft = Math.max(1, nonNegativeInt(pAfter.injury?.roundsLeft, 1));
+        const injuryType = String(pAfter.injury?.type || 'Lesão');
         injuries.push({
-          player:    pAfter,
+          player:pAfter,
           injuryType,
           roundsLeft,
-          isTraining,
-          severity:  roundsLeft >= 4 ? 'high' : roundsLeft >= 2 ? 'medium' : 'low',
-          wasStarter: pBefore.isStarting,
+          isTraining:/treino/i.test(injuryType),
+          severity:roundsLeft >= 4 ? 'high' : roundsLeft >= 2 ? 'medium' : 'low',
+          wasStarter:Boolean(pBefore.isStarting),
         });
       }
     });
 
-    // Ordena: titulares afetados primeiro, depois por severidade
-    const sortFn = (a, b) => {
-      if (a.wasStarter !== b.wasStarter) return a.wasStarter ? -1 : 1;
-      const sev = { high: 0, medium: 1, low: 2 };
-      return (sev[a.severity] || 1) - (sev[b.severity] || 1);
+    const sortFn = (left, right) => {
+      if (left.wasStarter !== right.wasStarter) return left.wasStarter ? -1 : 1;
+      return (SEVERITY_ORDER[left.severity] ?? 1) - (SEVERITY_ORDER[right.severity] ?? 1);
     };
 
     suspensions.sort(sortFn);
     injuries.sort(sortFn);
-
-    // hasBlockers: tem desfalques que afetam titulares (precisa ajustar escalação)
-    const hasBlockers = suspensions.some(s => s.wasStarter) || injuries.some(i => i.wasStarter);
-
+    const hasBlockers = suspensions.some((item) => item.wasStarter) || injuries.some((item) => item.wasStarter);
     return { suspensions, injuries, hasBlockers };
   },
 
-  /**
-   * formatRoundsLeft
-   * Formata a duração da suspensão/lesão em texto
-   */
-  formatRoundsLeft: (n) => n <= 1 ? 'próximo jogo' : `próximos ${n} jogos`,
+  formatRoundsLeft: (value) => {
+    const rounds = Math.max(1, nonNegativeInt(value, 1));
+    return rounds === 1 ? 'próximo jogo' : `próximos ${rounds} jogos`;
+  },
 };
 
 export default PostMatchAgent;

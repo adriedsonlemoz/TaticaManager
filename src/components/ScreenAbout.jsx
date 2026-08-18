@@ -19,7 +19,7 @@ const ScreenAbout = ({ onBack }) => {
         </Button>
       )}
 
-      <AboutHero theme={C} />
+      <AboutHero theme={C} currentSummary={entries[0]?.title} />
       <Box sx={{ px: 1.5 }}>
         <AboutSupportCard theme={C} />
         <AboutChangelog entries={entries} theme={C} />

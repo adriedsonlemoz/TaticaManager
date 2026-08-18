@@ -1,217 +1,147 @@
 import React from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { SETUP_PALETTE as P, SETUP_INPUT_STYLE as inputStyle, formatSetupMoney as fmt } from '../setupTheme.js';
-import { SetupCardHeader, SetupNavRow, SetupSectionLabel, SetupShirt } from '../SetupUi.jsx';
+import { SetupCardHeader, SetupNavRow, SetupShirt } from '../SetupUi.jsx';
 import { TeamIcon } from '../../../data/database_branding.js';
-import { teamBranding } from '../../../data/teamBranding.js';
+import { getTeamBranding } from '../../../data/teamBranding.js';
 import { getTeamStadium } from '../../../data/database_coaches.js';
-import { clubsDatabase } from '../../../data/database_clubs.js';
+import { getClubInfo } from '../../../data/database_clubs.js';
+import { getSerieD2026GroupForClub } from '../../../data/serieD2026.js';
+import { getSetupTeamSelectionPatch } from '../setupService.js';
+
+const SERIES_STYLE = {
+  A: { color: P.green, light: P.greenLight },
+  B: { color: P.gold, light: P.goldLight },
+  C: { color: P.blue, light: P.blueLight },
+  D: { color: P.purple, light: P.purpleLight },
+};
 
 const SetupClubStep = ({
-  setupData, up, goCard, isCardValid, availableTeams, brand,
-  useExistingTeam, setUseExistingTeam, teamSearch, setTeamSearch,
-  signing, setSigning, signed, setSigned, handleStartNewGame, savesList, setScreen,
+  setupData, up, goCard, isCardValid, availableTeams,
+  teamSearch, setTeamSearch, savesList, setScreen,
 }) => {
-    const TeamIconComp = TeamIcon;
+  const [serieFilter, setSerieFilter] = React.useState('ALL');
+  const TeamIconComp = TeamIcon;
+  const selected = availableTeams.find((team) => team.id === setupData.teamId) || null;
+  const query = teamSearch.trim().toLocaleLowerCase('pt-BR');
+  const filteredTeams = availableTeams.filter((team) => {
+    if (serieFilter !== 'ALL' && team.serie2026 !== serieFilter) return false;
+    if (!query) return true;
+    const info = getClubInfo(team.name);
+    return [team.name, ...(team.aliases || []), info?.city]
+      .filter(Boolean)
+      .some((value) => String(value).toLocaleLowerCase('pt-BR').includes(query));
+  });
+  const counts = Object.fromEntries(['A','B','C','D'].map((serie) => [serie, availableTeams.filter((team) => team.serie2026 === serie).length]));
 
-    const selTeam = availableTeams.find(t => t.name === setupData.teamName);
-    const filteredTeams = teamSearch.trim()
-      ? availableTeams.filter(t => t.name.toLowerCase().includes(teamSearch.trim().toLowerCase()))
-      : availableTeams;
-
-    const ovrColor = ovr => ovr >= 80 ? P.green : ovr >= 72 ? P.gold : ovr >= 65 ? '#f97316' : P.red;
-
-    return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <SetupCardHeader icon="🏟️" step={2} title="Escolha seu Clube" sub={`SÉRIE ${setupData.serie} · ${availableTeams.length} TIMES DISPONÍVEIS`} />
-
-        {setupData.serie === 'D' && (
-          <Box sx={{ display: 'flex', mb: 1.5, bgcolor: P.bg, borderRadius: '12px', p: 0.4, gap: 0.4, border: `1px solid ${P.border}` }}>
-            {[{ label: '✏️ Criar clube', val: false }, { label: '🏛️ Time existente', val: true }].map(opt => (
-              <Box key={String(opt.val)}
-                onClick={() => { setUseExistingTeam(opt.val); if (!opt.val) up({ teamName: '', existingTeamId: null }); }}
-                sx={{
-                  flex: 1, textAlign: 'center', py: 0.9, borderRadius: '9px', cursor: 'pointer',
-                  bgcolor: useExistingTeam === opt.val ? P.surface : 'transparent',
-                  color: useExistingTeam === opt.val ? P.green : P.txt3,
-                  fontWeight: 900, fontSize: '0.8rem',
-                  boxShadow: useExistingTeam === opt.val ? '0 1px 6px rgba(0,0,0,0.08)' : 'none',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {opt.label}
-              </Box>
-            ))}
-          </Box>
-        )}
-
-        {useExistingTeam && (
-          <>
-            <Box sx={{ position: 'relative', mb: 1 }}>
-              <input
-                value={teamSearch}
-                onChange={e => setTeamSearch(e.target.value)}
-                placeholder="Buscar clube..."
-                style={{ ...inputStyle, paddingLeft: 36 }}
-              />
-              <Typography sx={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem' }}>🔍</Typography>
-            </Box>
-
-            <Box sx={{
-              flex: 1, overflowY: 'auto', mb: 1,
-              display: 'flex', flexDirection: 'column', gap: 0.6,
-              '&::-webkit-scrollbar': { width: '3px' },
-              '&::-webkit-scrollbar-thumb': { bgcolor: P.border, borderRadius: '4px' },
-            }}>
-              {filteredTeams.map(team => {
-                const sel = setupData.teamName === team.name;
-                const b   = teamBranding?.[team.name];
-                const pri = b?.primary   || P.green;
-                const sec = b?.secondary || '#ffffff';
-                const oClr = ovrColor(team.strength);
-
-                return (
-                  <Box key={team.id}
-                    onClick={() => up({ teamName: team.name, existingTeamId: team.id, stadiumName: '', _colorsSet: false })}
-                    sx={{
-                      display: 'flex', alignItems: 'center', gap: 1.2,
-                      bgcolor: sel ? `${pri}10` : P.surface,
-                      border: `1.5px solid ${sel ? pri : P.border}`,
-                      borderRadius: '14px', px: 1.2, py: 0.8, cursor: 'pointer',
-                      transition: 'all 0.12s',
-                      boxShadow: sel ? `0 2px 12px ${pri}20` : '0 1px 3px rgba(0,0,0,0.04)',
-                      '&:active': { transform: 'scale(0.985)' },
-                    }}
-                  >
-                    <Box sx={{ flexShrink: 0 }}>
-                      <SetupShirt primary={pri} secondary={sec} number="10" size={44} />
-                    </Box>
-                    <Box sx={{ flexShrink: 0 }}>
-                      <TeamIconComp name={team.name} size={32} />
-                    </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{
-                        color: sel ? pri : P.txt1, fontWeight: 900, fontSize: '0.88rem', lineHeight: 1.1,
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      }}>
-                        {team.name}
-                      </Typography>
-                      <Typography sx={{ color: P.txt3, fontSize: '0.6rem', fontWeight: 700, mt: 0.2 }}>
-                        {fmt(team.money || 0)}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ bgcolor: `${oClr}15`, border: `1.5px solid ${oClr}40`, borderRadius: '8px', px: 0.8, py: 0.4, flexShrink: 0 }}>
-                      <Typography sx={{ color: oClr, fontWeight: 900, fontSize: '0.78rem', lineHeight: 1 }}>{team.strength}</Typography>
-                      <Typography sx={{ color: P.txt3, fontSize: '0.4rem', fontWeight: 700 }}>OVR</Typography>
-                    </Box>
-                    {sel && (
-                      <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: pri, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Typography sx={{ color: '#fff', fontSize: '0.6rem', fontWeight: 900 }}>✓</Typography>
-                      </Box>
-                    )}
-                  </Box>
-                );
-              })}
-            </Box>
-
-            {selTeam && (() => {
-              const b    = teamBranding?.[selTeam.name];
-              const pri  = b?.primary   || P.green;
-              const sec  = b?.secondary || '#ffffff';
-              const info = clubsDatabase?.[selTeam.name];
-              const st   = getTeamStadium?.(selTeam.name);
-              return (
-                <Box sx={{ bgcolor: P.surface, border: `1.5px solid ${pri}30`, borderRadius: '14px', overflow: 'hidden', mb: 1, boxShadow: `0 2px 16px ${pri}12` }}>
-                  <Box sx={{ height: 3, background: `linear-gradient(90deg,${pri},${sec})` }} />
-                  <Box sx={{ px: 1.4, py: 1, display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                    <TeamIconComp name={selTeam.name} size={42} />
-                    <Box sx={{ flex: 1 }}>
-                      <Typography sx={{ color: P.txt1, fontWeight: 900, fontSize: '1rem', lineHeight: 1 }}>{selTeam.name}</Typography>
-                      <Typography sx={{ color: P.txt3, fontSize: '0.6rem', fontWeight: 700 }}>OVR {selTeam.strength} · {fmt(selTeam.money || 0)}</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      <SetupShirt primary={pri} secondary={sec} number="10" size={32} />
-                      <SetupShirt primary={sec} secondary={pri} number="1" size={32} />
-                    </Box>
-                  </Box>
-                  {st && (
-                    <Box sx={{ px: 1.4, py: 0.6, display: 'flex', gap: 0.8, borderTop: `1px solid ${P.border}` }}>
-                      <Typography sx={{ fontSize: '0.8rem' }}>🏟️</Typography>
-                      <Typography sx={{ color: P.txt2, fontSize: '0.68rem', fontWeight: 700 }}>{st}</Typography>
-                    </Box>
-                  )}
-                  {info?.titles && (
-                    <Box sx={{ px: 1.4, pb: 1, pt: 0.5, display: 'flex', flexWrap: 'wrap', gap: 0.4, borderTop: `1px solid ${P.border}` }}>
-                      {[
-                        { icon: '🏆', label: 'Brasileirão',    v: info.titles.brasileirao },
-                        { icon: '🌎', label: 'Libertadores',   v: info.titles.libertadores },
-                        { icon: '🥇', label: 'Copa do Brasil', v: info.titles.copaBrasil },
-                      ].filter(t => t.v > 0).map((t, i) => (
-                        <Box key={i} sx={{ bgcolor: P.goldLight, border: `1px solid ${P.gold}30`, borderRadius: '20px', px: 0.8, py: 0.25, display: 'flex', alignItems: 'center', gap: 0.3 }}>
-                          <Typography sx={{ fontSize: '0.6rem' }}>{t.icon}</Typography>
-                          <Typography sx={{ color: P.gold, fontWeight: 900, fontSize: '0.58rem' }}>{t.v}× {t.label}</Typography>
-                        </Box>
-                      ))}
-                    </Box>
-                  )}
-                </Box>
-              );
-            })()}
-          </>
-        )}
-
-        {!useExistingTeam && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2, flex: 1, mb: 1 }}>
-            <Box>
-              <SetupSectionLabel label="NOME DO CLUBE" />
-              <input className="setup-input" value={setupData.teamName || ''} onChange={e => up({ teamName: e.target.value })} placeholder="Ex: Esporte Clube Guerreiro" style={inputStyle} />
-            </Box>
-            <Box>
-              <SetupSectionLabel label="NOME DO ESTÁDIO" />
-              <input className="setup-input" value={setupData.stadiumName || ''} onChange={e => up({ stadiumName: e.target.value })} placeholder="Ex: Arena do Povo" style={inputStyle} />
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.7 }}>
-                {['Arena Central', 'Arena do Povo', 'Estádio Municipal', 'Arena da Cidade', 'Estádio Olímpico'].map(s => (
-                  <Box key={s} onClick={() => up({ stadiumName: s })} sx={{
-                    bgcolor: setupData.stadiumName === s ? P.greenLight : P.bg,
-                    border: `1px solid ${setupData.stadiumName === s ? P.green : P.border}`,
-                    borderRadius: '8px', px: 0.9, py: 0.35, cursor: 'pointer',
-                  }}>
-                    <Typography sx={{ color: setupData.stadiumName === s ? P.greenDark : P.txt3, fontWeight: 900, fontSize: '0.6rem' }}>{s}</Typography>
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-            {(() => {
-              const s = setupData.serie || 'D';
-              const mins = { A: 10e6, B: 10e6, C: 10e6, D: 10e6 };
-              const maxs = { A: 160e6, B: 40e6, C: 20e6, D: 15e6 };
-              const stps = { A: 5e6, B: 2e6, C: 1e6, D: 1e6 };
-              const cur  = setupData.initialMoney ?? 10e6;
-              const mn = mins[s], mx = maxs[s], st = stps[s];
-              const pct = ((cur - mn) / (mx - mn)) * 100;
-              return (
-                <Box sx={{ bgcolor: P.surface, border: `1.5px solid ${P.border}`, borderRadius: '12px', p: 1.3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.8 }}>
-                    <SetupSectionLabel label="ORÇAMENTO INICIAL" />
-                    <Typography sx={{ color: P.green, fontWeight: 900, fontSize: '0.88rem' }}>{fmt(cur)}</Typography>
-                  </Box>
-                  <Box sx={{ position: 'relative', height: 20 }}>
-                    <Box sx={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: 0, right: 0, height: 6, bgcolor: P.bg, borderRadius: 3, overflow: 'hidden' }}>
-                      <Box sx={{ height: '100%', width: `${pct}%`, bgcolor: P.green, borderRadius: 3 }} />
-                    </Box>
-                    <input type="range" min={mn} max={mx} step={st} value={cur}
-                      onChange={e => up({ initialMoney: Number(e.target.value) })}
-                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', margin: 0 }} />
-                  </Box>
-                </Box>
-              );
-            })()}
-          </Box>
-        )}
-
-        <SetupNavRow onBack={() => goCard(1)} onNext={() => goCard(3)} disabled={!isCardValid(2)} nextLabel="OBJETIVOS" />
-      </Box>
-    );
+  const selectTeam = (team) => {
+    const patch = getSetupTeamSelectionPatch(team.id);
+    if (patch) up(patch);
   };
+
+  const selectedBrand = selected ? getTeamBranding(selected.name) : null;
+  const selectedInfo = selected ? getClubInfo(selected.name) : null;
+  const selectedStadium = selected ? getTeamStadium(selected.name) : null;
+  const selectedSerieStyle = SERIES_STYLE[selected?.serie2026] || SERIES_STYLE.A;
+  const selectedGroup = selected?.serie2026 === 'D' ? getSerieD2026GroupForClub(selected.id) : null;
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <SetupCardHeader icon="🏟️" step={1} title="Escolha seu Clube" sub="A DIVISÃO É DEFINIDA AUTOMATICAMENTE PELO CLUBE" />
+
+      {selected && (
+        <Box sx={{ mb: 1.2, bgcolor: P.surface, border: `1.5px solid ${selectedSerieStyle.color}45`, borderRadius: '16px', overflow: 'hidden', boxShadow: `0 4px 18px ${selectedSerieStyle.color}12` }}>
+          <Box sx={{ height: 4, background: `linear-gradient(90deg,${selectedBrand?.primary || selectedSerieStyle.color},${selectedBrand?.secondary || '#fff'})` }} />
+          <Box sx={{ p: 1.25, display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <TeamIconComp name={selected.name} size={48} />
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography sx={{ color: P.txt1, fontWeight: 900, fontSize: '1.02rem', lineHeight: 1.1 }}>{selected.name}</Typography>
+              <Typography sx={{ color: P.txt3, fontSize: '0.62rem', fontWeight: 700, mt: 0.25 }}>
+                {[selectedInfo?.city, selectedStadium].filter(Boolean).join(' · ') || 'Clube selecionado'}
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'center', bgcolor: selectedSerieStyle.light, border: `1px solid ${selectedSerieStyle.color}40`, borderRadius: '10px', px: 1, py: 0.55 }}>
+              <Typography sx={{ color: selectedSerieStyle.color, fontWeight: 900, fontSize: '0.82rem', lineHeight: 1 }}>SÉRIE {selected.serie2026}</Typography>
+              {selectedGroup && <Typography sx={{ color: P.txt3, fontWeight: 800, fontSize: '0.48rem', mt: 0.2 }}>GRUPO {selectedGroup}</Typography>}
+            </Box>
+          </Box>
+        </Box>
+      )}
+
+      <Box sx={{ position: 'relative', mb: 0.8 }}>
+        <input
+          className="setup-input"
+          value={teamSearch}
+          onChange={(event) => setTeamSearch(event.target.value)}
+          placeholder="Buscar clube pelo nome..."
+          style={{ ...inputStyle, paddingLeft: 38, paddingRight: teamSearch ? 38 : 14 }}
+        />
+        <Typography sx={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem' }}>🔎</Typography>
+        {teamSearch && (
+          <Box onClick={() => setTeamSearch('')} sx={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 24, height: 24, borderRadius: '50%', bgcolor: P.bg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Typography sx={{ color: P.txt3, fontWeight: 900, fontSize: '0.75rem' }}>×</Typography>
+          </Box>
+        )}
+      </Box>
+
+      <Box sx={{ display: 'flex', gap: 0.55, mb: 0.9, overflowX: 'auto', pb: 0.2 }}>
+        {[{ id:'ALL', label:'Todos', count:availableTeams.length }, ...['A','B','C','D'].map((serie) => ({ id:serie, label:`Série ${serie}`, count:counts[serie] }))].map((filter) => {
+          const active = serieFilter === filter.id;
+          const style = SERIES_STYLE[filter.id] || { color:P.green, light:P.greenLight };
+          return (
+            <Box key={filter.id} onClick={() => setSerieFilter(filter.id)} sx={{ flexShrink: 0, cursor: 'pointer', borderRadius: '10px', px: 0.9, py: 0.55, bgcolor: active ? style.light : P.surface, border: `1.5px solid ${active ? style.color : P.border}`, transition: 'all .15s' }}>
+              <Typography sx={{ color: active ? style.color : P.txt2, fontWeight: 900, fontSize: '0.62rem' }}>{filter.label} <span style={{ opacity:.65 }}>({filter.count})</span></Typography>
+            </Box>
+          );
+        })}
+      </Box>
+
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.55 }}>
+        <Typography sx={{ color: P.txt3, fontWeight: 900, fontSize: '0.55rem', letterSpacing: .6 }}>{filteredTeams.length} CLUBES ENCONTRADOS</Typography>
+        <Typography sx={{ color: P.txt4, fontWeight: 700, fontSize: '0.52rem' }}>Selecione para continuar</Typography>
+      </Box>
+
+      <Box sx={{ flex: 1, overflowY: 'auto', mb: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', alignContent: 'start', gap: 0.7, pr: 0.2, '&::-webkit-scrollbar': { width: '3px' }, '&::-webkit-scrollbar-thumb': { bgcolor: P.border, borderRadius: '4px' } }}>
+        {filteredTeams.map((team) => {
+          const isSelected = setupData.teamId === team.id;
+          const branding = getTeamBranding(team.name);
+          const serieStyle = SERIES_STYLE[team.serie2026] || SERIES_STYLE.A;
+          const info = getClubInfo(team.name);
+          return (
+            <Box key={team.id} onClick={() => selectTeam(team)} sx={{ position: 'relative', minWidth: 0, cursor: 'pointer', bgcolor: isSelected ? `${branding?.primary || serieStyle.color}0C` : P.surface, border: `1.5px solid ${isSelected ? (branding?.primary || serieStyle.color) : P.border}`, borderRadius: '14px', p: 1, transition: 'all .13s', boxShadow: isSelected ? `0 3px 14px ${branding?.primary || serieStyle.color}18` : '0 1px 4px rgba(0,0,0,.035)', '&:active': { transform:'scale(.98)' } }}>
+              <Box sx={{ display:'flex', gap:.8, alignItems:'center', mb:.65 }}>
+                <TeamIconComp name={team.name} size={36} />
+                <Box sx={{ minWidth:0, flex:1 }}>
+                  <Typography sx={{ color:P.txt1, fontWeight:900, fontSize:'.72rem', lineHeight:1.05, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{team.name}</Typography>
+                  {info?.city && <Typography sx={{ color:P.txt3, fontWeight:700, fontSize:'.48rem', mt:.18, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{info.city}</Typography>}
+                </Box>
+              </Box>
+              <Box sx={{ display:'flex', alignItems:'center', gap:.45 }}>
+                <Box sx={{ bgcolor:serieStyle.light, border:`1px solid ${serieStyle.color}30`, borderRadius:'7px', px:.55, py:.25 }}><Typography sx={{ color:serieStyle.color, fontWeight:900, fontSize:'.48rem' }}>SÉRIE {team.serie2026}</Typography></Box>
+                <Typography sx={{ color:P.txt3, fontWeight:800, fontSize:'.48rem', ml:'auto' }}>OVR {team.strength}</Typography>
+              </Box>
+              <Typography sx={{ color:P.txt4, fontWeight:700, fontSize:'.45rem', mt:.45 }}>{fmt(team.money || 0)}</Typography>
+              {isSelected && <Box sx={{ position:'absolute', top:6, right:6, width:18, height:18, borderRadius:'50%', bgcolor:branding?.primary || serieStyle.color, display:'flex', alignItems:'center', justifyContent:'center' }}><Typography sx={{ color:'#fff', fontWeight:900, fontSize:'.55rem' }}>✓</Typography></Box>}
+            </Box>
+          );
+        })}
+        {!filteredTeams.length && (
+          <Box sx={{ gridColumn:'1 / -1', bgcolor:P.surface, border:`1.5px dashed ${P.border}`, borderRadius:'14px', py:4, textAlign:'center' }}>
+            <Typography sx={{ fontSize:'1.5rem', mb:.5 }}>🔍</Typography>
+            <Typography sx={{ color:P.txt2, fontWeight:900, fontSize:'.8rem' }}>Nenhum clube encontrado</Typography>
+            <Typography sx={{ color:P.txt3, fontWeight:700, fontSize:'.6rem', mt:.25 }}>Tente outro nome ou remova o filtro de Série.</Typography>
+          </Box>
+        )}
+      </Box>
+
+      <SetupNavRow
+        onBack={savesList.length > 0 ? () => setScreen('boot') : undefined}
+        onNext={() => goCard(2)}
+        nextLabel={selected ? `CONTINUAR COM ${selected.name.toUpperCase()}` : 'SELECIONE UM CLUBE'}
+        disabled={!isCardValid(1)}
+      />
+    </Box>
+  );
+};
 
 export default SetupClubStep;

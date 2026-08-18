@@ -4,26 +4,42 @@ import { DisciplineEngine } from '../../engines/engine_discipline.js';
 import { getNextMatchPositionAccent } from './nextMatchPresentation.js';
 
 const NextMatchLineupStatus = ({ viewModel, theme }) => {
-  const { isFullyReady, validation, starters, illegalStarters, nextRound } = viewModel;
+  const { isFullyReady, validation, starters, illegalStarters, nextRound, identityValid, skippedSlots = 0 } = viewModel;
+  const pendingIdleAdvance = skippedSlots > 0;
+  const statusColor = pendingIdleAdvance ? theme.yellow : isFullyReady ? theme.green : theme.red;
 
   return (
     <Box sx={{
-      bgcolor: isFullyReady ? `${theme.green}08` : `${theme.red}08`,
-      border: `1.5px solid ${isFullyReady ? theme.green : theme.red}40`,
+      bgcolor: `${statusColor}08`,
+      border: `1.5px solid ${statusColor}40`,
       borderRadius: '12px', overflow: 'hidden', mb: 1.2,
     }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.4, py: 0.9, borderBottom: `1px solid ${isFullyReady ? theme.green : theme.red}20`, background: isFullyReady ? `${theme.green}06` : `${theme.red}06` }}>
-        <Typography sx={{ fontSize: '1rem', lineHeight: 1 }}>{isFullyReady ? '✅' : '🚨'}</Typography>
-        <Typography sx={{ color: isFullyReady ? theme.green : theme.red, fontWeight: 900, fontSize: '0.78rem', flex: 1 }}>
-          {isFullyReady ? 'Elenco pronto para jogar' : !validation.isValid ? `Escalação incompleta (${starters.length}/11)` : 'Jogadores inaptos na escalação'}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.4, py: 0.9, borderBottom: `1px solid ${statusColor}20`, background: `${statusColor}06` }}>
+        <Typography sx={{ fontSize: '1rem', lineHeight: 1 }}>{pendingIdleAdvance ? '⏭️' : isFullyReady ? '✅' : '🚨'}</Typography>
+        <Typography sx={{ color: statusColor, fontWeight: 900, fontSize: '0.78rem', flex: 1 }}>
+          {pendingIdleAdvance
+            ? `Escalação será reavaliada após ${skippedSlots} data(s) de descanso`
+            : isFullyReady
+            ? 'Elenco pronto para jogar'
+            : !identityValid
+              ? 'Identidade das equipes inconsistente'
+              : !validation.isComplete
+                ? `Escalação incompleta (${validation.uniqueStarterCount}/11)`
+                : !validation.formationValid
+                  ? 'Formação inválida'
+                  : !validation.hasGoalkeeper
+                    ? 'Escalação sem goleiro'
+                    : !validation.isValid
+                      ? 'Escalação inválida'
+                      : 'Jogadores inaptos na escalação'}
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: isFullyReady ? `${theme.green}18` : `${theme.red}18`, borderRadius: '8px', px: 0.9, py: 0.3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: `${statusColor}18`, borderRadius: '8px', px: 0.9, py: 0.3 }}>
           <Typography sx={{ color: theme.txt3, fontSize: '0.48rem', fontWeight: 700 }}>OVR</Typography>
-          <Typography sx={{ color: isFullyReady ? theme.green : theme.red, fontWeight: 900, fontSize: '0.82rem', lineHeight: 1 }}>{validation.avgStrength || 0}</Typography>
+          <Typography sx={{ color: statusColor, fontWeight: 900, fontSize: '0.82rem', lineHeight: 1 }}>{validation.avgStrength || 0}</Typography>
         </Box>
       </Box>
 
-      {illegalStarters.length > 0 && (
+      {!pendingIdleAdvance && illegalStarters.length > 0 && (
         <Box sx={{ px: 1.4, py: 0.8, borderBottom: `1px solid ${theme.red}15` }}>
           <Typography sx={{ color: theme.red, fontWeight: 900, fontSize: '0.58rem', mb: 0.5 }}>⛔ REMOVA DA ESCALAÇÃO:</Typography>
           {illegalStarters.map((player) => {

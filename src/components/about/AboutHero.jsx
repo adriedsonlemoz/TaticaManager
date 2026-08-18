@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Paper, Typography } from '@mui/material';
 import { APP_NAME, APP_VERSION_LABEL } from '../../config/appMeta.js';
 
-const AboutHero = ({ theme }) => {
+const AboutHero = ({ theme, currentSummary }) => {
   const C = theme;
   const stats = [
     { value: '4', label: 'DIVISÕES' },
@@ -41,7 +41,7 @@ const AboutHero = ({ theme }) => {
       </Box>
 
       <Box sx={{ mt: 1.5, bgcolor: `${C.green}10`, border: `1px solid ${C.green}40`, borderRadius: '10px', px: 1.2, py: 0.9 }}>
-        <Typography sx={{ color: C.green, fontWeight: 900, fontSize: '0.62rem', letterSpacing: 0.5 }}>🧩 {APP_VERSION_LABEL} — inicialização e tela Sobre reorganizadas para facilitar manutenção e testes</Typography>
+        <Typography sx={{ color: C.green, fontWeight: 900, fontSize: '0.62rem', letterSpacing: 0.5 }}>🧩 {APP_VERSION_LABEL} — {currentSummary || 'melhorias de estabilidade e manutenção'}</Typography>
       </Box>
     </Paper>
   );

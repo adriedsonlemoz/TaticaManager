@@ -1,4 +1,6 @@
 import { getTeamCoach } from '../../data/database_coaches.js';
+import { evaluateTransferPurchase, getTransferFunds } from '../market/transferRules.js';
+import { samePlayerId } from '../market/marketIntegrity.js';
 
 export const TABLE_TABS = ['CLASSIFICAÇÃO', 'ARTILHEIROS'];
 
@@ -24,7 +26,7 @@ const getZoneForLowerSerie = (index, serie) => {
     return { type: 'promotion', colorKey: 'zGreen', label: `Acesso Série ${target}`, background: 'rgba(34,197,94,0.10)', icon: '⬆️' };
   }
   if (index >= 16) {
-    if (serie === 'D') return { type: 'cut', colorKey: 'zRed', label: 'Zona de Corte', background: 'rgba(239,68,68,0.10)', icon: null };
+    if (serie === 'D') return DEFAULT_ZONE;
     const target = serie === 'B' ? 'C' : 'D';
     return { type: 'relegation', colorKey: 'zRed', label: `Rebaixamento ${target}`, background: 'rgba(239,68,68,0.10)', icon: null };
   }
@@ -61,9 +63,8 @@ export const getSeasonMovement = (index, serie = 'A', isSeasonEnd = false) => {
     return null;
   }
 
-  if (serie === 'D') {
-    if (index >= 16) return { icon: '❌', color: '#ef4444', label: 'Eliminado' };
-    if (index < 4) return { icon: '⬆️', color: '#22c55e', label: 'Acesso → Série C' };
+  if (serie === 'D' && index < 4) {
+    return { icon: '⬆️', color: '#22c55e', label: 'Acesso → Série C' };
   }
 
   return null;
@@ -92,7 +93,6 @@ export const getLeagueLegend = (serie = 'A') => {
   }
   return [
     { colorKey: 'zGreen', label: '⬆ Acesso Série C (G4)' },
-    { colorKey: 'zRed', label: '⬇ Zona de Corte (Z4)' },
   ];
 };
 
@@ -100,9 +100,11 @@ export const getSeasonProgress = (gameData = {}) => {
   const totalRounds = Array.isArray(gameData.fixtures) && gameData.fixtures.length > 0
     ? gameData.fixtures.length
     : 38;
-  const currentRound = Number(gameData.round) || 0;
+  const hasLeagueRound = gameData.leagueRound !== undefined && gameData.leagueRound !== null
+    && Number.isFinite(Number(gameData.leagueRound));
+  const currentRound = hasLeagueRound ? Number(gameData.leagueRound) : (Number(gameData.round) || 0);
   return {
-    currentRound,
+    currentRound: Math.max(0, currentRound),
     totalRounds,
     isSeasonEnd: currentRound >= totalRounds,
   };
@@ -141,25 +143,39 @@ export const buildScorers = (scorers = {}) => Object.values(scorers || {})
   }));
 
 export const isScorerAlreadyInSquad = (gameData = {}, scorer = {}) => Boolean(
-  scorer.isUserTeam || (gameData.players || []).some(player =>
-    (scorer.id && player.id === scorer.id) ||
-    (scorer.name && player.name === scorer.name)
-  )
+  scorer.isUserTeam || (gameData.players || []).some(player => samePlayerId(player, scorer))
 );
 
-export const getScorerPurchaseStatus = (gameData = {}, scorer = {}) => {
-  const value = Math.max(0, Number(scorer.value) || 0);
-  const money = Math.max(0, Number(gameData.club?.money) || 0);
-  const budget = Math.max(0, Number(gameData.club?.transferBudget) || 0);
-  const alreadyInSquad = isScorerAlreadyInSquad(gameData, scorer);
-  const hasCash = money >= value;
-  const insideBudget = budget <= 0 || value <= budget;
+const SCORER_TRANSFER_LABELS = Object.freeze({
+  already_owned: '✅ No seu elenco',
+  cash: '💸 Sem saldo',
+  transfer_budget: '📉 Fora do orçamento',
+  window_closed: '🔒 Janela fechada',
+  seller_min_squad: '👥 Clube sem reposição',
+  reputation: '⭐ Clube sem prestígio',
+  financial_crisis: '⚠️ Crise financeira',
+  unavailable: '⏳ Indisponível',
+  invalid_price: '⚠️ Valor inválido',
+});
 
-  if (alreadyInSquad) return { alreadyInSquad, canBuy: false, label: '✅ No seu elenco', reason: 'already' };
-  if (!hasCash) return { alreadyInSquad, canBuy: false, label: '💸 Sem saldo', reason: 'cash' };
-  if (!insideBudget) return { alreadyInSquad, canBuy: false, label: '📉 Fora do orçamento', reason: 'budget' };
-  return { alreadyInSquad, canBuy: true, label: '🤝 Contratar', reason: null };
+export const getScorerPurchaseStatus = (gameData = {}, scorer = {}) => {
+  const alreadyInSquad = isScorerAlreadyInSquad(gameData, scorer);
+  if (alreadyInSquad) return { alreadyInSquad, canBuy: false, label: SCORER_TRANSFER_LABELS.already_owned, reason: 'already' };
+
+  const normalized = normalizeScorerForTransfer(scorer);
+  const eligibility = evaluateTransferPurchase(gameData, normalized, normalized.agreedTransferFee ?? normalized.value ?? 0);
+  if (eligibility.allowed) return { alreadyInSquad: false, canBuy: true, label: '🤝 Contratar', reason: null };
+
+  const reason = eligibility.code === 'transfer_budget' ? 'budget' : eligibility.code;
+  return {
+    alreadyInSquad: false,
+    canBuy: false,
+    label: SCORER_TRANSFER_LABELS[eligibility.code] || eligibility.label || '🚫 Indisponível',
+    reason,
+  };
 };
+
+export const getScorerTransferFunds = (gameData = {}) => getTransferFunds(gameData);
 
 export const normalizeScorerForTransfer = (scorer = {}) => ({
   ...scorer,

@@ -4,8 +4,7 @@ import { SETUP_PALETTE as P, SETUP_INPUT_STYLE as inputStyle, formatSetupMoney a
 import { SetupCardHeader, SetupNavRow, SetupSectionLabel, SetupShirt } from '../SetupUi.jsx';
 
 const SetupKitStep = ({
-  setupData, up, goCard, isCardValid, availableTeams, brand,
-  useExistingTeam, setUseExistingTeam, teamSearch, setTeamSearch,
+  setupData, up, goCard, isCardValid, brand,
   signing, setSigning, signed, setSigned, handleStartNewGame, savesList, setScreen,
 }) => {
     const b   = brand;
@@ -31,7 +30,7 @@ const SetupKitStep = ({
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <SetupCardHeader icon="👕" step={5} title="Uniforme do Clube" sub="AS CORES QUE REPRESENTAM SEU TIME" />
+        <SetupCardHeader icon="👕" step={4} title="Uniforme do Clube" sub="AS CORES QUE REPRESENTAM SEU TIME" />
 
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2.5, mb: 2.5, bgcolor: P.surface, borderRadius: '16px', py: 2.5, px: 1.5, border: `1.5px solid ${P.border}`, boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
           {UNIFORMS.map((sh, i) => (
@@ -69,7 +68,7 @@ const SetupKitStep = ({
           </Box>
         </Box>
 
-        <SetupNavRow onBack={() => goCard(4)} onNext={() => goCard(6)} nextLabel="VER CONTRATO" />
+        <SetupNavRow onBack={() => goCard(3)} onNext={() => goCard(5)} nextLabel="VER CONTRATO" />
       </Box>
     );
   };

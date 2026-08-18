@@ -7,8 +7,16 @@ export {
 } from './core/playerFactory.js';
 
 export {
+  buildLeagueIntegrityReport,
+  buildLeagueScheduleReport,
   generateFixtures,
   generateInitialTable,
+  getLeagueFixtureSummary,
+  hasDoubleRoundRobinShape,
+  isCompleteDoubleRoundRobin,
+  parseLeagueResult,
+  rebuildLeagueTable,
+  reconcileLeagueState,
   sortLeagueTable,
   getTableZoneColor,
 } from './core/leagueEngine.js';

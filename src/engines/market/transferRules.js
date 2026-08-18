@@ -1,5 +1,6 @@
 import { CpuAI } from '../engine_cpu_ai.js';
 import { FinanceEngine } from '../engine_finances.js';
+import { samePlayerId } from './marketIntegrity.js';
 
 export const MIN_SELLING_SQUAD = 20;
 export const DEFAULT_MAX_SQUAD = 30;
@@ -20,13 +21,16 @@ export function getTransferWindowState(gameData = {}) {
 
 export function getTransferFunds(gameData = {}) {
   const cash = Math.max(0, Number(gameData.club?.money) || 0);
-  const rawBudget = Math.max(0, Number(gameData.club?.transferBudget) || 0);
-  const budgetLimited = rawBudget > 0;
+  const rawBudgetValue = gameData.club?.transferBudget;
+  const budgetLimited = rawBudgetValue !== null
+    && rawBudgetValue !== undefined
+    && Number.isFinite(Number(rawBudgetValue));
+  const transferBudget = budgetLimited ? Math.max(0, Number(rawBudgetValue)) : null;
   return {
     cash,
-    transferBudget: rawBudget,
+    transferBudget,
     budgetLimited,
-    available: budgetLimited ? Math.min(cash, rawBudget) : cash,
+    available: budgetLimited ? Math.min(cash, transferBudget) : cash,
   };
 }
 
@@ -66,18 +70,19 @@ export function getSellerRoster(gameData = {}, player = {}) {
   const seller = findCpuTeam(gameData, player);
   if (!seller) return [];
   const roster = gameData.teamRosters?.[seller.id];
-  return Array.isArray(roster) && roster.length > 0 ? roster : (seller.squad || []);
+  return Array.isArray(roster) ? roster : (seller.squad || []);
 }
 
-export function evaluateTransferPurchase(gameData = {}, player = {}, finalPrice = player?.value || 0) {
-  const price = Math.max(0, Number(finalPrice) || 0);
+export function evaluateTransferPurchase(gameData = {}, player = {}, finalPrice = player?.agreedTransferFee ?? player?.value ?? 0) {
+  const rawPrice = Number(finalPrice);
+  const price = Number.isFinite(rawPrice) ? Math.max(0, rawPrice) : NaN;
   const funds = getTransferFunds(gameData);
   const windowInfo = getTransferWindowState(gameData);
   const maxSquad = Number(CpuAI?.MAX_SQUAD_SIZE) || DEFAULT_MAX_SQUAD;
   const squadSize = (gameData.players || []).length;
   const sourceTeamId = player?.originTeamId ?? player?.teamId;
   const sourceTeamName = player?.originTeamName ?? player?.teamName;
-  const isFreeAgent = sourceTeamId == null || !sourceTeamName || sourceTeamName === 'Livre';
+  const isFreeAgent = sourceTeamId == null && (!sourceTeamName || sourceTeamName === 'Livre');
 
   const deny = (code, message, severity = 'error', detail = null) => ({
     allowed: false,
@@ -91,6 +96,12 @@ export function evaluateTransferPurchase(gameData = {}, player = {}, finalPrice 
     maxSquad,
   });
 
+  if (!player?.id) return deny('invalid_player', 'Jogador inválido.');
+  if (!Number.isFinite(price)) return deny('invalid_price', 'Valor de transferência inválido.');
+  if ((gameData.players || []).some((owned) => samePlayerId(owned, player))) {
+    return deny('already_owned', 'Este jogador já pertence ao seu clube.');
+  }
+
   if (windowInfo.open === false) {
     return deny(
       'window_closed',
@@ -103,8 +114,12 @@ export function evaluateTransferPurchase(gameData = {}, player = {}, finalPrice 
   }
 
   if (!isFreeAgent) {
+    const seller = findCpuTeam(gameData, player);
     const sellerRoster = getSellerRoster(gameData, player);
-    if (sellerRoster.length > 0 && sellerRoster.length <= MIN_SELLING_SQUAD) {
+    if (!seller || !sellerRoster.some((candidate) => samePlayerId(candidate, player))) {
+      return deny('unavailable', `${player.name || 'Jogador'} não está mais disponível no clube vendedor.`);
+    }
+    if (sellerRoster.length <= MIN_SELLING_SQUAD) {
       return deny(
         'seller_min_squad',
         `${sourceTeamName} não pode vender agora.`,
@@ -166,6 +181,8 @@ export function getPurchaseActionLabel(eligibility, formatMoney = (value) => Str
     case 'financial_crisis': return 'CRISE FINANCEIRA';
     case 'seller_min_squad': return 'VENDA BLOQUEADA';
     case 'reputation': return 'JOGADOR RECUSARIA';
+    case 'already_owned': return 'JÁ É DO CLUBE';
+    case 'unavailable': return 'INDISPONÍVEL';
     default: return 'INDISPONÍVEL';
   }
 }

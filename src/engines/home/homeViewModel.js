@@ -7,6 +7,7 @@ import { getRecentLeagueForm } from '../nextmatch/nextMatchViewModel.js';
 import { resolveMatchInfo } from '../../utils/matchDateUtils.js';
 import { APP_NAME, APP_VERSION_LABEL } from '../../config/appMeta.js';
 import { getUpcomingRound } from '../core/playerStatus.js';
+import { getInactiveCupSkipCount } from '../calendar/idleCalendarAdvance.js';
 
 const number = (value) => Number(value) || 0;
 const totalSlots = (gameData = {}) => gameData.calendar?.length || gameData.fixtures?.length || 0;
@@ -107,6 +108,24 @@ export function resolveHomeNextMatch(gameData = {}) {
     };
   }
 
+  const idleSlots = getInactiveCupSkipCount(gameData);
+  if (idleSlots > 0) {
+    return {
+      slotIndex: season.round,
+      type: 'idle',
+      competition: 'Calendário',
+      competitionLabel: '⏭️ Datas sem partida',
+      isUserHome: true,
+      opponent: null,
+      displayHome: { id:'user', name:gameData.club?.name || 'Meu Clube', isPlayer:true },
+      displayAway: null,
+      userSummary: getTeamTableSummary(gameData, { id:'user', name:gameData.club?.name }),
+      opponentSummary: { position:0, points:0 },
+      skippedSlots: idleSlots,
+      matchInfo: resolveMatchInfo(gameData, season.round),
+    };
+  }
+
   return null;
 }
 
@@ -120,14 +139,15 @@ export function getHomeCupSummary(gameData = {}) {
 
 export function getHomeLineupSummary(gameData = {}) {
   const validation = getLineupValidation(gameData);
-  const starters = (gameData.players || []).filter((player) => player.isStarting);
-  const currentSlot = getUpcomingRound(gameData);
+  const starters = validation.starters;
+  const nextMatch = resolveHomeNextMatch(gameData);
+  const currentSlot = nextMatch?.slotIndex != null ? nextMatch.slotIndex + 1 : getUpcomingRound(gameData);
   const invalidStarters = starters.filter((player) => (
     Boolean(player.injury) || DisciplineEngine.isPlayerSuspended(player, currentSlot)
   ));
 
   return {
-    startersCount: starters.length,
+    startersCount: validation.uniqueStarterCount,
     validation,
     invalidStarters,
     needsAttention: !validation.isValid || invalidStarters.length > 0,

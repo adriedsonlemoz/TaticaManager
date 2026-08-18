@@ -1,3 +1,5 @@
+import { syncUserRosterState } from '../core/gameStateIntegrity.js';
+
 export const PLAYER_MODAL_TABS = [
   { key: 'info', label: 'Perfil' },
   { key: 'season', label: 'Temporada' },
@@ -47,18 +49,18 @@ export const getRenewalOffer = (player) => {
   return { goals, wage, bonusPercent };
 };
 
-export const setTransferListing = (gameData, player, nextListed) => ({
-  ...gameData,
-  players: (gameData.players || []).map((candidate) => (
-    candidate.id === player.id ? { ...candidate, isListed: nextListed } : candidate
-  )),
-  market: nextListed
-    ? [
-        ...(gameData.market || []).filter((candidate) => candidate.id !== player.id),
-        { ...player, isListed: true, _listedAt: gameData.round || 0 },
-      ]
-    : (gameData.market || []).filter((candidate) => candidate.id !== player.id),
-});
+export const setTransferListing = (gameData, player, nextListed) => {
+  const players = (gameData.players || []).map((candidate) => (
+    String(candidate.id) === String(player.id) ? { ...candidate, isListed: nextListed } : candidate
+  ));
+  return syncUserRosterState({
+    ...gameData,
+    // Jogadores do próprio clube ficam apenas no elenco/lista de vendas.
+    // O pool `market` é reservado a agentes livres; misturar os dois permitia
+    // que um atleta listado pelo usuário aparecesse como opção de contratação.
+    market: (gameData.market || []).filter((candidate) => String(candidate.id) !== String(player.id)),
+  }, players);
+};
 
 export const getDisciplineStatus = (player, currentRound, disciplineEngine) => {
   const discipline = player?.discipline || {

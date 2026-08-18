@@ -88,8 +88,11 @@ check(() => {
   const changelog = buildAboutChangelog(theme);
   assert.equal(changelog[0].v, APP_VERSION_LABEL);
   assert.equal(changelog[0].tag, 'ATUAL');
-  assert.equal(changelog[1].v, 'v1.0 beta.27');
-  assert.ok(changelog[0].title.includes('temporada'));
+  assert.equal(changelog[1].v, 'v1.0 beta.51');
+  assert.ok(changelog[0].title.includes('Nova Carreira'));
+  assert.ok(changelog[0].title.includes('clube real'));
+  assert.ok(changelog[0].items.some((item) => item.includes('Schema 6')));
+  assert.ok(changelog[0].items.some((item) => item.includes('teamId')));
 });
 
 check(() => assert.equal(PIX_KEY, 'suporte@brasfootweb.com'));
@@ -97,9 +100,13 @@ check(() => assert.equal(PIX_KEY, 'suporte@brasfootweb.com'));
 const bootSource = await readFile(new URL('../src/components/boot/BootHeader.jsx', import.meta.url), 'utf8');
 const persistenceSource = await readFile(new URL('../src/hooks/hooks_persistence.js', import.meta.url), 'utf8');
 const aboutSource = await readFile(new URL('../src/components/about/AboutSupportCard.jsx', import.meta.url), 'utf8');
+const saveCardSource = await readFile(new URL('../src/components/boot/BootSaveCard.jsx', import.meta.url), 'utf8');
 check(() => assert.ok(!bootSource.includes('CLUBE DE')));
 check(() => assert.ok(!bootSource.includes('BOLSO')));
-check(() => assert.ok(persistenceSource.includes('d.calendar?.length')));
+check(() => assert.ok(persistenceSource.includes('const calendar = Array.isArray(d.calendar)')));
 check(() => assert.ok(aboutSource.includes('PIX_KEY')));
+check(() => assert.ok(saveCardSource.includes('save.incompatible === true')));
+check(() => assert.ok(saveCardSource.includes('ATUALIZE O JOGO')));
+check(() => assert.ok(persistenceSource.includes("error?.code === 'SAVE_SCHEMA_TOO_NEW'")));
 
 console.log(`Boot/About smoke: ${checks}/${checks} verificações aprovadas.`);

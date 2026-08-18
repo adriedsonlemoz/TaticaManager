@@ -1,5 +1,6 @@
 // Recent form and CPU squad availability metrics.
 import { DisciplineEngine } from '../engine_discipline.js';
+import { getCpuRosterStrength } from '../cpu/cpuRoster.js';
 
 const calcTeamRecentForm = (teamId, fixtures, round, maxGames) => {
   maxGames = maxGames || 5;
@@ -23,6 +24,8 @@ const calcCPUAvailableStrength = (team, teamRosters, currentRound) => {
   const base = team.strength || 70;
   const roster = (teamRosters && teamRosters[team.id]) || team.squad || [];
   if (!roster.length) return base;
+  const rosterStrength = getCpuRosterStrength(roster, base);
+  const effectiveBase = Math.round(base * 0.40 + rosterStrength * 0.60);
   const unavailable = roster.filter(function(p) {
     const injured = !!p.injury;
     const susp = DisciplineEngine
@@ -31,7 +34,7 @@ const calcCPUAvailableStrength = (team, teamRosters, currentRound) => {
     return injured || susp;
   }).length;
   const penalty = Math.min(4, unavailable * 0.7);
-  return Math.max(40, base - penalty);
+  return Math.max(40, effectiveBase - penalty);
 };
 
 

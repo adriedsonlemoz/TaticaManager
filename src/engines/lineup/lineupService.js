@@ -2,6 +2,7 @@ import { DisciplineEngine } from '../engine_discipline.js';
 import { FatigueEngine } from '../engine_fatigue.js';
 import { FORMATION_SLOTS, canPlayAs } from './lineupRules.js';
 import { getUpcomingRound } from '../core/playerStatus.js';
+import { syncUserRosterState } from '../core/gameStateIntegrity.js';
 
 export const LINEUP_VIEWBOX = { width: 160, height: 100 };
 
@@ -136,16 +137,16 @@ export function getAvailableForRole(bench, role) {
 export function changeFormationState(gameData, formation) {
   if (!FORMATION_POSITIONS[formation]) return gameData;
   const allowedRoles = new Set(FORMATION_POSITIONS[formation].map(s => s.role));
-  return {
+  const players = (gameData.players || []).map(p => ({
+    ...p,
+    adaptedPosition: p.adaptedPosition && allowedRoles.has(p.adaptedPosition) && canPlayAs(p.position, p.adaptedPosition)
+      ? p.adaptedPosition
+      : null,
+  }));
+  return syncUserRosterState({
     ...gameData,
     club: { ...(gameData.club || {}), formation },
-    players: (gameData.players || []).map(p => ({
-      ...p,
-      adaptedPosition: p.adaptedPosition && allowedRoles.has(p.adaptedPosition) && canPlayAs(p.position, p.adaptedPosition)
-        ? p.adaptedPosition
-        : null,
-    })),
-  };
+  }, players);
 }
 
 export function toggleStarterState(gameData, playerId) {
@@ -156,10 +157,7 @@ export function toggleStarterState(gameData, playerId) {
 
   if (player.isStarting) {
     return {
-      gameData: {
-        ...gameData,
-        players: players.map(p => p.id === playerId ? { ...p, isStarting:false, adaptedPosition:null } : p),
-      },
+      gameData: syncUserRosterState(gameData, players.map(p => p.id === playerId ? { ...p, isStarting:false, adaptedPosition:null } : p)),
     };
   }
 
@@ -178,10 +176,7 @@ export function toggleStarterState(gameData, playerId) {
   if (currentForRole >= maxForRole) return { gameData, error: `Já há ${maxForRole} ${role}(s) escalado(s) na formação ${formation}.` };
 
   return {
-    gameData: {
-      ...gameData,
-      players: players.map(p => p.id === playerId ? { ...p, isStarting:true, adaptedPosition:null } : p),
-    },
+    gameData: syncUserRosterState(gameData, players.map(p => p.id === playerId ? { ...p, isStarting:true, adaptedPosition:null } : p)),
   };
 }
 
@@ -203,12 +198,9 @@ export function selectPlayerForRoleState(gameData, playerId, role) {
   if (!exact && !canPlayAs(player.position, role)) return { gameData, error:`${player.position} não pode ser adaptado para ${role}.` };
 
   return {
-    gameData: {
-      ...gameData,
-      players: players.map(p => p.id === playerId
-        ? { ...p, isStarting:true, adaptedPosition: exact ? null : role }
-        : p),
-    },
+    gameData: syncUserRosterState(gameData, players.map(p => p.id === playerId
+      ? { ...p, isStarting:true, adaptedPosition: exact ? null : role }
+      : p)),
   };
 }
 
@@ -246,7 +238,7 @@ export function autoLineupState(gameData) {
     : { ...p, isStarting:false, adaptedPosition:null });
 
   return {
-    gameData: { ...gameData, players: nextPlayers },
+    gameData: syncUserRosterState(gameData, nextPlayers),
     starterCount: assignments.size,
     improvisedCount,
   };
