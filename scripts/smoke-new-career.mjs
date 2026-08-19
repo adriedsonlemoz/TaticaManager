@@ -17,6 +17,8 @@ import {
   isCareerTeamIdValid,
   resolveCareerClubSelection,
 } from '../src/engines/core/careerCreation.js';
+import { getCareerObjectivesForSerie, isCareerObjectiveAllowed } from '../src/engines/core/careerObjectives.js';
+import { KIT_PATTERNS } from '../src/data/teamKitPatterns.js';
 import { getInitialGameState } from '../src/engines/core/gameStateFactory.js';
 import { buildLeagueScheduleReport } from '../src/engines/core/leagueEngine.js';
 
@@ -66,19 +68,32 @@ await test('seleção na UI deriva nome, Série, saldo e ID do clube canônico',
   assert.equal(isCareerTeamIdValid('clube-inventado'), false);
 });
 
-await test('backend ignora Série, nome, multiplicadores e estádio forjados enviados pela interface', () => {
+await test('backend deriva clube canônico e recusa meta incompatível em vez de substituí-la silenciosamente', () => {
+  assert.throws(
+    () => buildCareerCreationConfig({
+      saveName:'Teste Canônico', managerName:'Manager', teamId:'br-fortaleza',
+      teamName:'Clube Forjado', serie:'A', initialMoney:999_999_999_999,
+      stadiumName:'Estádio Inventado', difficulty:'Difícil',
+      difficultyMultipliers:{ injuryChance:0, rivalStrength:0, moneyBonus:99, fatigueLoss:0 },
+      seasonObjective:'libertadores', managerFormation:'4-4-2', managerStyle:'Equilibrado',
+    }),
+    (error) => error?.code === 'INVALID_SEASON_OBJECTIVE',
+  );
+
   const config = buildCareerCreationConfig({
     saveName:'Teste Canônico', managerName:'Manager', teamId:'br-fortaleza',
     teamName:'Clube Forjado', serie:'A', initialMoney:999_999_999_999,
     stadiumName:'Estádio Inventado', difficulty:'Difícil',
     difficultyMultipliers:{ injuryChance:0, rivalStrength:0, moneyBonus:99, fatigueLoss:0 },
-    seasonObjective:'libertadores', managerFormation:'4-4-2', managerStyle:'Equilibrado',
+    seasonObjective:'promotion', managerFormation:'4-4-2', managerStyle:'Equilibrado',
+    kitPattern:'vertical-stripes', kitAccent:'#ffffff',
   });
   assert.equal(config.teamId, 'br-fortaleza');
   assert.equal(config.teamName, 'Fortaleza');
   assert.equal(config.serie, 'B');
   assert.deepEqual(config.difficultyMultipliers, DIFFICULTY_PROFILES['Difícil']);
-  assert.equal(config.seasonObjective, 'promotion', 'objetivo inválido para a Série B deve voltar ao padrão da Série');
+  assert.equal(config.seasonObjective, 'promotion');
+  assert.equal(config.managerProfile.kitPattern, 'vertical-stripes');
   assert.notEqual(config.managerProfile.stadiumName, 'Estádio Inventado');
 });
 
@@ -177,10 +192,12 @@ await test('pool canônico usa 20 clubes em A/B/C e os 96 participantes oficiais
   assert.equal(getCareerSelectableClubs2026().filter((team) => team.serie2026 === 'D').length, 96);
 });
 
-await test('UI nova tem cinco etapas, busca/filtro e não possui etapa de divisão nem criação manual de clube', () => {
+await test('UI nova mantém cinco etapas, mas o passo 1 navega Série → clubes com lista legível', () => {
   const screen = source('src/components/ScreenSetup.jsx');
   const steps = source('src/components/setup/SetupSteps.jsx');
   const clubStep = source('src/components/setup/steps/SetupClubStep.jsx');
+  const careerStep = source('src/components/setup/steps/SetupCareerStep.jsx');
+  const kitStep = source('src/components/setup/steps/SetupKitStep.jsx');
   const theme = source('src/components/setup/setupTheme.js');
   const service = source('src/components/setup/setupService.js');
   const persistence = source('src/hooks/hooks_persistence.js');
@@ -189,14 +206,45 @@ await test('UI nova tem cinco etapas, busca/filtro e não possui etapa de divis�
   assert.match(service, /getCareerTeamSelectionPatch/);
   assert.match(persistence, /saves\.add\(\{ name:config\.saveName/);
   assert.doesNotMatch(persistence, /saves\.put\(\{ name:config\.saveName/);
-  assert.match(clubStep, /Buscar clube pelo nome/);
-  assert.match(clubStep, /Série \$\{serie\}/);
+  assert.match(clubStep, /Escolha a divisão/);
+  assert.match(clubStep, /Buscar clube da Série/);
+  assert.match(clubStep, /display:'flex', flexDirection:'column'/, 'clubes devem aparecer em lista vertical');
   assert.match(clubStep, /info\?\.city/);
+  assert.match(careerStep, /getCareerObjectivesForSerie/);
+  assert.match(careerStep, /aria-pressed/);
+  assert.match(kitStep, /KIT_PATTERN_OPTIONS/);
+  assert.match(kitStep, /Restaurar/);
   assert.doesNotMatch(clubStep, /Criar clube|initialMoney.*input|stadiumName.*input|useExistingTeam/);
   assert.doesNotMatch(steps, /SetupDivisionStep/);
   assert.match(steps, /5: SetupContractStep/);
   assert.match(theme, /SETUP_TOTAL_STEPS\s*=\s*5/);
   assert.equal(fs.existsSync(path.join(root, 'src/components/setup/steps/SetupDivisionStep.jsx')), false);
+});
+
+
+await test('metas disponíveis são canônicas por Série e seleção inválida fica bloqueada', () => {
+  assert.deepEqual(getCareerObjectivesForSerie('A').map((item) => item.id), ['champion','libertadores','sulamericana','survive','midtable']);
+  assert.deepEqual(getCareerObjectivesForSerie('D').map((item) => item.id), ['champion','promotion','midtable']);
+  assert.equal(isCareerObjectiveAllowed('promotion', 'B'), true);
+  assert.equal(isCareerObjectiveAllowed('libertadores', 'B'), false);
+  assert.equal(isCareerObjectiveAllowed(null, 'A'), false);
+});
+
+await test('modelo de uniforme é validado no motor e persistido no clube', () => {
+  assert.equal(KIT_PATTERNS.includes('horizontal-stripes'), true);
+  assert.equal(KIT_PATTERNS.includes('diagonal-sash'), true);
+  const config = buildCareerCreationConfig({
+    saveName:'Uniforme', managerName:'Manager', teamId:'br-flamengo', difficulty:'Normal',
+    seasonObjective:'champion', colorPrimary:'#E30613', colorSecondary:'#111111',
+    kitPattern:'horizontal-stripes', kitAccent:'#ffffff',
+  });
+  const state = getInitialGameState(config.teamId, config.managerName, config.managerProfile);
+  assert.equal(config.managerProfile.kitPattern, 'horizontal-stripes');
+  assert.equal(state.club.kitPattern, 'horizontal-stripes');
+  assert.equal(state.club.kitAccent, '#ffffff');
+  assert.match(source('src/data/teamKitIdentity.js'), /Flamengo:\{ pattern:'horizontal-stripes'/);
+  assert.match(source('src/data/teamKitIdentity.js'), /Vasco:\{ pattern:'diagonal-sash'/);
+  assert.match(source('src/data/teamKitIdentity.js'), /'São Paulo':\{ pattern:'chest-band'/);
 });
 
 await test('arquitetura mantém ponto explícito para futuro clube personalizado sem habilitá-lo agora', () => {

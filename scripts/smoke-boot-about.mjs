@@ -79,7 +79,7 @@ check(() => {
   assert.equal(view.name, 'Teste');
   assert.equal(view.progress.percentage, 20);
   assert.equal(view.moneyLabel, 'R$2M');
-  assert.equal(view.objectiveInfo.label, 'Subir de Div.');
+  assert.equal(view.objectiveInfo.label, 'Subir de Divisão');
   assert.equal(view.avatarEmoji, '🧢');
 });
 
@@ -88,11 +88,11 @@ check(() => {
   const changelog = buildAboutChangelog(theme);
   assert.equal(changelog[0].v, APP_VERSION_LABEL);
   assert.equal(changelog[0].tag, 'ATUAL');
-  assert.equal(changelog[1].v, 'v1.0 beta.59');
-  assert.ok(changelog[0].title.includes('14/27'));
-  assert.ok(changelog[0].title.includes('schema 14'));
-  assert.ok(changelog[0].items.some((item) => item.includes('Schema 14')));
-  assert.ok(changelog[0].items.some((item) => item.includes('Goiano')));
+  assert.equal(changelog[1].v, 'v1.0 beta.60');
+  assert.ok(changelog[0].title.includes('Carreiras'));
+  assert.ok(changelog[0].items.some((item) => item.includes('Série A/B/C/D')));
+  assert.ok(changelog[0].items.some((item) => item.toLowerCase().includes('meta')));
+  assert.ok(changelog[0].items.some((item) => item.toLowerCase().includes('uniforme')));
 });
 
 check(() => assert.equal(PIX_KEY, 'suporte@brasfootweb.com'));

@@ -92,6 +92,8 @@ const getInitialGameState = (teamRef, managerName, legacySerieOrProfile = {}, ma
       },
       colorPrimary:managerProfile.colorPrimary || '#118a8b',
       colorSecondary:managerProfile.colorSecondary || '#ffffff',
+      kitPattern:managerProfile.kitPattern || 'solid',
+      kitAccent:managerProfile.kitAccent || '#ffffff',
       money:Number(dbTeam.money) || 0,
       transferBudget:Number(dbTeam.budget) || Math.round((Number(dbTeam.money) || 0) * 0.80 / 1000) * 1000,
       wage:userPlayers.reduce((sum, player) => sum + (Number(player.wage) || 0), 0),

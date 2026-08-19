@@ -39,12 +39,13 @@ const ScreenBoot = ({ savesList = [], loadSpecificGame, setScreen, setDeleteSave
       <BootLoadingOverlay saveName={loading} theme={C} />
       <BootHeader stats={stats} theme={C} />
 
-      <Box sx={{ flex: 1, overflowY: 'auto', px: { xs: 1, sm: 1.5 }, pt: 0.8, pb: 0.6, minHeight: 0 }}>
+      <Box sx={{ flex:1, overflowY:'auto', px:{ xs:1, sm:1.5 }, pt:1, pb:.8, minHeight:0 }}>
+        <Box sx={{ maxWidth:560, mx:'auto' }}>
         {saveModels.length === 0 ? (
           <BootEmptyState onNewCareer={() => setScreen('setup')} theme={C} />
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 0.25 }}>
-            <Typography sx={{ color: C.ink3, fontWeight: 900, fontSize: '0.7rem', letterSpacing: 2, textAlign: 'center' }}>SUAS CARREIRAS</Typography>
+            <Typography sx={{ color:C.ink2, fontWeight:900, fontSize:'.82rem', letterSpacing:1.1, px:.2 }}>CARREIRAS SALVAS</Typography>
             {saveModels.map((save, index) => (
               <BootSaveCard
                 key={save.name}
@@ -60,6 +61,7 @@ const ScreenBoot = ({ savesList = [], loadSpecificGame, setScreen, setDeleteSave
             ))}
           </Box>
         )}
+        </Box>
       </Box>
 
       <BootFooter onNewCareer={() => setScreen('setup')} onAbout={() => setShowAbout(true)} theme={C} />

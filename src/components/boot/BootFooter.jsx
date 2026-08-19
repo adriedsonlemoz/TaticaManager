@@ -1,17 +1,15 @@
 import React from 'react';
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button } from '@mui/material';
 
 const BootFooter = ({ onNewCareer, onAbout, theme }) => {
   const C = theme;
   return (
-    <Box sx={{ display: 'flex', borderTop: `1.5px solid ${C.border}`, bgcolor: C.bgCard }}>
-      <Button onClick={onNewCareer} sx={{ flex: 1.3, py: 0.8, borderRadius: 0, bgcolor: C.green, color: '#fff', fontWeight: 900, fontSize: '0.8rem', letterSpacing: 0.3, display: 'flex', flexDirection: 'row', gap: 0.55, borderRight: '1px solid rgba(0,0,0,0.15)', '&:hover': { bgcolor: C.primaryDim } }}>
-        <Typography sx={{ fontSize: '1rem', lineHeight: 1 }}>＋</Typography>
-        <Typography sx={{ fontWeight: 900, fontSize: '0.66rem', letterSpacing: 0.5 }}>NOVA CARREIRA</Typography>
+    <Box sx={{ borderTop:`1.5px solid ${C.border}`, bgcolor:C.bgCard, px:1, py:.8, display:'grid', gridTemplateColumns:'1fr auto', gap:.7 }}>
+      <Button onClick={onNewCareer} sx={{ minHeight:48, borderRadius:'11px', bgcolor:C.green, color:'#fff', fontWeight:900, fontSize:'.9rem', boxShadow:`0 3px 12px ${C.shadow}`, '&:hover':{ bgcolor:C.primaryDim } }}>
+        ＋ NOVA CARREIRA
       </Button>
-      <Button onClick={onAbout} sx={{ flex: 1, py: 0.8, borderRadius: 0, bgcolor: 'transparent', color: C.ink2, fontWeight: 900, display: 'flex', flexDirection: 'row', gap: 0.55, borderLeft: `1.5px solid ${C.border}`, '&:hover': { bgcolor: C.bgDark, color: C.ink } }}>
-        <Typography sx={{ fontSize: '1rem', lineHeight: 1 }}>ℹ️</Typography>
-        <Typography sx={{ fontWeight: 900, fontSize: '0.64rem', letterSpacing: 0.5 }}>SOBRE</Typography>
+      <Button onClick={onAbout} sx={{ minWidth:82, minHeight:48, borderRadius:'11px', bgcolor:C.bgCardAlt, color:C.ink2, border:`1px solid ${C.border}`, fontWeight:900, fontSize:'.8rem' }}>
+        ℹ️ Sobre
       </Button>
     </Box>
   );

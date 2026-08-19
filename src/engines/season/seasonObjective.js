@@ -1,11 +1,8 @@
+import { CAREER_OBJECTIVES } from '../core/careerObjectives.js';
+
 const OBJECTIVE_LABELS = Object.freeze({
-  champion: 'Ser campeão',
-  top4: 'Top 4',
-  promotion: 'Subir de divisão',
-  libertadores: 'Classificar à Libertadores',
-  sulamericana: 'Classificar à Sul-Americana',
-  survive: 'Não ser rebaixado',
-  midtable: 'Meio da tabela',
+  ...Object.fromEntries(Object.values(CAREER_OBJECTIVES).map((objective) => [objective.id, objective.label])),
+  top4:'Top 4',
 });
 
 const failMessage = (label, position, detail) => (

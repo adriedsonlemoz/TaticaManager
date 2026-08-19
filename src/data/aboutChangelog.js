@@ -5,6 +5,20 @@ export const buildAboutChangelog = (C) => [
     v: APP_VERSION_LABEL,
     tag: 'ATUAL',
     color: C.green,
+    title: 'Carreiras reconstruídas · metas · uniformes',
+    items: [
+      '📁 Tela de Carreiras recebe cards maiores, botão Continuar destacado e detalhes sob demanda para melhorar a leitura no celular',
+      '🏟️ Nova Carreira passa a navegar Série A/B/C/D → clubes, evitando exibir os 156 times de uma vez',
+      '🔎 Clubes aparecem em lista vertical com escudo maior, cidade, estádio, OVR, orçamento e grupo da Série D quando aplicável',
+      '🎯 Meta da temporada usa uma única fonte canônica entre interface e motor; escolha incompatível agora bloqueia a criação em vez de ser trocada silenciosamente',
+      '👕 Uniformes ganham modelos liso, listrado, faixa diagonal, faixa no peito, meio a meio e faixa central, com identidade recomendada por clube',
+      '📱 Tipografia, botões e áreas de toque foram ampliados nas telas de saves e criação de carreira',
+    ],
+  },
+  {
+    v: 'v1.0 beta.60',
+    tag: '',
+    color: C.teal,
     title: '6 novos estaduais · 14/27 · schema 14',
     items: [
       '🏟️ Goiano, Paraense, Paraibano, Alagoano, Potiguar e Sergipano 2026 entram no ciclo da carreira; o total sobe para 14 dos 27 estaduais planejados',

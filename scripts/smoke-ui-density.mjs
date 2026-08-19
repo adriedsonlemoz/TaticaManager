@@ -51,12 +51,13 @@ test('Nova Carreira fica presa ao viewport e preserva área interna flexível', 
 
 test('lista de clubes continua rolável dentro da Nova Carreira compacta', () => {
   assert.match(clubStep, /flex:\s*1,\s*overflowY:\s*'auto'/);
-  assert.match(clubStep, /gridTemplateColumns:\s*'1fr 1fr'/);
+  assert.match(clubStep, /display:'flex', flexDirection:'column'/);
+  assert.doesNotMatch(clubStep, /gridTemplateColumns:\s*'1fr 1fr'/);
 });
 
-test('rodapé da seleção de carreira usa ações horizontais compactas', () => {
-  assert.match(bootFooter, /flexDirection:\s*'row'/);
-  assert.match(bootFooter, /py:\s*0\.8/);
+test('rodapé da seleção de carreira mantém ações grandes e lado a lado', () => {
+  assert.match(bootFooter, /gridTemplateColumns:'1fr auto'/);
+  assert.match(bootFooter, /minHeight:48/);
 });
 
 test('menu principal reserva menos espaço para a navegação inferior', () => {

@@ -19,7 +19,7 @@ export const DEFAULT_SETUP_DATA = Object.freeze({
   saveName:'', teamId:null, existingTeamId:null, teamName:'', serie:null, managerName:'', managerAge:40,
   managerNationality:'Brasileiro', managerFormation:'4-4-2', managerStyle:'Equilibrado',
   difficulty:'Normal', difficultyMultipliers:{ injuryChance:1, rivalStrength:1, moneyBonus:1, fatigueLoss:1 },
-  seasonObjective:null, colorPrimary:'#22c55e', colorSecondary:'#ffffff',
+  seasonObjective:null, colorPrimary:'#22c55e', colorSecondary:'#ffffff', kitPattern:'solid', kitAccent:'#ffffff',
 });
 
 export default function useGameController() {

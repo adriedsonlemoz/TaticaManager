@@ -1,7 +1,8 @@
 import React from 'react';
 import { Box, Typography, Button } from '@mui/material';
 import { SETUP_PALETTE as P, SETUP_INPUT_STYLE as inputStyle, formatSetupMoney as fmt } from '../setupTheme.js';
-import { SetupCardHeader, SetupNavRow, SetupSectionLabel, SetupShirt } from '../SetupUi.jsx';
+import { SetupCardHeader, SetupShirt } from '../SetupUi.jsx';
+import { getCareerObjective } from '../../../engines/core/careerObjectives.js';
 
 const SetupContractStep = ({
   setupData, up, goCard, isCardValid, brand,
@@ -10,11 +11,7 @@ const SetupContractStep = ({
     const b   = brand;
     const pri = setupData.colorPrimary   || b?.primary   || P.green;
     const sec = setupData.colorSecondary || b?.secondary || '#ffffff';
-    const OBJ = {
-      champion: '🏆 Ser Campeão', promotion: '⬆️ Subir de Divisão',
-      libertadores: '🌎 Libertadores', sulamericana: '🌐 Sul-Americana',
-      survive: '🛡️ Não Rebaixar', midtable: '📊 Meio da Tabela',
-    };
+    const objective = getCareerObjective(setupData.seasonObjective);
     const STLS = [{ id: 'Defensivo', icon: '🛡️' }, { id: 'Equilibrado', icon: '⚖️' }, { id: 'Ofensivo', icon: '⚔️' }, { id: 'Direto', icon: '🎯' }];
 
     const handleSign = () => {
@@ -49,14 +46,14 @@ const SetupContractStep = ({
                 <Typography sx={{ color: P.txt3, fontSize: '0.6rem', fontWeight: 700, mt: 0.2 }}>Série {setupData.serie} · Temporada 2026</Typography>
               </Box>
               <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5 }}>
-                <SetupShirt primary={pri} secondary={sec} number="10" size={36} />
-                <SetupShirt primary={sec} secondary={pri} number="1" size={36} />
+                <SetupShirt primary={pri} secondary={sec} accent={setupData.kitAccent} pattern={setupData.kitPattern} number="10" size={42} />
+                <SetupShirt primary={sec} secondary={pri} accent={setupData.kitAccent} pattern="solid" number="1" size={42} />
               </Box>
             </Box>
 
             <Box sx={{ px: 1.6, py: 1.2 }}>
               {[
-                { icon: '🎯', label: 'OBJETIVO',    value: OBJ[setupData.seasonObjective] || '—' },
+                { icon: '🎯', label: 'OBJETIVO',    value: objective ? `${objective.icon} ${objective.label}` : '—' },
                 { icon: '⚙️', label: 'DIFICULDADE', value: setupData.difficulty || 'Normal' },
                 { icon: '🎮', label: 'ESTILO',       value: `${STLS.find(s => s.id === setupData.managerStyle)?.icon || ''} ${setupData.managerStyle || 'Equilibrado'}` },
                 { icon: '📐', label: 'FORMAÇÃO',     value: setupData.managerFormation || '4-4-2' },

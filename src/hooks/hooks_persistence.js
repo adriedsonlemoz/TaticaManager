@@ -6,6 +6,7 @@ import { CupsEngine } from '../engines/cups_engine.js';
 import { APP_VERSION } from '../config/appMeta.js';
 import { migrateSaveState, prepareSaveState } from '../engines/persistence/saveSchema.js';
 import { assertCareerSaveNameAvailable, buildCareerCreationConfig } from '../engines/core/careerCreation.js';
+import { getCareerObjective } from '../engines/core/careerObjectives.js';
 
 // hooks/hooks_persistence.js — v6.4 (Instância Dexie única via useRef)
 const usePersistence = (showToast) => {
@@ -170,11 +171,7 @@ const usePersistence = (showToast) => {
 
       const teamName = newGame.club?.name || config.teamName;
       const managerName = config.managerName;
-      const _objLabel = {
-        champion:'ser campeão', promotion:'subir de divisão',
-        libertadores:'chegar à Libertadores', sulamericana:'chegar à Sul-Americana',
-        survive:'não ser rebaixado', midtable:'terminar no meio da tabela',
-      }[newGame.seasonObjective] || 'alcançar o objetivo da temporada';
+      const _objLabel = getCareerObjective(newGame.seasonObjective)?.inboxLabel || 'alcançar o objetivo da temporada';
       newGame.inbox = [
         {
           id:'welcome_presidente',

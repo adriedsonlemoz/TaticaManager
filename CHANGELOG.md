@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.0-beta.61] - 2026-08-19
+
+### Nova Carreira e saves
+- Tela de carreiras reconstruída com cards maiores, ação principal de continuar e detalhes sob demanda.
+- Primeiro passo da Nova Carreira agora é Série A/B/C/D; somente depois são exibidos os clubes daquela divisão.
+- Lista de clubes passa para uma coluna, com escudos maiores, cidade, estádio, OVR, orçamento e grupo da Série D quando aplicável.
+- Tipografia, botões e áreas de toque aumentados para melhorar a leitura no celular.
+
+### Metas e uniformes
+- Metas da temporada passam a usar uma única fonte canônica entre interface, criação da carreira, tela de saves e avaliação.
+- Meta inválida não é mais substituída silenciosamente: a criação é bloqueada até uma escolha compatível.
+- Seleção de uniforme ganha modelos (liso, listras, faixa diagonal, faixa no peito, meio a meio e faixa central).
+- Clubes recebem identidade de camisa recomendada, com cores, detalhe e padrão mais próximos do time; a personalização manual continua disponível.
+- Modelo e detalhe do uniforme são persistidos no estado da carreira.
+- Suíte completa: **1.034/1.034 verificações aprovadas em 37 grupos**.
+
 ## [1.0.0-beta.60] - 2026-08-18
 
 ### Mais seis campeonatos estaduais

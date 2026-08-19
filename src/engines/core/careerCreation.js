@@ -1,6 +1,8 @@
 import { getCareerSelectableClubs2026, resolveClub } from '../../data/clubCatalog.js';
 import { getTeamStadium } from '../../data/database_coaches.js';
 import { getTeamStadiumData } from '../../data/teamStadiumData.js';
+import { KIT_PATTERNS } from '../../data/teamKitPatterns.js';
+import { isCareerObjectiveAllowed } from './careerObjectives.js';
 
 
 const CAREER_SERIES = new Set(['A','B','C','D']);
@@ -26,6 +28,7 @@ export function getCareerTeamSelectionPatch(teamId) {
     initialMoney:team.money ?? null,
     stadiumName:getTeamStadium(team.name) || getTeamStadiumData(team.name)?.stadium || '',
     _colorsSet:false,
+    _kitSet:false,
   };
 }
 
@@ -40,13 +43,6 @@ export const DIFFICULTY_PROFILES = Object.freeze({
   'Lendário': Object.freeze({ injuryChance:2.8, rivalStrength:1.2, moneyBonus:0.7, fatigueLoss:1.6 }),
 });
 
-const OBJECTIVES_BY_SERIE = Object.freeze({
-  A: Object.freeze(['champion','libertadores','sulamericana','survive','midtable']),
-  B: Object.freeze(['champion','promotion','survive','midtable']),
-  C: Object.freeze(['champion','promotion','survive','midtable']),
-  D: Object.freeze(['champion','promotion','midtable']),
-});
-const DEFAULT_OBJECTIVE = Object.freeze({ A:'survive', B:'promotion', C:'promotion', D:'promotion' });
 const FORMATIONS = new Set(['4-4-2','4-3-3','4-2-3-1','3-5-2','3-4-3','5-3-2']);
 const STYLES = new Set(['Defensivo','Equilibrado','Ofensivo','Direto']);
 
@@ -102,9 +98,13 @@ export function buildCareerCreationConfig(setupData = {}) {
   const serie = String(team.serie2026).toUpperCase();
   const difficulty = Object.hasOwn(DIFFICULTY_PROFILES, setupData.difficulty) ? setupData.difficulty : 'Normal';
   const requestedObjective = String(setupData.seasonObjective || '');
-  const seasonObjective = OBJECTIVES_BY_SERIE[serie].includes(requestedObjective)
-    ? requestedObjective
-    : DEFAULT_OBJECTIVE[serie];
+  if (!isCareerObjectiveAllowed(requestedObjective, serie)) {
+    const error = new Error('Escolha uma meta válida para esta divisão.');
+    error.code = 'INVALID_SEASON_OBJECTIVE';
+    throw error;
+  }
+  const seasonObjective = requestedObjective;
+  const kitPattern = KIT_PATTERNS.includes(setupData.kitPattern) ? setupData.kitPattern : 'solid';
 
   return {
     saveName,
@@ -122,6 +122,8 @@ export function buildCareerCreationConfig(setupData = {}) {
       style:STYLES.has(setupData.managerStyle) ? setupData.managerStyle : 'Equilibrado',
       colorPrimary:/^#[0-9a-f]{6}$/i.test(setupData.colorPrimary || '') ? setupData.colorPrimary : '#118a8b',
       colorSecondary:/^#[0-9a-f]{6}$/i.test(setupData.colorSecondary || '') ? setupData.colorSecondary : '#ffffff',
+      kitPattern,
+      kitAccent:/^#[0-9a-f]{6}$/i.test(setupData.kitAccent || '') ? setupData.kitAccent : '#ffffff',
       stadiumName:getTeamStadium(team.name) || getTeamStadiumData(team.name)?.stadium || null,
       avatarStyle:cleanText(setupData.avatarStyle || 'suit', 24) || 'suit',
       wins:0, draws:0, losses:0, experience:0, seasonsTotal:0, trophies:0,

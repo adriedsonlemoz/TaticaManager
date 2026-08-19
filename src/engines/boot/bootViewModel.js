@@ -1,11 +1,4 @@
-const OBJECTIVES = {
-  champion: { icon: '🏆', label: 'Ser Campeão' },
-  promotion: { icon: '⬆️', label: 'Subir de Div.' },
-  libertadores: { icon: '🌎', label: 'Libertadores' },
-  sulamericana: { icon: '🌐', label: 'Sul-Americana' },
-  survive: { icon: '🛡️', label: 'Não Rebaixar' },
-  midtable: { icon: '📊', label: 'Meio da Tabela' },
-};
+import { getCareerObjective } from '../core/careerObjectives.js';
 
 const AVATARS = {
   suit: '🤵',
@@ -51,7 +44,10 @@ export const getDifficultyStyle = (difficulty) => {
   return { tone: 'gold', icon: '🟡' };
 };
 
-export const getObjectiveInfo = (objective) => OBJECTIVES[objective] || null;
+export const getObjectiveInfo = (objective) => {
+  const info = getCareerObjective(objective);
+  return info ? { icon:info.icon, label:info.label } : null;
+};
 export const getAvatarEmoji = (style) => AVATARS[style] || AVATARS.suit;
 
 export const getRoundProgress = (round, total) => {
