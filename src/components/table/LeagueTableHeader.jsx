@@ -5,7 +5,7 @@ import { TABLE_TABS } from '../../engines/table/tableViewModel.js';
 
 const C = THEME;
 
-const LeagueTableHeader = ({ serie, currentRound, totalRounds, currentTab, onTabChange }) => (
+const LeagueTableHeader = ({ serie, currentRound, totalRounds, phaseLabel, currentTab, onTabChange }) => (
   <Box sx={{
     background: `linear-gradient(180deg, ${C.headerBg} 0%, ${C.fieldDark} 100%)`,
     px: 2, pt: 2.5, pb: 1.5,
@@ -25,7 +25,7 @@ const LeagueTableHeader = ({ serie, currentRound, totalRounds, currentTab, onTab
       fontWeight: 900, fontSize: '0.7rem', mt: 0.4,
       letterSpacing: 0.5,
     }}>
-      Brasileirão Série {serie} · Rodada {currentRound} / {totalRounds}
+      {serie === 'D' && phaseLabel ? `Brasileirão Série D · ${phaseLabel}` : `Brasileirão Série ${serie} · Rodada ${currentRound} / ${totalRounds}`}
     </Typography>
 
     <Box role="tablist" aria-label="Seções da classificação" sx={{ display: 'flex', mt: 1.5, bgcolor: C.bgCardAlt, borderRadius: '8px', p: 0.4, gap: 0.4 }}>

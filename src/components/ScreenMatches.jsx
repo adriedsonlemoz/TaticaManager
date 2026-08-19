@@ -7,6 +7,7 @@ import UpcomingMatches from './matches/UpcomingMatches.jsx';
 import RecentResults from './matches/RecentResults.jsx';
 import MatchSummaryDialog from './matches/MatchSummaryDialog.jsx';
 import { N } from './matches/matchesTheme.js';
+import { fromDateISO } from '../engines/calendar/calendarDateEngine.js';
 import {
   buildRoundDates,
   buildDayRoundsMap,
@@ -26,7 +27,8 @@ const ScreenMatches = ({ gameData, setScreen }) => {
 
   const currentRound = gameData.round ?? 0;
   const maxRounds = gameData.fixtures?.length || 0;
-  const roundDates = React.useMemo(() => buildRoundDates(maxRounds), [maxRounds]);
+  const roundDates = React.useMemo(() => buildRoundDates(maxRounds, { season:gameData.season || 2026, serie:gameData.serie || 'A' }), [maxRounds, gameData.season, gameData.serie]);
+  const calendarDates = React.useMemo(() => (gameData.calendar || []).map((entry) => fromDateISO(entry?.dateISO || entry?.calendarDate)).filter(Boolean), [gameData.calendar]);
 
   const dayRoundsMap = React.useMemo(() => buildDayRoundsMap({
     gameData,
@@ -47,8 +49,8 @@ const ScreenMatches = ({ gameData, setScreen }) => {
   }), [gameData, currentRound, roundDates]);
 
   const calendarWindow = React.useMemo(
-    () => getCalendarWindow(roundDates, calMonth),
-    [roundDates, calMonth],
+    () => getCalendarWindow(calendarDates.length ? calendarDates : roundDates, calMonth),
+    [calendarDates, roundDates, calMonth],
   );
 
   const getDayEvents = React.useCallback((year, month, day) => (
@@ -62,16 +64,16 @@ const ScreenMatches = ({ gameData, setScreen }) => {
 
   React.useEffect(() => {
     const focusDate = upcomingEvents[0]?.date || roundDates[Math.max(0, roundDates.length - 1)];
-    const firstDate = roundDates[0];
+    const firstDate = (calendarDates.length ? calendarDates : roundDates)[0];
     if (!focusDate || !firstDate) return;
     const monthOffset = (focusDate.getFullYear() - firstDate.getFullYear()) * 12
       + (focusDate.getMonth() - firstDate.getMonth());
     setCalMonth(Math.max(0, monthOffset));
     if (currentRound > 0) setSelectedDay(focusDate.getDate());
-  }, [currentRound, roundDates, upcomingEvents]);
+  }, [currentRound, roundDates, calendarDates, upcomingEvents]);
 
   return (
-    <Box sx={{ bgcolor: N.bg, minHeight: '100vh', pb: 10 }}>
+    <Box sx={{ bgcolor: N.bg, minHeight: '100dvh', pb: 5.5 }}>
       <MatchesHeader gameData={gameData} setScreen={setScreen} />
 
       <MatchesCalendar

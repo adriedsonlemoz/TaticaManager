@@ -20,7 +20,7 @@ export default function HomeHeader({ viewModel, formatMoney }) {
   return (
     <Box sx={{
       background: `linear-gradient(180deg, ${HOME_THEME.grassDk} 0%, ${HOME_THEME.grass} 100%)`,
-      pt: 5, pb: 0, position: 'relative', overflow: 'hidden',
+      pt: { xs: 2, sm: 3 }, pb: 0, position: 'relative', overflow: 'hidden',
     }}>
       <Box aria-hidden="true" sx={{ position: 'absolute', inset: 0, opacity: 0.12, pointerEvents: 'none' }}>
         <Box sx={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '1px', bgcolor: '#fff' }} />
@@ -29,22 +29,22 @@ export default function HomeHeader({ viewModel, formatMoney }) {
         <Box sx={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '18%', borderLeft: '1px solid #fff' }} />
       </Box>
 
-      <Box sx={{ px: 2, pb: 2, position: 'relative', zIndex: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+      <Box sx={{ px: 1.25, pb: 1, position: 'relative', zIndex: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.9, mb: 0.85 }}>
           <Box sx={{
-            width: 58, height: 58, borderRadius: '16px', flexShrink: 0,
+            width: 48, height: 48, borderRadius: '13px', flexShrink: 0,
             bgcolor: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.4)',
             backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
           }}>
             {club.name
-              ? React.createElement(TeamIcon, { name: club.name, size: 40 })
-              : <Typography sx={{ fontSize: '1.8rem' }}>⚽</Typography>}
+              ? React.createElement(TeamIcon, { name: club.name, size: 34 })
+              : <Typography sx={{ fontSize: '1.45rem' }}>⚽</Typography>}
           </Box>
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography sx={{
-              color: '#fff', fontWeight: 900, fontSize: '1.15rem', fontFamily: '"Cinzel", serif',
+              color: '#fff', fontWeight: 900, fontSize: '1rem', fontFamily: '"Cinzel", serif',
               lineHeight: 1.1, textShadow: '0 2px 8px rgba(0,0,0,0.4)', overflow: 'hidden',
               whiteSpace: 'nowrap', textOverflow: 'ellipsis',
             }}>
@@ -57,11 +57,11 @@ export default function HomeHeader({ viewModel, formatMoney }) {
 
           <Box sx={{
             bgcolor: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.35)',
-            borderRadius: '14px', px: 1.2, py: 0.6, textAlign: 'center', backdropFilter: 'blur(4px)',
+            borderRadius: '11px', px: 0.9, py: 0.45, textAlign: 'center', backdropFilter: 'blur(4px)',
           }}>
             <Typography sx={{
               color: position > 0 && position <= 4 ? '#fbbf24' : position >= 17 ? '#fca5a5' : '#fff',
-              fontWeight: 900, fontSize: '1.8rem', lineHeight: 1, fontFamily: '"Cinzel",serif',
+              fontWeight: 900, fontSize: '1.45rem', lineHeight: 1, fontFamily: '"Cinzel",serif',
             }}>
               {position > 0 ? position : '—'}
             </Typography>
@@ -71,12 +71,12 @@ export default function HomeHeader({ viewModel, formatMoney }) {
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 0.7, overflowX: 'auto', pb: 0.3 }}>
+        <Box sx={{ display: 'flex', gap: 0.45, overflowX: 'auto', pb: 0.3 }}>
           {stats.map((stat) => (
             <Box key={stat.label} sx={{
               flexShrink: 0, bgcolor: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(4px)',
-              border: '1px solid rgba(255,255,255,0.3)', borderRadius: '10px', px: 1, py: 0.5,
-              textAlign: 'center', minWidth: 62,
+              border: '1px solid rgba(255,255,255,0.3)', borderRadius: '8px', px: 0.75, py: 0.38,
+              textAlign: 'center', minWidth: 56,
             }}>
               <Typography sx={{ color: stat.color, fontWeight: 900, fontSize: '0.65rem', lineHeight: 1.1 }}>{stat.value}</Typography>
               <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontWeight: 700, fontSize: '0.38rem', letterSpacing: 0.5 }}>{stat.label}</Typography>
@@ -103,7 +103,7 @@ export default function HomeHeader({ viewModel, formatMoney }) {
         </Box>
       </Box>
 
-      <Box sx={{ height: 18, bgcolor: HOME_THEME.bg, borderRadius: '40px 40px 0 0', position: 'relative', zIndex: 2 }} />
+      <Box sx={{ height: 10, bgcolor: HOME_THEME.bg, borderRadius: '40px 40px 0 0', position: 'relative', zIndex: 2 }} />
     </Box>
   );
 }

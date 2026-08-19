@@ -51,7 +51,7 @@ const ScreenMarket = ({ gameData, setGameData, buyPlayer, formatMoney, showToast
   );
 
   return (
-    <Box sx={{ bgcolor:C.bg, minHeight:'100vh', pb:10 }}>
+    <Box sx={{ bgcolor:C.bg, minHeight:'100dvh', pb:5.5 }}>
       <TransferMarketHeader
         gameData={gameData}
         formatMoney={formatMoney}

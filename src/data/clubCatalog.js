@@ -74,8 +74,8 @@ const CORE_2026_CLUBS = Object.freeze([
   club('br-volta-redonda', 'Volta Redonda', 'C', 64, 13000000, 9000000, 'equilibrado', 0.36),
   club('br-ypiranga-rs', 'Ypiranga-RS', 'C', 63, 12000000, 9000000, 'equilibrado', 0.36, ['Ypiranga', 'Ypiranga de Erechim']),
 
-  // Série D 2026 — o motor atual usa uma liga jogável simplificada de 20 clubes.
-  // Todos os nomes abaixo pertencem à Série D oficial de 2026.
+  // Série D 2026 — parâmetros manuais preservados para clubes que já existiam
+  // antes da expansão do catálogo completo de 96 participantes.
   club('br-abc', 'ABC', 'D', 60, 9000000, 6500000, 'equilibrado', 0.48),
   club('br-gama', 'Gama', 'D', 58, 7500000, 5500000, 'equilibrado', 0.42),
   club('br-uberlandia', 'Uberlândia', 'D', 58, 7500000, 5500000, 'equilibrado', 0.38),
@@ -107,7 +107,7 @@ const serieDGameplayDefaults = (id, name, index) => {
 };
 
 // A Série D oficial de 2026 possui 96 participantes. Preservamos os parâmetros
-// já existentes para os clubes que estavam no recorte antigo e usamos defaults
+// já existentes para os clubes que estavam na base antiga e usamos defaults
 // de gameplay para os demais, sem inventar cidade/estádio/títulos.
 const SERIE_D_2026_CLUBS = Object.freeze(SERIE_D_2026_IDS.map((id, index) => (
   CORE_BY_ID.get(id) || serieDGameplayDefaults(id, SERIE_D_2026_CLUB_NAMES[id] || id, index)
@@ -118,16 +118,12 @@ export const CURRENT_2026_CLUBS = Object.freeze([
   ...SERIE_D_2026_CLUBS,
 ]);
 
-// A pirâmide de liga ainda usa 20 vagas ativas na Série D. Os 76 participantes
-// adicionais já fazem parte do catálogo selecionável e ficam preparados para o
-// motor completo de grupos/mata-mata, sem alterar silenciosamente saves antigos.
-export const PYRAMID_2026_SERIE_D_IDS = Object.freeze([
-  'br-abc','br-gama','br-uberlandia','br-asa','br-nacional-am','br-csa','br-sao-jose-rs','br-goiatuba','br-ferroviario','br-luverdense',
-  'br-treze','br-portuguesa-sp','br-sao-luiz-rs','br-cianorte','br-america-rn','br-trem','br-iguatu','br-ceilandia','br-manaus','br-sousa',
-]);
+// Desde a beta.53 a pirâmide usa os 96 participantes da Série D 2026.
+// O alias é preservado para consumidores antigos, mas deixa de representar um recorte.
+export const PYRAMID_2026_SERIE_D_IDS = Object.freeze([...SERIE_D_2026_IDS]);
 
-// Clubes presentes nas bases beta.49 e anteriores, mas fora do recorte jogável
-// 2026. Mantidos para migrar saves antigos sem trocar a identidade do clube.
+// Clubes presentes nas bases beta.49 e anteriores que não fazem parte das séries
+// canônicas de 2026. Mantidos para migrar saves antigos sem trocar a identidade do clube.
 const LEGACY_ONLY_CLUBS_RAW = Object.freeze([
   club('br-sampaio-correa', 'Sampaio Corrêa', null, 68, 12000000, 9000000),
   club('br-tombense', 'Tombense', null, 67, 11000000, 8000000),
@@ -218,7 +214,7 @@ export function getSeriesTeams2026(serie) {
 
 export function getPyramidSeriesTeams2026(serie) {
   const key = String(serie || '').toUpperCase();
-  const ids = key === 'D' ? PYRAMID_2026_SERIE_D_IDS : (SERIES_2026[key] || []);
+  const ids = key === 'D' ? SERIE_D_2026_IDS : (SERIES_2026[key] || []);
   return ids.map((id) => ({ ...BY_ID.get(id) })).filter((entry) => entry?.id);
 }
 

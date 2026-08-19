@@ -22,11 +22,12 @@ const ScreenTable = ({ gameData, buyPlayer, formatMoney, showToast }) => {
   }, [buyPlayer, showToast]);
 
   return (
-    <Box sx={{ bgcolor: THEME.bg, minHeight: '100vh', pb: 10, display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ bgcolor: THEME.bg, minHeight: '100dvh', pb: 5.5, display: 'flex', flexDirection: 'column' }}>
       <LeagueTableHeader
         serie={viewModel.serie}
         currentRound={viewModel.currentRound}
         totalRounds={viewModel.totalRounds}
+        phaseLabel={viewModel.phaseLabel}
         currentTab={currentTab}
         onTabChange={setCurrentTab}
       />

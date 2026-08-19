@@ -11,6 +11,7 @@ import { applyResolvedLeagueMatchData, simulateLeagueRound } from '../engines/ma
 import { buildLiveMatchIntegrityReport } from '../engines/match/matchLiveState.js';
 import { completeLeagueRound } from '../engines/match/matchRoundState.js';
 import { advanceInactiveCalendarSlots } from '../engines/calendar/idleCalendarAdvance.js';
+import { advanceCareerDay, getDayLabel } from '../engines/calendar/calendarDateEngine.js';
 import {
   createMatchCommitTransaction,
   inspectMatchCommit,
@@ -30,6 +31,7 @@ const useMatchSimulation = (
   const [simulating, setSimulating] = React.useState(false);
   const [visibleEvents, setVisibleEvents] = React.useState([]);
   const [liveScore, setLiveScore] = React.useState({ home: 0, away: 0 });
+  const [liveMinute, setLiveMinute] = React.useState(0);
   const [matchResultData, setMatchResultData] = React.useState(null);
   const [roundSummary, setRoundSummary] = React.useState([]);
   const matchFeedRef = React.useRef(null);
@@ -85,6 +87,7 @@ const useMatchSimulation = (
       setSimulating,
       setVisibleEvents,
       setLiveScore,
+      setLiveMinute,
       onResolvedMatchData: (resolvedMatchData) => setMatchResultData(resolvedMatchData),
     });
   }, [setScreen]);
@@ -220,6 +223,17 @@ const useMatchSimulation = (
       return;
     }
 
+    if (preflight.status === 'rest-day') {
+      const advanced = advanceCareerDay(gameData);
+      if (!advanced.advanced) return;
+      gameDataRef.current = advanced.state;
+      setGameData(advanced.state);
+      if (typeof persistGameState === 'function') void persistGameState(advanced.state);
+      const activity = advanced.activity || { icon:'🛌', label:'Descanso do elenco' };
+      showToast?.(`${activity.icon} ${getDayLabel(advanced.date)} · ${activity.label}${advanced.daysUntilMatch > 0 ? ` · ${advanced.daysUntilMatch} dia(s) para o próximo jogo` : ' · partida disponível hoje'}.`, 'info');
+      return;
+    }
+
     if (preflight.status === 'skip-inactive-cups') {
       const idleAdvance = advanceInactiveCalendarSlots(gameData, { skipCount: preflight.skipCount });
       const maintenance = buildRoundMaintenance(idleAdvance.state, { allowTransferOffers: false });
@@ -339,6 +353,7 @@ const useMatchSimulation = (
     simulating,
     visibleEvents,
     liveScore,
+    liveMinute,
     matchResultData,
     roundSummary,
     matchFeedRef,

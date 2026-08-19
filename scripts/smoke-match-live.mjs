@@ -175,10 +175,10 @@ await test('substituição local não muta roster original', () => {
   assert.equal(original.find(p=>p.id==='u1').isStarting, true);
 });
 
-const makePlayback = (events) => {
+const makePlayback = (events, options = {}) => {
   const intervalRef = { current:null };
   const matchControlsRef = { current:{ commitMatchState:null, cancelMatchState:null } };
-  const state = { simulating:null, events:[], score:null, commits:0, cancels:0 };
+  const state = { simulating:null, events:[], score:null, minute:0, commits:0, cancels:0 };
   matchControlsRef.current.commitMatchState = () => { state.commits += 1; };
   matchControlsRef.current.cancelMatchState = () => { state.cancels += 1; };
   startMatchPlayback({
@@ -188,7 +188,9 @@ const makePlayback = (events) => {
     setSimulating:value => { state.simulating = value; },
     setVisibleEvents:updater => { state.events = typeof updater === 'function' ? updater(state.events) : updater; },
     setLiveScore:value => { state.score = value; },
-    intervalMs:5,
+    setLiveMinute:value => { state.minute = Number(value) || 0; },
+    intervalMs:options.intervalMs ?? 5,
+    halfDurationMs:options.halfDurationMs ?? null,
   });
   return { intervalRef, matchControlsRef, state };
 };
@@ -225,10 +227,23 @@ await test('playback sempre para no intervalo mesmo sem eventos no segundo tempo
   await wait(16);
   assert.equal(pb.state.commits, 1);
 });
+
+await test('cronômetro e lance compartilham o mesmo playhead canônico', async () => {
+  const event30 = `30' Boa finalização de fora da área (${home})`;
+  const pb = makePlayback([event30, `90'+ FIM DE JOGO: ${home} 0 x 0 ${away}`], { intervalMs:5, halfDurationMs:100 });
+  pb.matchControlsRef.current.startMatch();
+  await wait(30);
+  assert.ok(pb.state.minute < 30, `relógio avançou cedo demais: ${pb.state.minute}`);
+  assert.deepEqual(pb.state.events, []);
+  await wait(55);
+  assert.ok(pb.state.minute >= 30, `relógio não alcançou o lance: ${pb.state.minute}`);
+  assert.deepEqual(pb.state.events, [event30]);
+  pb.matchControlsRef.current.forceEnd();
+});
 await test('placar do playback contabiliza gol contra no lado correto', async () => {
   const pb = makePlayback([ownGoal, `90'+ FIM DE JOGO: ${home} 0 x 1 ${away}`]);
   pb.matchControlsRef.current.startMatch();
-  await wait(8);
+  await wait(12);
   assert.deepEqual(pb.state.score, { home:0, away:1 });
   pb.matchControlsRef.current.forceEnd();
 });
@@ -716,6 +731,9 @@ await test('playback publica apenas snapshots da timeline em vez de manter conta
   assert.equal(presentation.includes('matchControlsRef.current.setLiveScore?.'), false);
   assert.equal(presentation.includes('matchControlsRef.current.setVisibleEvents?.'), false);
   assert.ok(presentation.includes('matchControlsRef.current.syncLiveState?.()'));
+  assert.equal(presentation.includes('30000 / 100'), false);
+  assert.equal(presentation.includes('minuteTimerRef'), false);
+  assert.ok(presentation.includes('liveMinute'));
 });
 
 console.log(`\nMatch live: ${passed}/${passed} verificações aprovadas.`);

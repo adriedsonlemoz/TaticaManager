@@ -35,15 +35,15 @@ const ScreenBoot = ({ savesList = [], loadSpecificGame, setScreen, setDeleteSave
 
   const C = THEME;
   return (
-    <Box sx={{ minHeight: '100vh', background: `radial-gradient(ellipse at 50% 0%, rgba(160,120,32,0.08) 0%, transparent 50%), radial-gradient(ellipse at 20% 100%, rgba(26,107,53,0.05) 0%, transparent 40%), ${C.bg}`, display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: '100dvh', minHeight: 0, background: `radial-gradient(ellipse at 50% 0%, rgba(160,120,32,0.08) 0%, transparent 50%), radial-gradient(ellipse at 20% 100%, rgba(26,107,53,0.05) 0%, transparent 40%), ${C.bg}`, display: 'flex', flexDirection: 'column' }}>
       <BootLoadingOverlay saveName={loading} theme={C} />
       <BootHeader stats={stats} theme={C} />
 
-      <Box sx={{ flex: 1, overflowY: 'auto', px: 1.5, pt: 1.5, pb: 1 }}>
+      <Box sx={{ flex: 1, overflowY: 'auto', px: { xs: 1, sm: 1.5 }, pt: 0.8, pb: 0.6, minHeight: 0 }}>
         {saveModels.length === 0 ? (
           <BootEmptyState onNewCareer={() => setScreen('setup')} theme={C} />
         ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2, mt: 0.5 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 0.25 }}>
             <Typography sx={{ color: C.ink3, fontWeight: 900, fontSize: '0.7rem', letterSpacing: 2, textAlign: 'center' }}>SUAS CARREIRAS</Typography>
             {saveModels.map((save, index) => (
               <BootSaveCard

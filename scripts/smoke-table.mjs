@@ -31,6 +31,18 @@ test('Séries B/C preservam acesso/queda e D possui somente acesso', () => {
   assert.equal(getLeagueZone(16, 'D').type, 'neutral');
 });
 
+test('Série C usa Z2 durante a expansão e Z4 após chegar a 28 clubes', () => {
+  assert.equal(getLeagueZone(17, 'C', { season:2026, totalTeams:20 }).type, 'neutral');
+  assert.equal(getLeagueZone(18, 'C', { season:2026, totalTeams:20 }).type, 'relegation');
+  assert.equal(getLeagueZone(21, 'C', { season:2027, totalTeams:24 }).type, 'neutral');
+  assert.equal(getLeagueZone(22, 'C', { season:2027, totalTeams:24 }).type, 'relegation');
+  assert.equal(getLeagueZone(23, 'C', { season:2028, totalTeams:28 }).type, 'neutral');
+  assert.equal(getLeagueZone(24, 'C', { season:2028, totalTeams:28 }).type, 'relegation');
+  assert.equal(getLeagueLegend('C', { season:2026 })[1].label.includes('Z2'), true);
+  assert.equal(getLeagueLegend('C', { season:2027 })[1].label.includes('Z2'), true);
+  assert.equal(getLeagueLegend('C', { season:2028 })[1].label.includes('Z4'), true);
+});
+
 test('Movimento só aparece quando a temporada termina', () => {
   assert.equal(getSeasonMovement(0, 'B', false), null);
   assert.equal(getSeasonMovement(0, 'B', true).label, 'Acesso → Série A');

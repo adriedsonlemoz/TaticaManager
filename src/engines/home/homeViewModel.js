@@ -8,6 +8,9 @@ import { resolveMatchInfo } from '../../utils/matchDateUtils.js';
 import { APP_NAME, APP_VERSION_LABEL } from '../../config/appMeta.js';
 import { getUpcomingRound } from '../core/playerStatus.js';
 import { getInactiveCupSkipCount } from '../calendar/idleCalendarAdvance.js';
+import { getSerieDPhaseLabel } from '../serieD/serieDCompetition.js';
+import { getSerieCPhaseLabel } from '../serieC/serieCCompetition.js';
+import { getDaysUntilCalendarSlot, getCareerCurrentDate, toDateISO } from '../calendar/calendarDateEngine.js';
 
 const number = (value) => Number(value) || 0;
 const totalSlots = (gameData = {}) => gameData.calendar?.length || gameData.fixtures?.length || 0;
@@ -48,7 +51,11 @@ function getLeagueMatchContext(gameData, slotIndex, calendarEntry) {
     slotIndex,
     type: 'league',
     competition: `Série ${gameData.serie || '—'}`,
-    competitionLabel: `🏟️ Série ${gameData.serie || '—'} · Rodada ${leagueIdx + 1}/${gameData.fixtures?.length || 0}`,
+    competitionLabel: gameData.serie === 'D' && gameData.serieDCompetition
+      ? `🏟️ Série D · ${getSerieDPhaseLabel(gameData, leagueIdx) || 'Competição'}`
+      : gameData.serie === 'C' && gameData.serieCCompetition
+        ? `🏟️ Série C · ${getSerieCPhaseLabel(gameData, leagueIdx) || 'Competição'}`
+        : `🏟️ Série ${gameData.serie || '—'} · Rodada ${leagueIdx + 1}/${gameData.fixtures?.length || 0}`, 
     leagueIdx,
     displayHome: match.home,
     displayAway: match.away,
@@ -105,6 +112,8 @@ export function resolveHomeNextMatch(gameData = {}) {
       userSummary,
       opponentSummary,
       skippedSlots: slotIndex - season.round,
+      restDaysBeforeMatch:getDaysUntilCalendarSlot(gameData, slotIndex),
+      currentDateISO:(() => { const current = getCareerCurrentDate(gameData); return current ? toDateISO(current) : null; })(),
     };
   }
 
@@ -130,11 +139,27 @@ export function resolveHomeNextMatch(gameData = {}) {
 }
 
 export function getHomeCupSummary(gameData = {}) {
-  const cup = gameData.cups?.copaBrasil;
-  if (!cup) return 'Sem copas';
-  if (cup.status === 'champion') return '🎉 Campeão!';
-  if (cup.status === 'eliminated') return 'Eliminado';
-  return cup.phaseLabel || cup.phase || 'Ativa';
+  const cups = gameData.cups || {};
+  const competitions = [cups.estadual, cups.regional, cups.copaBrasil, cups.libertadores, cups.sulAmericana].filter(Boolean);
+  if (!competitions.length) return 'Sem copas';
+
+  const active = competitions.filter((cup) => cup.status === 'active');
+  if (active.length > 1) return `${active.length} competições ativas`;
+  if (active.length === 1) {
+    const cup = active[0];
+    const shortLabel = String(cup.shortLabel || cup.label || '')
+      .replace(/^[^\p{L}\p{N}]+/u, '')
+      .replace(/^Campeonato\s+/i, '')
+      .trim();
+    const phase = cup.phaseLabel || cup.phase || 'Ativa';
+    return shortLabel ? `${shortLabel} · ${phase}` : phase;
+  }
+
+  const champions = competitions.filter((cup) => cup.status === 'champion');
+  if (champions.length === 1 && competitions.length === 1) return '🎉 Campeão!';
+  if (champions.length) return `🏆 ${champions.length} título${champions.length > 1 ? 's' : ''}`;
+  if (competitions.every((cup) => cup.status === 'eliminated')) return 'Eliminado';
+  return competitions[0]?.phaseLabel || competitions[0]?.phase || 'Copas';
 }
 
 export function getHomeLineupSummary(gameData = {}) {

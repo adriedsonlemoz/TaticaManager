@@ -60,7 +60,7 @@ const ScreenStadium = ({ gameData, setGameData, formatMoney, showToast }) => {
   const StatBar = ({label,value,max=100,color=C.green}) => ( <Box sx={{mb:1.1}}><Box sx={{display:'flex',justifyContent:'space-between',mb:0.35}}><Typography sx={{color:C.txt3,fontSize:'0.6rem',fontWeight:700}}>{label}</Typography><Typography sx={{color,fontWeight:900,fontSize:'0.72rem'}}>{value}{max===100?'%':`/${max}`}</Typography></Box><Box sx={{height:5,bgcolor:C.cardAlt,borderRadius:2,overflow:'hidden'}}><Box sx={{height:'100%',width:`${(value/max)*100}%`,bgcolor:color,borderRadius:2,transition:'width 0.5s'}}/></Box></Box> );
 
   return (
-    <Box sx={{bgcolor:C.bg,minHeight:'100vh',pb:10,background:`radial-gradient(ellipse at 50% 0%, #dcfce7 0%, transparent 40%), ${C.bg}`}}>
+    <Box sx={{bgcolor:C.bg,minHeight:'100dvh',pb:5.5,background:`radial-gradient(ellipse at 50% 0%, #dcfce7 0%, transparent 40%), ${C.bg}`}}>
       {/* Hero */}
       <Box sx={{background:`linear-gradient(180deg,${C.bgCard} 0%,${C.bg} 100%)`,borderBottom:`1px solid ${C.border}`,px:1.5,pt:3.8,pb:2}}>
         <Box sx={{display:'flex',alignItems:'center',gap:1.5,mb:1.5}}>

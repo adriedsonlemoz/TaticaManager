@@ -40,7 +40,7 @@ const ScreenFinances = ({ gameData, setGameData, formatMoney, showToast }) => {
   }, [gameData, setGameData, showToast, formatMoney]);
 
   return (
-    <Box sx={{ bgcolor: C.bg, minHeight: '100vh', pb: 12 }}>
+    <Box sx={{ bgcolor: C.bg, minHeight: '100dvh', pb: 6.5 }}>
       <FinanceHeader
         gameData={gameData}
         overview={overview}

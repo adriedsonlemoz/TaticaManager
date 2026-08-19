@@ -34,7 +34,7 @@ const MatchLiveView = ({
   const canOpenSubs = Boolean(userSide) && substitutions.length < MAX_LIVE_SUBSTITUTIONS && (simulating || isPaused);
 
   return (
-    <Box sx={{ bgcolor:C.bg, minHeight:'100vh', pb:isSecondHalf?1:14 }}>
+    <Box sx={{ bgcolor:C.bg, minHeight:'100dvh', pb:isSecondHalf?1:14 }}>
       {header}
       <Box sx={{ px:1.5, pt:1, pb:isSecondHalf?2:0 }}>
         <MatchField

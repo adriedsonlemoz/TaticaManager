@@ -157,7 +157,7 @@ const StandingsView = ({ standings, legend, isSeasonEnd }) => (
   <Box sx={{ flex: 1, overflow: 'hidden' }}>
     {isSeasonEnd && <SeasonEndBanner />}
     <StandingsHeader />
-    <Box sx={{ overflowY: 'auto', maxHeight: 'calc(100vh - 210px)' }}>
+    <Box sx={{ overflowY: 'auto', maxHeight: 'calc(100dvh - 210px)' }}>
       {standings.map(team => <StandingRow key={team.id || team.name} team={team} />)}
     </Box>
     <LeagueLegend entries={legend} />

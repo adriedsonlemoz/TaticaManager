@@ -28,6 +28,7 @@ const roundDates = buildRoundDates(6);
 test('nomes dos meses continuam completos', () => assert.equal(MONTH_NAMES.length, 12));
 test('dias curtos e grade semanal preservados', () => { assert.equal(WEEK_DAYS_SHORT.length, 7); assert.equal(WEEK_DAYS.length, 7); });
 test('cor da Copa do Brasil é resolvida', () => assert.equal(getCupColor('🏆 Copa do Brasil'), '#00695c'));
+test('cor da Copa do Nordeste é resolvida sem cair na Sul-Americana', () => assert.equal(getCupColor('🌵 Copa do Nordeste'), '#e07a2d'));
 test('resultado identifica vitória como mandante', () => assert.equal(getMatchResult(leagueMatch).outcome, 'win'));
 test('resultado identifica vitória como visitante', () => assert.equal(getMatchResult({ home:rival, away:user, result:'0-3' }).outcome, 'win'));
 test('resultado identifica empate', () => assert.equal(getMatchResult({ home:user, away:rival, result:'1-1' }).outcome, 'draw'));
@@ -113,6 +114,22 @@ test('recentes são ordenados da data mais nova para a antiga', () => {
   const gd = { calendar:[{type:'league',leagueIdx:0},{type:'league',leagueIdx:1}], fixtures:[[leagueMatch],[{...leagueMatch,result:'1-0'}]] };
   const recent = buildRecentResults({ gameData:gd, currentRound:2, roundDates });
   assert.ok(recent[0].date >= recent[1].date);
+});
+test('slot regional já jogado é recuperado de cups.regional', () => {
+  const regionalTie = { phase:'Grupos 1', home:user, away:rival, leg1:{played:true,home:2,away:0,round:1}, leg2:null };
+  const regional = { kind:'regional', status:'active', competitionKey:'copaNordeste', label:'🌵 Copa do Nordeste', phase:'group', groupMatches:[regionalTie] };
+  const entry = { type:'cup', cupKey:'copaNordeste', phase:'Grupos 1', leg:'leg1', isGroup:true, regionalRound:0, dateISO:'2026-03-24' };
+  const info = getCupInfoForSlot({ regional }, entry);
+  assert.equal(info.played, true);
+  assert.equal(info.label, '🌵 Copa do Nordeste');
+});
+test('resultados recentes de Copa usam dateISO canônico em vez da rodada da Liga', () => {
+  const calendar = [{ ...playedEntry, dateISO:'2026-05-20' }];
+  const gd = { calendar, leagueRound:0, fixtures:[], cups:playedCups };
+  const item = buildRecentResults({ gameData:gd, currentRound:1, roundDates, limit:10 }).find(x => x.legLabel === 'Jogo de Ida');
+  assert.equal(item.date.getFullYear(), 2026);
+  assert.equal(item.date.getMonth(), 4);
+  assert.equal(item.date.getDate(), 20);
 });
 test('slot de Copa ausente retorna hasCupMatch false', () => assert.equal(getCupInfoForSlot({}, playedEntry).hasCupMatch, false));
 
@@ -209,5 +226,5 @@ test('proposta local identifica clube CPU comprador real', () => {
   assert.equal(result.state.inbox[0].actionData.teamId,'a1');
 });
 
-console.log(`\nMatches/App smoke: ${passed}/49 verificações aprovadas.`);
-assert.equal(passed,49);
+console.log(`\nMatches/App smoke: ${passed}/52 verificações aprovadas.`);
+assert.equal(passed,52);

@@ -36,7 +36,7 @@ const ScreenCareer = ({ gameData, setGameData, formatMoney, showToast }) => {
   }, [pendingOffer, setGameData, showToast]);
 
   return (
-    <Box sx={{ bgcolor:THEME.bg, minHeight:'100vh', pb:12 }}>
+    <Box sx={{ bgcolor:THEME.bg, minHeight:'100dvh', pb:6.5 }}>
       <CareerHero gameData={gameData} viewModel={viewModel} theme={THEME} />
       <CareerOfferBanner offer={pendingOffer} onOpen={() => setOfferOpen(true)} />
       <Box sx={{ px:1.5, pt:1.5 }}>
@@ -45,7 +45,7 @@ const ScreenCareer = ({ gameData, setGameData, formatMoney, showToast }) => {
         <CareerSentimentCards morale={gameData.morale} fanLoyalty={gameData.club?.fanLoyalty} theme={THEME} />
         <CareerHistory entries={viewModel.seasonHistory} theme={THEME} formatMoney={formatMoney} />
         <CareerHeadToHead entries={viewModel.headToHead} theme={THEME} />
-        <CareerCupStatus cup={gameData.cups?.copaBrasil} theme={THEME} formatMoney={formatMoney} />
+        <CareerCupStatus entries={viewModel.cupEntries} theme={THEME} formatMoney={formatMoney} />
       </Box>
       <CareerOfferDialog
         open={offerOpen}

@@ -1,5 +1,7 @@
 import { initCopaBrasil } from './copaBrasilEngine.js';
 import { initLibertadores, initSulAmericana } from './continentalEngine.js';
+import { initRegionalCompetition } from './regionalEngine.js';
+import { initStateCompetition } from './stateEngine.js';
 
 const tableWithUserAtPosition = (table, finalPosition) => {
   const teams = [...(table || [])];
@@ -14,30 +16,31 @@ const tableWithUserAtPosition = (table, finalPosition) => {
 
 export const autoInitCupsForSeason = (gameData, isFirstSeason) => {
   const copaBrasil = initCopaBrasil(gameData);
-  if (isFirstSeason) {
-    return { copaBrasil, libertadores: null, sulAmericana: null };
+  const estadual = initStateCompetition(gameData);
+  let libertadores = null;
+  let sulAmericana = null;
+
+  if (!isFirstSeason) {
+    const currentSerie = gameData.serie || 'A';
+    const previousPosition = gameData.seasonResult?.finalPosition || null;
+    const previousSerie = gameData.seasonResult?.prevSerie || currentSerie;
+    if (currentSerie !== 'C' && currentSerie !== 'D' && previousPosition && previousSerie !== 'C' && previousSerie !== 'D') {
+      const previousSeasonView = {
+        ...gameData,
+        serie: previousSerie,
+        table: tableWithUserAtPosition(gameData.table, previousPosition),
+      };
+      libertadores = initLibertadores(previousSeasonView);
+      sulAmericana = initSulAmericana(previousSeasonView);
+    }
   }
 
-  const currentSerie = gameData.serie || 'A';
-  if (currentSerie === 'C' || currentSerie === 'D') {
-    return { copaBrasil, libertadores: null, sulAmericana: null };
-  }
+  // Regulamento regional de 2026 impede acúmulo com competições CONMEBOL.
+  // Para temporadas futuras, a mesma incompatibilidade é preservada como regra
+  // de gameplay até a entrada dos estaduais/classificatórios dinâmicos.
+  const regional = initRegionalCompetition(gameData, {
+    hasContinental:Boolean(libertadores || sulAmericana),
+  });
 
-  const previousPosition = gameData.seasonResult?.finalPosition || null;
-  const previousSerie = gameData.seasonResult?.prevSerie || currentSerie;
-  if (!previousPosition || previousSerie === 'C' || previousSerie === 'D') {
-    return { copaBrasil, libertadores: null, sulAmericana: null };
-  }
-
-  const previousSeasonView = {
-    ...gameData,
-    serie: previousSerie,
-    table: tableWithUserAtPosition(gameData.table, previousPosition),
-  };
-
-  return {
-    copaBrasil,
-    libertadores: initLibertadores(previousSeasonView),
-    sulAmericana: initSulAmericana(previousSeasonView),
-  };
+  return { copaBrasil, libertadores, sulAmericana, regional, estadual };
 };

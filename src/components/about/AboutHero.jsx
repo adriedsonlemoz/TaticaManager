@@ -6,7 +6,7 @@ const AboutHero = ({ theme, currentSummary }) => {
   const C = theme;
   const stats = [
     { value: '4', label: 'DIVISÕES' },
-    { value: '80', label: 'TIMES' },
+    { value: '156', label: 'CLUBES' },
     { value: '38', label: 'ROD. LIGA' },
     { value: 'BETA', label: 'STATUS' },
   ];
@@ -28,7 +28,7 @@ const AboutHero = ({ theme, currentSummary }) => {
         </svg>
       </Box>
       <Typography sx={{ fontFamily: '"Cinzel", serif', fontWeight: 900, fontSize: '2rem', letterSpacing: 3, color: C.green, lineHeight: 1 }}>{APP_NAME.toUpperCase()}</Typography>
-      <Typography sx={{ color: C.txt3, fontWeight: 900, fontSize: '0.6rem', letterSpacing: 4, mt: 0.3 }}>WEB · {APP_VERSION_LABEL}</Typography>
+      <Typography sx={{ color: C.txt3, fontWeight: 900, fontSize: '0.6rem', letterSpacing: 4, mt: 0.3 }}>WEB · ANDROID · {APP_VERSION_LABEL}</Typography>
       <Typography sx={{ color: C.txt2, fontSize: '0.78rem', mt: 0.8 }}>Seu manager de futebol de bolso</Typography>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 0.8, mt: 2 }}>

@@ -123,17 +123,17 @@ await test('factory deriva a Série pelo teamId mesmo quando recebe Série legad
   assert.notEqual(state.club.stadium.name, 'Forjado');
 });
 
-await test('clube selecionado não é duplicado nas ligas CPU e a pirâmide mantém 80 clubes ativos', () => {
+await test('clube selecionado não é duplicado nas ligas CPU e a pirâmide mantém todos os 156 clubes oficiais', () => {
   const state = getInitialGameState('br-fortaleza', 'Manager', 'A', { formation:'4-4-2' });
   const ids = cpuIds(state);
-  assert.equal(ids.length, 79);
-  assert.equal(new Set(ids).size, 79);
+  assert.equal(ids.length, 155);
+  assert.equal(new Set(ids).size, 155);
   assert.equal(ids.includes('br-fortaleza'), false);
   assert.equal(state.teams.length, 20);
   assert.equal(state.teams.filter((team) => team.id === 'user').length, 1);
   assert.deepEqual(
     Object.fromEntries(['A','B','C','D'].map((serie) => [serie, state.leagues[serie].length])),
-    { A:20, B:19, C:20, D:20 },
+    { A:20, B:19, C:20, D:96 },
   );
 });
 
@@ -155,19 +155,25 @@ await test('tabela e fixtures da Série inicial permanecem íntegros', () => {
   assert.equal(report.expectedMatches, 380);
 });
 
-await test('qualquer um dos 96 clubes oficiais da D pode iniciar sem duplicar um slot CPU', () => {
+await test('qualquer um dos 96 clubes oficiais da D inicia no grupo correto sem duplicação', () => {
   const state = getInitialGameState('br-brasiliense', 'Manager', 'A', { formation:'4-4-2' });
   assert.equal(state.serie, 'D');
   assert.equal(state.club.teamId, 'br-brasiliense');
-  assert.equal(state.table.length, 20);
-  assert.equal(state.leagues.D.length, 19);
+  assert.equal(state.table.length, 6);
+  assert.equal(state.teams.length, 6);
+  assert.equal(state.leagues.D.length, 95);
+  assert.equal(cpuIds(state).length, 155);
   assert.equal(cpuIds(state).includes('br-brasiliense'), false);
   assert.equal(state.pyramidReserve.some((team) => team.id === 'br-brasiliense'), false);
-  assert.equal(buildLeagueScheduleReport(state.table, state.fixtures).ok, true);
+  assert.equal(state.serieDCompetition.userGroup, getSerieD2026GroupForClub('br-brasiliense'));
+  assert.equal(Object.keys(state.serieDCompetition.groups).length, 16);
+  assert.equal(Object.values(state.serieDCompetition.groups).flat().length, 96);
+  assert.equal(state.fixtures.slice(0, 10).every((round) => round.length === 48), true);
 });
 
-await test('pool ativo da engine continua em 20 vagas por Série enquanto o catálogo oficial D fica separado', () => {
-  for (const serie of ['A','B','C','D']) assert.equal(getPyramidSeriesTeams2026(serie).length, 20);
+await test('pool canônico usa 20 clubes em A/B/C e os 96 participantes oficiais na D', () => {
+  for (const serie of ['A','B','C']) assert.equal(getPyramidSeriesTeams2026(serie).length, 20);
+  assert.equal(getPyramidSeriesTeams2026('D').length, 96);
   assert.equal(getCareerSelectableClubs2026().filter((team) => team.serie2026 === 'D').length, 96);
 });
 

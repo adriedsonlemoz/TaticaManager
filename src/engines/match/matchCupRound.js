@@ -7,8 +7,9 @@ import { syncUserRosterState } from '../core/gameStateIntegrity.js';
 import { processMatchPlayers, preparePostMatchPlayers } from './matchPlayerPostProcessor.js';
 import { buildManagerProfile, isUserMatchTeam, updateHeadToHead } from './matchStateUtils.js';
 import { simulateMatch } from './matchSimulator.js';
+import { stampPlayedCalendarDate } from '../calendar/calendarDateEngine.js';
 
-export function simulateCupRound({ gameData, calendarEntry, tactics, starters }) {
+export function simulateCupRound({ gameData, calendarEntry, tactics, starters, rng = Math.random }) {
   const info = CalendarEngine.getCupMatchForCalendarSlot(gameData.cups, calendarEntry);
   if (!info.hasCupMatch) return { inactive: true };
 
@@ -68,10 +69,63 @@ export function simulateCupRound({ gameData, calendarEntry, tactics, starters })
 
   let cupEvents = [];
   const cupKey = calendarEntry.cupKey;
+  const storageKey = info.isRegional ? 'regional' : info.isState ? 'estadual' : cupKey;
   let cups = { ...(gameData.cups || {}) };
-  const beforeCup = cups[cupKey];
+  const beforeCup = cups[storageKey];
 
-  if (cupKey === 'copaBrasil') {
+  if (info.isState) {
+    cups = {
+      ...cups,
+      estadual:CupsEngine.registerStateResult(
+        cups.estadual,
+        calendarEntry,
+        result.homeGoals,
+        result.awayGoals,
+        rng,
+      ),
+    };
+    const after = cups.estadual;
+    const color = beforeCup?.color || '#1565c0';
+    if (after?.status === 'champion') {
+      cupEvents.push({ cup:info.label, msg:`🏆 CAMPEÕES DO ${String(info.label || 'ESTADUAL').replace(/^[^A-Za-zÀ-ÿ]+\s*/, '').toUpperCase()}!`, color, earned:0 });
+    } else if (after?.status === 'eliminated') {
+      cupEvents.push({ cup:info.label, msg:`Eliminados do ${info.label}.`, color:'#b71c1c', earned:0 });
+    } else if (beforeCup?.phase === 'group' && after?.phase === 'knockout') {
+      cupEvents.push({ cup:info.label, msg:`Classificados para ${after.phaseLabel}.`, color, earned:0 });
+    } else if (calendarEntry.isGroup) {
+      cupEvents.push({ cup:info.label, msg:'Jogo da fase de grupos concluído.', color, earned:0 });
+    } else if (calendarEntry.leg === 'leg1' && after?.currentTie?.leg2) {
+      cupEvents.push({ cup:info.label, msg:`${after.phaseLabel} — Jogo de Ida jogado.`, color, earned:0 });
+    } else if (beforeCup?.phaseLabel !== after?.phaseLabel) {
+      cupEvents.push({ cup:info.label, msg:`Classificados para ${after.phaseLabel}.`, color, earned:0 });
+    }
+  } else if (info.isRegional) {
+    cups = {
+      ...cups,
+      regional:CupsEngine.registerRegionalResult(
+        cups.regional,
+        calendarEntry,
+        result.homeGoals,
+        result.awayGoals,
+        rng,
+      ),
+    };
+    const after = cups.regional;
+    const color = beforeCup?.color || '#2e7d32';
+    if (after?.status === 'champion') {
+      cupEvents.push({ cup:info.label, msg:`🏆 CAMPEÕES DA ${String(info.label || 'COPA REGIONAL').replace(/^[^A-Za-zÀ-ÿ]+\s*/, '').toUpperCase()}!`, color, earned:0 });
+    } else if (after?.status === 'eliminated') {
+      cupEvents.push({ cup:info.label, msg:`Eliminados da ${info.label}.`, color:'#b71c1c', earned:0 });
+    } else if (beforeCup?.phase === 'group' && after?.phase === 'knockout') {
+      cupEvents.push({ cup:info.label, msg:`Classificados para ${after.phaseLabel}.`, color, earned:0 });
+    } else if (calendarEntry.isGroup) {
+      cupEvents.push({ cup:info.label, msg:'Jogo da fase de grupos concluído.', color, earned:0 });
+    } else if (calendarEntry.leg === 'leg1' && after?.currentTie?.leg2) {
+      cupEvents.push({ cup:info.label, msg:`${after.phaseLabel} — Jogo de Ida jogado.`, color, earned:0 });
+    } else if (beforeCup?.phaseLabel !== after?.phaseLabel) {
+      cupEvents.push({ cup:info.label, msg:`Classificados para ${after.phaseLabel}.`, color, earned:0 });
+    }
+  } else if (cupKey === 'copaBrasil') {
     cups = {
       ...cups,
       copaBrasil: CupsEngine.registerCopaLegResult(
@@ -117,8 +171,8 @@ export function simulateCupRound({ gameData, calendarEntry, tactics, starters })
     }
   }
 
-  const cupPrizeDelta = getCupPrizeDelta(beforeCup, cups[cupKey]);
-  const prizeColor = cupKey === 'copaBrasil' ? '#00695c' : cupKey === 'sulAmericana' ? '#b71c1c' : '#1a237e';
+  const cupPrizeDelta = getCupPrizeDelta(beforeCup, cups[storageKey]);
+  const prizeColor = (info.isRegional || info.isState) ? (beforeCup?.color || '#2e7d32') : cupKey === 'copaBrasil' ? '#00695c' : cupKey === 'sulAmericana' ? '#b71c1c' : '#1a237e';
   cupEvents = appendCupPrizeToEvents(cupEvents, {
     cup: cupKey === 'copaBrasil' ? 'Copa do Brasil' : info.label,
     color: prizeColor,
@@ -159,8 +213,9 @@ export function buildCupPostMatchState(gameData, cupRound, { liveSubstitutions =
   const diff = myGoals - oppGoals;
   const loyaltyDelta = diff > 0 ? (diff >= 3 ? 2 : 1) : diff < 0 ? (diff <= -3 ? -2 : -1) : 0;
 
+  const datedGameData = stampPlayedCalendarDate(gameData, gameData.round);
   return syncUserRosterState({
-    ...gameData,
+    ...datedGameData,
     round: (gameData.round || 0) + 1,
     cups: cupRound.cups,
     h2hHistory: updateHeadToHead(gameData.h2hHistory, gameData.club?.name, userMatchData),

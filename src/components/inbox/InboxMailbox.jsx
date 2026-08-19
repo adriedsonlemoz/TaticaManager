@@ -4,7 +4,7 @@ import { getMessageDate, getMessagePreview, getMessageSender, getMessageTypeLabe
 
 export default function InboxMailbox({ clubName, tab, search, messages, unreadCount, trashCount, typeCounts, readIds, confirmDialog, theme, onTabChange, onSearchChange, onOpenMessage, onRestore, onRequestDelete, onRequestEmptyTrash, onCloseConfirm, onConfirmDelete }) {
   return (
-    <Box sx={{ bgcolor: theme.bg, minHeight: '100vh', pb: 10 }}>
+    <Box sx={{ bgcolor: theme.bg, minHeight: '100dvh', pb: 5.5 }}>
       <Box sx={{ background: 'linear-gradient(180deg, #ffffff 0%, #f4f7f6 100%)', borderBottom: `1px solid ${theme.border}`, px: 1.5, pt: 3.8, pb: 1.3, position: 'relative', overflow: 'hidden' }}>
         <Typography sx={{ position: 'absolute', right: -8, top: -5, fontSize: '6rem', opacity: 0.04, lineHeight: 1, pointerEvents: 'none' }}>{tab === 'inbox' ? '📬' : '🗑️'}</Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: 1.2 }}>

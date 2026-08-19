@@ -22,7 +22,6 @@ const EXPECTED = {
   A: ['Flamengo','Palmeiras','Cruzeiro','Mirassol','Fluminense','Bahia','Botafogo','São Paulo','Red Bull Bragantino','Corinthians','Grêmio','Vasco da Gama','Atlético-MG','Santos','Vitória','Internacional','Coritiba','Athletico-PR','Chapecoense','Remo'],
   B: ['América-MG','Athletic','Atlético-GO','Avaí','Botafogo-SP','Ceará','CRB','Criciúma','Cuiabá','Fortaleza','Goiás','Juventude','Londrina','Náutico','Novorizontino','Operário Ferroviário','Ponte Preta','São Bernardo','Sport','Vila Nova'],
   C: ['Amazonas','Anápolis','Barra-SC','Botafogo-PB','Brusque','Caxias','Confiança','Ferroviária','Figueirense','Floresta','Guarani','Inter de Limeira','Itabaiana','Ituano','Maranhão','Maringá','Paysandu','Santa Cruz','Volta Redonda','Ypiranga-RS'],
-  D: ['ABC','Gama','Uberlândia','ASA','Nacional-AM','CSA','São José-RS','Goiatuba','Ferroviário','Luverdense','Treze','Portuguesa-SP','São Luiz-RS','Cianorte','América-RN','Trem','Iguatu','Ceilândia','Manaus','Sousa'],
 };
 
 for (const serie of ['A','B','C']) {
@@ -32,7 +31,9 @@ for (const serie of ['A','B','C']) {
 }
 check(() => assert.equal(SERIES_2026.D.length, 96));
 check(() => assert.equal(new Set(SERIES_2026.D).size, 96));
-check(() => assert.deepEqual(getPyramidSeriesTeams2026('D').map((team) => team.name), EXPECTED.D));
+check(() => assert.equal(getPyramidSeriesTeams2026('D').length, 96));
+check(() => assert.equal(new Set(getPyramidSeriesTeams2026('D').map((team) => team.id)).size, 96));
+check(() => ['Brasiliense','ABC','Manaus','Portuguesa-SP'].forEach((name) => assert.equal(getPyramidSeriesTeams2026('D').some((team) => team.name === name), true)));
 check(() => assert.deepEqual(diexDatabase.serieDTeams.map((team) => team.id), getPyramidSeriesTeams2026('D').map((team) => team.id)));
 
 check(() => assert.equal(CURRENT_2026_CLUBS.length, 156));

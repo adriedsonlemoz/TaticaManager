@@ -6,6 +6,7 @@ import { THEME } from '../theme.js';
 import { TeamIcon } from '../data/database_branding.js';
 import JerseyBadge from './player/JerseyBadge.jsx';
 import { posColor, ovrColor } from '../utils/playerVisuals.js';
+import { getCareerTrophyCount } from '../engines/career/careerViewModel.js';
 
 // components/ScreenGameOver.js — v2.0 (Falência + Demissão)
 const ScreenGameOver = ({ gameData, setScreen, setGameData, persistence }) => {
@@ -18,7 +19,7 @@ const ScreenGameOver = ({ gameData, setScreen, setGameData, persistence }) => {
   const pct       = total > 0 ? (((mp.wins || 0) / total) * 100).toFixed(1) : '0.0';
   const seasons   = (gameData?.careerHistory || []).length;
   const bestPos   = (gameData?.careerHistory || []).reduce((b, e) => Math.min(b, e.position || 99), 99);
-  const trophies  = (gameData?.careerHistory || []).filter(e => e.cupResult === 'champion').length;
+  const trophies  = getCareerTrophyCount(mp, gameData?.careerHistory || []);
 
   const accentColor = isFired ? C.orange || '#f97316' : C.red;
   const icon        = isFired ? '🪑' : '💸';
@@ -38,7 +39,7 @@ const ScreenGameOver = ({ gameData, setScreen, setGameData, persistence }) => {
 
   return (
     <Box sx={{
-      bgcolor: C.bg, minHeight: '100vh',
+      bgcolor: C.bg, minHeight: '100dvh',
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', p: 2,
       background: `radial-gradient(ellipse at 50% 20%, ${accentColor}18 0%, transparent 60%), ${C.bg}`,

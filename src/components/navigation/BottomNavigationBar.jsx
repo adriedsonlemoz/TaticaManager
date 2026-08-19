@@ -8,7 +8,8 @@ export default function BottomNavigationBar({ items, onItemClick }) {
   return (
     <Paper elevation={0} component="nav" aria-label="Navegação principal" sx={{
       position: 'fixed', bottom: 0, left: 0, right: 0,
-      height: 60, zIndex: 1200,
+      height: 'calc(54px + env(safe-area-inset-bottom, 0px))', zIndex: 1200,
+      pb: 'env(safe-area-inset-bottom, 0px)', boxSizing: 'border-box',
       bgcolor: C.bg, borderTop: `1px solid ${C.border}`,
       display: 'flex', alignItems: 'stretch',
     }}>
@@ -54,7 +55,7 @@ export default function BottomNavigationBar({ items, onItemClick }) {
           )}
 
           <span className="material-icons" aria-hidden="true" style={{
-            fontSize: '1.15rem',
+            fontSize: '1.05rem',
             color: item.active ? C.act : C.inact,
             filter: item.active ? `drop-shadow(0 0 5px ${C.act}80)` : 'none',
             transition: 'color 0.15s',

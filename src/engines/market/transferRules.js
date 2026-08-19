@@ -15,7 +15,7 @@ export function getTransferRound(gameData = {}) {
 
 export function getTransferWindowState(gameData = {}) {
   const transferRound = getTransferRound(gameData);
-  const info = CpuAI?.getTransferWindowInfo?.(transferRound) || { open: true, label: 'Janela de Transferências' };
+  const info = CpuAI?.getTransferWindowInfo?.(gameData) || { open: true, label: 'Janela de Transferências' };
   return { ...info, transferRound };
 }
 
@@ -105,7 +105,9 @@ export function evaluateTransferPurchase(gameData = {}, player = {}, finalPrice 
   if (windowInfo.open === false) {
     return deny(
       'window_closed',
-      `Janela fechada! ${windowInfo.label} abre em ${windowInfo.opensIn} rodada(s).`,
+      windowInfo.mode === 'date'
+        ? `Janela fechada! ${windowInfo.label} abre em ${windowInfo.opensInDays ?? '?'} dia(s).`
+        : `Janela fechada! ${windowInfo.label} abre em ${windowInfo.opensIn} rodada(s).`,
     );
   }
 

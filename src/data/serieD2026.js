@@ -1,4 +1,4 @@
-// Estrutura oficial da Série D 2026 usada pelo catálogo e pela futura competição completa.
+// Estrutura da Série D 2026 usada pelo catálogo e pelo motor completo da competição.
 // 16 grupos regionalizados, seis clubes por grupo.
 
 export const SERIE_D_2026_GROUPS = Object.freeze({

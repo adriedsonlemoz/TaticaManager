@@ -8,6 +8,7 @@ import { findIllegalStarter } from '../engines/match/matchPreflight.js';
 import { advanceInactiveCalendarSlots, getInactiveCupSkipCount } from '../engines/calendar/idleCalendarAdvance.js';
 import { buildRoundMaintenance } from '../engines/app/gameControllerService.js';
 import { syncUserRosterState } from '../engines/core/gameStateIntegrity.js';
+import { getDaysUntilCalendarSlot } from '../engines/calendar/calendarDateEngine.js';
 
 // hooks/useRoundAdvance.js — v1.0
 // Extraído de hooks_simulation.js.
@@ -62,8 +63,15 @@ const useRoundAdvance = (
       return;
     }
 
-    // Datas de Copa em que o clube não tem jogo representam descanso real.
-    // Avançamos todas as consecutivas antes de validar a próxima escalação.
+    // O calendário civil é a autoridade: não pulamos um compromisso futuro
+    // apenas porque ele não terá partida do usuário. Primeiro o dia precisa chegar.
+    if (getDaysUntilCalendarSlot(gameData) > 0) {
+      setScreen('next_match');
+      return;
+    }
+
+    // Datas de Copa/competição em que o clube não tem jogo são processadas
+    // somente quando sua data canônica chegou (um dia civil por vez entre elas).
     const idleSkipCount = getInactiveCupSkipCount(gameData);
     let stateForNextMatch = gameData;
     if (idleSkipCount > 0) {

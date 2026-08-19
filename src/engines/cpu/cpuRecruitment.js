@@ -28,10 +28,10 @@ function shouldRecruit(team, roster, round, rng) {
   return ((round + seed) % 4 === 0) && rng() < CPU_BUY_CHANCE * 0.4;
 }
 
-export function recruitCpuTeam(team = {}, teamRosters = {}, round = 1, serie = 'A', rng = Math.random) {
+export function recruitCpuTeam(team = {}, teamRosters = {}, round = 1, serie = 'A', rng = Math.random, transferContext = null) {
   const roster = [...resolveTeamRoster(team, teamRosters)];
   const unchangedTeam = { ...team, squad: roster };
-  if (!isTransferWindowOpen(round) || roster.length >= CPU_MAX_SQUAD_SIZE) {
+  if (!isTransferWindowOpen(transferContext || round) || roster.length >= CPU_MAX_SQUAD_SIZE) {
     return { team: unchangedTeam, roster, changed: false, recruits: [] };
   }
   if (!shouldRecruit(team, roster, round, rng)) return { team: unchangedTeam, roster, changed: false, recruits: [] };
@@ -78,15 +78,15 @@ export function recruitCpuTeam(team = {}, teamRosters = {}, round = 1, serie = '
   };
 }
 
-export function processTransferActivity(leagues = {}, teamRosters = {}, round = 1, rng = Math.random) {
+export function processTransferActivity(leagues = {}, teamRosters = {}, round = 1, rng = Math.random, transferContext = null) {
   const updatedRosters = { ...(teamRosters || {}) };
-  if (!isTransferWindowOpen(round)) {
+  if (!isTransferWindowOpen(transferContext || round)) {
     return { leagues, teamRosters: updatedRosters };
   }
 
   const processPool = (pool, serie) => (pool || []).map((team) => {
     if (team?.isPlayer || team?.id === 'user') return team;
-    const result = recruitCpuTeam(team, updatedRosters, round, serie, rng);
+    const result = recruitCpuTeam(team, updatedRosters, round, serie, rng, transferContext);
     updatedRosters[team.id] = result.roster;
     return result.team;
   });

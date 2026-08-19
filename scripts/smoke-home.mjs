@@ -83,6 +83,8 @@ assert.equal(afterSkip.skippedSlots, 1, 'slot de Copa inativo deve ser pulado ao
 assert.equal(getHomeCupSummary({}), 'Sem copas');
 assert.equal(getHomeCupSummary({ cups:{ copaBrasil:{ status:'champion' } } }), '🎉 Campeão!');
 assert.equal(getHomeCupSummary({ cups:{ copaBrasil:{ status:'eliminated' } } }), 'Eliminado');
+assert.match(getHomeCupSummary({ cups:{ estadual:{ status:'active', label:'🏟️ Campeonato Paulista', phaseLabel:'Fase Classificatória' } } }), /Paulista.*Fase Classificatória/);
+assert.equal(getHomeCupSummary({ cups:{ estadual:{ status:'active' }, regional:{ status:'active' } } }), '2 competições ativas');
 
 const shortLineup = getHomeLineupSummary({ ...baseState, round:5, players:starters.slice(0,10) });
 assert.equal(shortLineup.needsAttention, true, 'escalação incompleta deve alertar em qualquer rodada');
@@ -126,4 +128,4 @@ assert.deepEqual(vm.recentForm, ['E','V'], 'forma deve ser derivada das partidas
 assert.equal(vm.clubSummary.roundTotal, 3);
 assert.equal(vm.headerStats.points, 7);
 
-console.log('home smoke tests: 26/26 OK');
+console.log('home smoke tests: 28/28 OK');

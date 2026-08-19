@@ -1,6 +1,7 @@
 import { MONTH_NAMES, WEEK_DAYS_SHORT, CUP_META, getCupColor } from './matchesConstants.js';
 import { getCupInfoForSlot, getCupTeams } from './cupMatchResolver.js';
 import { getCupRoundDate } from './matchesCalendarService.js';
+import { fromDateISO } from '../calendar/calendarDateEngine.js';
 
 export function buildUpcomingEvents({ gameData, currentRound, roundDates, limit = 8 }) {
   const events = [];
@@ -14,7 +15,7 @@ export function buildUpcomingEvents({ gameData, currentRound, roundDates, limit 
     if (entry.type === 'league') {
       const leagueIdx = entry.leagueIdx;
       if (!Number.isInteger(leagueIdx) || leagueIdx >= (gameData.fixtures?.length || 0)) continue;
-      const date = roundDates[leagueIdx];
+      const date = fromDateISO(entry.dateISO || entry.calendarDate) || roundDates[leagueIdx];
       if (!date) continue;
       const fixtures = gameData.fixtures?.[leagueIdx] || [];
       const match = fixtures.find(item => item.home?.isPlayer || item.away?.isPlayer);
@@ -36,7 +37,7 @@ export function buildUpcomingEvents({ gameData, currentRound, roundDates, limit 
     const cupInfo = getCupInfoForSlot(gameData.cups, entry);
     if (!cupInfo.hasCupMatch || cupInfo.played) continue;
     const leagueRoundAfter = entry.afterLeague ?? (entry.leagueIdx ?? 0);
-    const date = getCupRoundDate(roundDates, leagueRoundAfter) || roundDates[leagueRoundAfter - 1];
+    const date = fromDateISO(entry.dateISO || entry.calendarDate) || getCupRoundDate(roundDates, leagueRoundAfter) || roundDates[leagueRoundAfter - 1];
     if (!date) continue;
     const tie = cupInfo.tie;
     events.push({
@@ -63,8 +64,18 @@ export function buildUpcomingEvents({ gameData, currentRound, roundDates, limit 
     .slice(0, limit);
 }
 
-function pushCupRecentResults(results, cup, label, color, roundDates) {
+function pushCupRecentResults(results, cup, cupKey, label, color, roundDates, calendar = []) {
   if (!cup || cup.status === 'inactive') return;
+
+  const canonicalDate = (tie, leg) => {
+    const entry = (calendar || []).find((item) => (
+      item?.type === 'cup'
+      && item?.cupKey === cupKey
+      && item?.leg === leg
+      && (!tie?.phase || item?.phase === tie.phase)
+    ));
+    return fromDateISO(entry?.dateISO || entry?.calendarDate);
+  };
 
   const pushTie = tie => {
     if (!tie) return;
@@ -79,7 +90,7 @@ function pushCupRecentResults(results, cup, label, color, roundDates) {
           penalties: tie.penalties || null,
         },
         round: tie.leg2.round,
-        date: getCupRoundDate(roundDates, tie.leg2.round),
+        date: canonicalDate(tie, 'leg2') || getCupRoundDate(roundDates, tie.leg2.round),
         isCup: true,
         cupLabel: label,
         cupColor: color,
@@ -97,7 +108,7 @@ function pushCupRecentResults(results, cup, label, color, roundDates) {
           events: tie.leg1.events || tie.events || [],
         },
         round: tie.leg1.round,
-        date: getCupRoundDate(roundDates, tie.leg1.round),
+        date: canonicalDate(tie, 'leg1') || getCupRoundDate(roundDates, tie.leg1.round),
         isCup: true,
         cupLabel: label,
         cupColor: color,
@@ -107,28 +118,26 @@ function pushCupRecentResults(results, cup, label, color, roundDates) {
     }
   };
 
-  if (cup.phase === 'group') {
-    (cup.groupMatches || []).forEach(groupMatch => {
-      if (!groupMatch.leg1?.played) return;
-      results.push({
-        match: {
-          home: groupMatch.home,
-          away: groupMatch.away,
-          result: `${groupMatch.leg1.home}-${groupMatch.leg1.away}`,
-          played: true,
-          events: groupMatch.leg1.events || groupMatch.events || [],
-        },
-        round: groupMatch.leg1.round,
-        date: getCupRoundDate(roundDates, groupMatch.leg1.round),
-        isCup: true,
-        cupLabel: label,
-        cupColor: color,
-        legLabel: 'Fase de Grupos',
-        phase: groupMatch.phase,
-      });
+  (cup.groupMatches || []).forEach(groupMatch => {
+    if (!groupMatch.leg1?.played) return;
+    results.push({
+      match: {
+        home: groupMatch.home,
+        away: groupMatch.away,
+        result: `${groupMatch.leg1.home}-${groupMatch.leg1.away}`,
+        played: true,
+        events: groupMatch.leg1.events || groupMatch.events || [],
+      },
+      round: groupMatch.leg1.round,
+      date: canonicalDate(groupMatch, 'leg1') || getCupRoundDate(roundDates, groupMatch.leg1.round),
+      isCup: true,
+      cupLabel: label,
+      cupColor: color,
+      legLabel: 'Fase de Grupos',
+      phase: groupMatch.phase,
     });
-    return;
-  }
+  });
+  if (cup.phase === 'group') return;
 
   (cup.history || []).forEach(pushTie);
   pushTie(cup.currentTie);
@@ -154,14 +163,37 @@ export function buildRecentResults({ gameData, currentRound, roundDates, limit =
     .forEach(leagueIdx => {
       const match = (gameData?.fixtures?.[leagueIdx] || []).find(item => item.home?.isPlayer || item.away?.isPlayer);
       if (match?.played && match.result) {
-        results.push({ match, round: leagueIdx + 1, date: roundDates[leagueIdx], isCup: false });
+        const calendarEntry = calendar.find((entry) => entry?.type === 'league' && entry.leagueIdx === leagueIdx);
+        results.push({ match, round: leagueIdx + 1, date:fromDateISO(calendarEntry?.dateISO || calendarEntry?.calendarDate) || roundDates[leagueIdx], isCup:false });
       }
     });
 
   if (gameData?.cups) {
-    pushCupRecentResults(results, gameData.cups.copaBrasil, CUP_META.copaBrasil.label, CUP_META.copaBrasil.color, roundDates);
-    pushCupRecentResults(results, gameData.cups.libertadores, CUP_META.libertadores.label, CUP_META.libertadores.color, roundDates);
-    pushCupRecentResults(results, gameData.cups.sulAmericana, CUP_META.sulAmericana.label, CUP_META.sulAmericana.color, roundDates);
+    pushCupRecentResults(results, gameData.cups.copaBrasil, 'copaBrasil', CUP_META.copaBrasil.label, CUP_META.copaBrasil.color, roundDates, calendar);
+    pushCupRecentResults(results, gameData.cups.libertadores, 'libertadores', CUP_META.libertadores.label, CUP_META.libertadores.color, roundDates, calendar);
+    pushCupRecentResults(results, gameData.cups.sulAmericana, 'sulAmericana', CUP_META.sulAmericana.label, CUP_META.sulAmericana.color, roundDates, calendar);
+    if (gameData.cups.regional) {
+      pushCupRecentResults(
+        results,
+        gameData.cups.regional,
+        gameData.cups.regional.competitionKey,
+        gameData.cups.regional.label || 'Copa Regional',
+        gameData.cups.regional.color || '#2e7d32',
+        roundDates,
+        calendar,
+      );
+    }
+    if (gameData.cups.estadual) {
+      pushCupRecentResults(
+        results,
+        gameData.cups.estadual,
+        gameData.cups.estadual.competitionKey,
+        gameData.cups.estadual.label || 'Campeonato Estadual',
+        gameData.cups.estadual.color || '#1565c0',
+        roundDates,
+        calendar,
+      );
+    }
   }
 
   const seen = new Set();

@@ -3,6 +3,9 @@ import { DisciplineEngine } from '../engine_discipline.js';
 import { FatigueEngine } from '../engine_fatigue.js';
 import { InjuryEngine } from '../engine_injuries.js';
 import { syncUserRosterState } from '../core/gameStateIntegrity.js';
+import { isSerieDLeagueSlotInactive } from '../serieD/serieDCompetition.js';
+import { isSerieCLeagueSlotInactive } from '../serieC/serieCCompetition.js';
+import { getDaysUntilCalendarSlot, stampPlayedCalendarDate } from './calendarDateEngine.js';
 
 const finiteInt = (value, fallback = 0) => {
   const parsed = Number(value);
@@ -19,13 +22,24 @@ export function isInactiveCupCalendarSlot(gameData = {}, slotIndex = null) {
   return !CalendarEngine.getCupMatchForCalendarSlot(gameData?.cups, entry)?.hasCupMatch;
 }
 
+export function isInactiveCompetitionCalendarSlot(gameData = {}, slotIndex = null) {
+  const index = slotIndex == null ? finiteInt(gameData?.round, 0) : finiteInt(slotIndex, 0);
+  const entry = gameData?.calendar?.[index];
+  if (entry?.type === 'cup') return isInactiveCupCalendarSlot(gameData, index);
+  if (entry?.type === 'league') return isSerieDLeagueSlotInactive(gameData, entry.leagueIdx) || isSerieCLeagueSlotInactive(gameData, entry.leagueIdx);
+  return false;
+}
+
 export function getInactiveCupSkipCount(gameData = {}) {
   const calendar = Array.isArray(gameData?.calendar) ? gameData.calendar : [];
   const start = finiteInt(gameData?.round, 0);
   let skipCount = 0;
 
   for (let index = start; index < calendar.length; index += 1) {
-    if (!isInactiveCupCalendarSlot(gameData, index)) break;
+    if (!isInactiveCompetitionCalendarSlot(gameData, index)) break;
+    // Um slot futuro sem jogo não deve fazer o calendário saltar vários dias.
+    // Só processamos compromissos inativos cuja data já chegou.
+    if (getDaysUntilCalendarSlot(gameData, index) > 0) break;
     skipCount += 1;
   }
 
@@ -44,7 +58,7 @@ export function findNextPlayableCalendarSlot(gameData = {}) {
   }
 
   let index = start;
-  while (index < calendar.length && isInactiveCupCalendarSlot(gameData, index)) index += 1;
+  while (index < calendar.length && isInactiveCompetitionCalendarSlot(gameData, index)) index += 1;
   return {
     slotIndex: index,
     skippedSlots: Math.max(0, index - start),
@@ -107,12 +121,15 @@ export function advanceInactiveCalendarSlots(gameData = {}, {
   let players = normalizePlayers(gameData.players).map((player) => ({ ...player }));
   const initiallyInjured = new Map(players.map((player) => [String(player?.id), Boolean(player?.injury)]));
 
+  let leagueRound = finiteInt(gameData.leagueRound, 0);
   for (let offset = 0; offset < totalSkipCount; offset += 1) {
     const calendarRound = round + 1;
+    const entry = gameData.calendar?.[round];
     players = players.map((player) => {
       const suspensionAdjusted = shiftSuspensionAcrossIdleSlot(player, calendarRound);
       return recoverPlayerAcrossIdleSlot(suspensionAdjusted, { rng });
     });
+    if (entry?.type === 'league') leagueRound = Math.max(leagueRound, finiteInt(entry.leagueIdx, leagueRound) + 1);
     round += 1;
   }
 
@@ -124,10 +141,12 @@ export function advanceInactiveCalendarSlots(gameData = {}, {
     .filter((player) => initiallyInjured.get(String(player?.id)) && !player?.injury)
     .map((player) => ({ id: player.id, name: player.name }));
 
+  const datedState = stampPlayedCalendarDate(gameData, Math.max(0, round - 1));
   return {
     state: syncUserRosterState({
-      ...gameData,
+      ...datedState,
       round,
+      leagueRound,
     }, players),
     skippedSlots: totalSkipCount,
     recoveredPlayers,
@@ -137,6 +156,7 @@ export function advanceInactiveCalendarSlots(gameData = {}, {
 
 export default {
   isInactiveCupCalendarSlot,
+  isInactiveCompetitionCalendarSlot,
   getInactiveCupSkipCount,
   findNextPlayableCalendarSlot,
   advanceInactiveCalendarSlots,

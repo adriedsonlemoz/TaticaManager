@@ -125,7 +125,7 @@ export const pergaminhoTheme = createTheme({
     warning:    { main: THEME.gold,       contrastText: '#ffffff' },
     text:       { primary: THEME.ink,     secondary:    THEME.ink2 },
   },
-  typography: { fontFamily: '"Nunito", "Segoe UI", sans-serif', htmlFontSize: 17.5 },
+  typography: { fontFamily: '"Nunito", "Segoe UI", sans-serif', htmlFontSize: 16 },
   shape: { borderRadius: 10 },
   components: {
     MuiButton: {

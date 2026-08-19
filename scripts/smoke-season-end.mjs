@@ -130,6 +130,7 @@ test('histórico de carreira usa snapshot encerrado', () => {
   const entry = buildCareerSeasonEntry(baseState(), snapshot);
   assert.equal(entry.topScorer, 'Jogador 1');
   assert.equal(entry.wins, 18);
+  assert.deepEqual(entry.cupResults, snapshot.cupResults);
 });
 
 // Virada anual de elenco e clube.
@@ -170,6 +171,16 @@ test('generateNextSeason incrementa temporada e reinicia rodadas', () => {
   assert.equal(next.round, 0);
   assert.equal(next.leagueRound, 0);
 });
+test('generateNextSeason limpa a data civil da temporada encerrada', () => {
+  const state = baseState({ serie:'B' });
+  state.currentDateISO = '2026-12-06';
+  state.currentDate = '2026-12-06';
+  const next = generateNextSeason(state);
+  assert.equal(next.currentDateISO, null);
+  assert.equal(next.currentDate, null);
+  assert.equal(next.calendar, null);
+});
+
 test('generateNextSeason preserva snapshot do garçom', () => {
   const next = generateNextSeason(baseState({ serie: 'B', user: { pts: 80, w: 24 } }));
   assert.equal(next.seasonResult.squad.topAssist.assists, 9);
@@ -279,6 +290,13 @@ test('taça de Copa também incrementa troféus do treinador', () => {
   state.cups = { copaBrasil: { status: 'champion' } };
   const next = generateNextSeason(state);
   assert.equal(next.club.managerProfile.trophies, 3);
+});
+test('títulos regional e estadual também entram no histórico de troféus', () => {
+  const state = baseState();
+  state.club.managerProfile.trophies = 0;
+  state.cups = { regional:{ status:'champion' }, estadual:{ status:'champion' } };
+  const next = generateNextSeason(state);
+  assert.equal(next.club.managerProfile.trophies, 3, 'Liga + regional + estadual');
 });
 
 // Serviço de transição centraliza demissão e histórico.

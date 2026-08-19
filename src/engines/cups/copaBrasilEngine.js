@@ -2,11 +2,10 @@ import { diexDatabase } from '../../data/database.js';
 import {
   COPA_PRIZES,
   getCopaConfigForSerie,
+  getCopaPhasePrize,
 } from './cupConfig.js';
 import {
   decideTie,
-  findFreeRound,
-  getLeagueRoundsInUse,
   makeTie,
   shuffle,
 } from './cupUtils.js';
@@ -58,31 +57,10 @@ const buildFirstOpponent = (serie, firstPhase, pool) => {
   };
 };
 
-const resolveSafeRounds = (gameData, desiredRounds) => {
-  const leagueRoundsInUse = getLeagueRoundsInUse(gameData);
-  const totalRounds = gameData.fixtures?.length || 38;
-  const usedCupRounds = new Set();
-  const [leg1Desired, leg2Desired] = desiredRounds;
-
-  const leg1Round = findFreeRound(
-    leg1Desired,
-    leagueRoundsInUse,
-    usedCupRounds,
-    totalRounds,
-  );
-  usedCupRounds.add(leg1Round);
-
-  const leg2Round = leg2Desired == null
-    ? null
-    : findFreeRound(
-      leg2Desired,
-      leagueRoundsInUse,
-      usedCupRounds,
-      totalRounds,
-    );
-
-  return { leg1Round, leg2Round, leagueRoundsInUse, totalRounds };
-};
+const resolveScheduleRounds = (desiredRounds = []) => ({
+  leg1Round: desiredRounds?.[0] ?? 1,
+  leg2Round: desiredRounds?.[1] ?? null,
+});
 
 export const initCopaBrasil = (gameData) => {
   const serie = gameData.serie || 'A';
@@ -98,12 +76,7 @@ export const initCopaBrasil = (gameData) => {
   const firstPhase = phases[0];
   const opponent = buildFirstOpponent(serie, firstPhase, pool);
   const desiredRounds = schedule[firstPhase] || [2, 4];
-  const {
-    leg1Round,
-    leg2Round,
-    leagueRoundsInUse,
-    totalRounds,
-  } = resolveSafeRounds(gameData, desiredRounds);
+  const { leg1Round, leg2Round } = resolveScheduleRounds(desiredRounds);
 
   return {
     active: true,
@@ -117,7 +90,7 @@ export const initCopaBrasil = (gameData) => {
       userTeam,
       { ...opponent, isPlayer: false },
       firstPhase,
-      COPA_PRIZES[firstPhase] || 0,
+      getCopaPhasePrize(serie, firstPhase),
       leg1Round,
       leg2Round,
     ),
@@ -125,8 +98,7 @@ export const initCopaBrasil = (gameData) => {
     totalPrize: 0,
     pool,
     _serie: serie,
-    _leagueRoundsInUse: Array.from(leagueRoundsInUse),
-    _totalRounds: totalRounds,
+    calendarModel: 'civil-2026-v2',
   };
 };
 
@@ -137,7 +109,7 @@ const advanceCopa = (copa, earnedPrize) => {
       ...copa,
       status: 'champion',
       history: [...copa.history, copa.currentTie],
-      totalPrize: copa.totalPrize + COPA_PRIZES.Campeão,
+      totalPrize: copa.totalPrize + getCopaPhasePrize(copa.serie || copa._serie, 'Campeão'),
       currentTie: null,
     };
   }
@@ -154,23 +126,7 @@ const advanceCopa = (copa, earnedPrize) => {
   const homeTeam = userIsHome ? userTeam : { ...opponent, isPlayer: false };
   const awayTeam = userIsHome ? { ...opponent, isPlayer: false } : userTeam;
 
-  const usedByCopa = new Set();
-  copa.history?.forEach((tie) => {
-    if (tie?.leg1?.round) usedByCopa.add(tie.leg1.round);
-    if (tie?.leg2?.round) usedByCopa.add(tie.leg2.round);
-  });
-  if (copa.currentTie?.leg1?.round) usedByCopa.add(copa.currentTie.leg1.round);
-  if (copa.currentTie?.leg2?.round) usedByCopa.add(copa.currentTie.leg2.round);
-
-  const leagueUsed = copa._leagueRoundsInUse
-    ? new Set(copa._leagueRoundsInUse)
-    : new Set();
-  const totalRounds = copa._totalRounds || 38;
-  const leg1Round = findFreeRound(desiredLeg1, leagueUsed, usedByCopa, totalRounds);
-  usedByCopa.add(leg1Round);
-  const leg2Round = desiredLeg2 == null
-    ? null
-    : findFreeRound(desiredLeg2, leagueUsed, usedByCopa, totalRounds);
+  const { leg1Round, leg2Round } = resolveScheduleRounds([desiredLeg1, desiredLeg2]);
 
   return {
     ...copa,
@@ -180,7 +136,7 @@ const advanceCopa = (copa, earnedPrize) => {
       homeTeam,
       awayTeam,
       nextPhase,
-      COPA_PRIZES[nextPhase] || 0,
+      getCopaPhasePrize(copa.serie || copa._serie, nextPhase),
       leg1Round,
       leg2Round,
     ),

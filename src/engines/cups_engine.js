@@ -11,6 +11,8 @@ import {
 } from './cups/continentalEngine.js';
 import { getCupMatchForRound, getUpcomingCupMatches } from './cups/cupQueries.js';
 import { autoInitCupsForSeason } from './cups/cupSeason.js';
+import { initRegionalCompetition, registerRegionalResult, getRegionalMatchForCalendarSlot } from './cups/regionalEngine.js';
+import { initStateCompetition, registerStateResult, getStateMatchForCalendarSlot } from './cups/stateEngine.js';
 import {
   COPA_PRIZES,
   COPA_PHASES_A,
@@ -39,6 +41,12 @@ export const CupsEngine = {
   getCupMatchForRound,
   getUpcomingCupMatches,
   autoInitCupsForSeason,
+  initRegionalCompetition,
+  registerRegionalResult,
+  getRegionalMatchForCalendarSlot,
+  initStateCompetition,
+  registerStateResult,
+  getStateMatchForCalendarSlot,
   COPA_PRIZES,
   COPA_PHASES_A,
   COPA_PHASES_B,
@@ -68,6 +76,12 @@ export {
   getCupMatchForRound,
   getUpcomingCupMatches,
   autoInitCupsForSeason,
+  initRegionalCompetition,
+  registerRegionalResult,
+  getRegionalMatchForCalendarSlot,
+  initStateCompetition,
+  registerStateResult,
+  getStateMatchForCalendarSlot,
   COPA_PRIZES,
   COPA_PHASES_A,
   COPA_PHASES_B,

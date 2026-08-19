@@ -19,8 +19,8 @@ const getTableZoneColorC = (idx) => {
 };
 const getTableZoneColorD = (idx) => {
   if (idx < 4) return '#32a852'; // Acesso → Série C
-  // O motor atual não modela uma Série E; portanto não existe queda/corte
-  // persistente na Série D simplificada de 20 clubes.
+  // Não existe Série E no modelo atual; a Série D usa classificação por grupos
+  // e mata-mata, sem zona de rebaixamento na tabela exibida ao usuário.
   return 'transparent';
 };
 const getTableZoneColor = (idx, serie) => {
@@ -56,6 +56,29 @@ const generateFixtures = (teams) => {
   firstHalf.forEach((round) => {
     fixtures.push(round.map((match) => ({ home: match.away, away: match.home, played: false, result: null })));
   });
+  return fixtures;
+};
+
+
+const generateSingleRoundFixtures = (teams) => {
+  const sourceTeams = Array.isArray(teams) ? teams.filter(Boolean) : [];
+  const n = sourceTeams.length;
+  if (n < 2 || n % 2 !== 0) return [];
+  const fixtures = [];
+  const roundTeams = [...sourceTeams];
+  for (let r = 0; r < n - 1; r += 1) {
+    const roundMatches = [];
+    for (let m = 0; m < n / 2; m += 1) {
+      const left = roundTeams[m];
+      const right = roundTeams[n - 1 - m];
+      const reverse = (r + m) % 2 === 0;
+      roundMatches.push(reverse
+        ? { home:right, away:left, played:false, result:null }
+        : { home:left, away:right, played:false, result:null });
+    }
+    fixtures.push(roundMatches);
+    roundTeams.splice(1, 0, roundTeams.pop());
+  }
   return fixtures;
 };
 
@@ -382,6 +405,7 @@ export {
   buildLeagueIntegrityReport,
   buildLeagueScheduleReport,
   generateFixtures,
+  generateSingleRoundFixtures,
   generateInitialTable,
   getHeadToHead,
   getLeagueFixtureSummary,

@@ -11,7 +11,7 @@ const ScreenAbout = ({ onBack }) => {
   const C = THEME;
 
   return (
-    <Box sx={{ bgcolor: C.bg, minHeight: '100vh', pb: 10 }}>
+    <Box sx={{ bgcolor: C.bg, minHeight: '100dvh', pb: 5.5 }}>
       {onBack && (
         <Button onClick={onBack} aria-label="Voltar para a lista de carreiras" sx={{ color: C.green, fontWeight: 900, fontSize: '0.7rem', ml: 0.7, mt: 2.1, mb: 0.4, px: 0.8, minWidth: 0 }}>
           <Typography component="span" sx={{ fontSize: '1rem', lineHeight: 1, mr: 0.7 }}>←</Typography>

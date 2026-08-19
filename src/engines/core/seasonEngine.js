@@ -1,13 +1,15 @@
 // Season transition orchestrator. Detailed rules live in src/engines/season/.
 import { generatePlayer } from './playerFactory.js';
 import { generateFixtures, generateInitialTable } from './leagueEngine.js';
-import { buildSeasonSnapshot, getFinalTable, getNextSerie, getSeasonMovement } from '../season/seasonOutcome.js';
+import { buildSeasonSnapshot, getFinalTable, getNextSerieForSeason, getSeasonMovement } from '../season/seasonOutcome.js';
 import { buildSeasonTeams } from '../season/seasonTeams.js';
 import { advanceUserRosterWithDepartures } from '../season/seasonRoster.js';
 import { buildDifficultyProgression, buildNextSeasonClub } from '../season/seasonClub.js';
 import { advanceSeasonAcademies } from '../season/seasonAcademy.js';
 import { tagLegacyFinancialHistory } from '../finances/financeLedger.js';
 import { reconcileClubIdentity } from '../persistence/clubIdentity.js';
+import { getSerieDUserOutcome, initializeSerieDCompetition } from '../serieD/serieDCompetition.js';
+import { getSerieCUserOutcome, initializeSerieCCompetition } from '../serieC/serieCCompetition.js';
 
 const MARKET_OVR = Object.freeze({ A: 70, B: 63, C: 57, D: 50 });
 
@@ -49,11 +51,35 @@ const generateNextSeason = (prevState, rng = Math.random) => {
   const finalTable = getFinalTable(sourceState);
   const prevSerie = sourceState.serie || 'A';
   const userPos = finalTable.findIndex((team) => team.id === 'user') + 1;
-  const projectedSerie = getNextSerie(prevSerie, userPos);
+  const serieDOutcome = prevSerie === 'D' ? getSerieDUserOutcome(sourceState) : null;
+  const serieCOutcome = prevSerie === 'C' ? getSerieCUserOutcome(sourceState) : null;
+  const projectedSerie = serieDOutcome
+    ? (serieDOutcome.promoted ? 'C' : 'D')
+    : serieCOutcome
+      ? (serieCOutcome.promoted ? 'B' : serieCOutcome.relegated ? 'D' : 'C')
+      : getNextSerieForSeason(prevSerie, userPos, sourceState.season);
   const movement = getSeasonMovement(prevSerie, projectedSerie);
   const seasonResult = buildSeasonSnapshot(sourceState, finalTable, projectedSerie);
   const teams = buildSeasonTeams(sourceState, finalTable, projectedSerie, rng);
   const newSerie = teams.userSerie || projectedSerie;
+  const nextSeasonNumber = (Number(sourceState.season) || 0) + 1;
+  const serieDSeason = newSerie === 'D'
+    ? initializeSerieDCompetition({
+        userTeam:teams.userTeam,
+        userCanonicalId:teams.existingTeamId,
+        cpuTeams:teams.pools?.D || [],
+        season:nextSeasonNumber,
+      })
+    : null;
+  const serieCSeason = newSerie === 'C' && nextSeasonNumber === 2027
+    ? initializeSerieCCompetition({
+        userTeam:teams.userTeam,
+        userCanonicalId:teams.existingTeamId,
+        cpuTeams:teams.pools?.C || [],
+        season:nextSeasonNumber,
+      })
+    : null;
+  const dedicatedSeason = serieDSeason || serieCSeason;
   const userRoster = Array.isArray(teams.incomingUserPlayers)
     ? { players:teams.incomingUserPlayers, departures:[] }
     : advanceUserRosterWithDepartures(sourceState, newSerie, teams.userTeam.name, rng);
@@ -62,7 +88,7 @@ const generateNextSeason = (prevState, rng = Math.random) => {
   const nextTeamRosters = { ...(teams.teamRosters || {}), user:updatedPlayers };
   const academy = advanceSeasonAcademies(sourceState, teams.pools, nextTeamRosters, updatedPlayers);
   const seasonTrophies = (seasonResult.champion ? 1 : 0)
-    + ['copaBrasil', 'libertadores', 'sulAmericana']
+    + ['copaBrasil', 'libertadores', 'sulAmericana', 'regional', 'estadual']
       .filter((key) => sourceState.cups?.[key]?.status === 'champion').length;
   const taggedFinancialHistory = tagLegacyFinancialHistory(sourceState.financialHistory || [], sourceState.season);
   const nextClub = buildNextSeasonClub({
@@ -81,15 +107,15 @@ const generateNextSeason = (prevState, rng = Math.random) => {
 
   return {
     ...sourceState,
-    season: (Number(sourceState.season) || 0) + 1,
+    season: nextSeasonNumber,
     serie: newSerie,
     round: 0,
     leagueRound: 0,
     morale: 65,
-    teams: teams.allTeams,
+    teams: dedicatedSeason?.teams || teams.allTeams,
     teamRosters: nextTeamRosters,
-    table: generateInitialTable(teams.allTeams),
-    fixtures: generateFixtures(teams.allTeams),
+    table: dedicatedSeason?.table || generateInitialTable(teams.allTeams),
+    fixtures: dedicatedSeason?.fixtures || generateFixtures(teams.allTeams),
     players: updatedPlayers,
     market: buildSeasonMarket(newSerie, [...userRoster.departures, ...(teams.freeAgents || [])], rng),
     inbox: dedupeInbox(sourceState.inbox || []),
@@ -103,10 +129,19 @@ const generateNextSeason = (prevState, rng = Math.random) => {
     lastMatchCommit: null,
     lastRoundMaintenance: null,
     calendar: null,
+    // A data civil pertence à temporada encerrada. Manter dezembro aqui faria
+    // o preflight reutilizar uma data posterior à estreia do novo calendário.
+    currentDateISO:null,
+    currentDate:null,
+    calendarModel:'annual-v1',
     difficultyMultipliers: difficulty.multipliers,
     seasonResult,
     financialHistory: taggedFinancialHistory,
     leagues: teams.pools,
+    serieDCompetition: serieDSeason?.competition || null,
+    serieCCompetition: serieCSeason?.competition || null,
+    serieCLegacyFormat:false,
+    leaguePyramidVersion: 2,
     pyramidReserve: teams.pyramidReserve || [],
     lastDivisionMovement: teams.divisionMovement || null,
     ...academy,

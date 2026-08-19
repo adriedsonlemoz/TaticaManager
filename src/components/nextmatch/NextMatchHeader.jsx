@@ -4,9 +4,10 @@ import { getNextMatchColor } from './nextMatchPresentation.js';
 
 const NextMatchHeader = ({ viewModel, canPlay, simulating, startMatchSimulation, onAutoSimulate, setScreen, theme }) => {
   const matchColor = getNextMatchColor(viewModel.competition, theme);
-  const { isCupRound, matchLabel, matchInfo, matchInfoSecondary, isFullyReady, validation, starters, illegalStarters, identityValid, skippedSlots = 0 } = viewModel;
-  const pendingIdleAdvance = skippedSlots > 0;
-  const canAutoSimulate = canPlay && !pendingIdleAdvance && isFullyReady;
+  const { isCupRound, matchLabel, matchInfo, matchInfoSecondary, isFullyReady, validation, starters, illegalStarters, identityValid, skippedSlots = 0, restDaysBeforeMatch = 0, currentDateISO = null } = viewModel;
+  const pendingDayAdvance = restDaysBeforeMatch > 0;
+  const pendingIdleAdvance = !pendingDayAdvance && skippedSlots > 0;
+  const canAutoSimulate = canPlay && !pendingDayAdvance && !pendingIdleAdvance && isFullyReady;
 
   return (
     <Box sx={{
@@ -46,11 +47,12 @@ const NextMatchHeader = ({ viewModel, canPlay, simulating, startMatchSimulation,
             '&:active': canPlay ? { filter: 'brightness(0.88)' } : {},
           }}>
             <Typography sx={{ fontSize: '0.9rem', lineHeight: 1 }}>
-              {simulating ? '⏳' : pendingIdleAdvance ? '⏭️' : !isFullyReady ? '🚫' : isCupRound ? '🏆' : '▶'}
+              {simulating ? '⏳' : pendingDayAdvance ? '🛌' : pendingIdleAdvance ? '⏭️' : !isFullyReady ? '🚫' : isCupRound ? '🏆' : '▶'}
             </Typography>
             <Box>
               <Typography sx={{ color: canPlay ? '#000' : theme.txt3, fontWeight: 900, fontSize: '0.65rem', lineHeight: 1, whiteSpace: 'nowrap' }}>
                 {simulating ? 'SIMULANDO...'
+                  : pendingDayAdvance ? 'AVANÇAR 1 DIA'
                   : pendingIdleAdvance ? `AVANÇAR ${skippedSlots} DATA${skippedSlots > 1 ? 'S' : ''}`
                   : !identityValid ? 'ERRO DE EQUIPE'
                     : !validation.isComplete ? `${validation.uniqueStarterCount}/11`
@@ -59,7 +61,7 @@ const NextMatchHeader = ({ viewModel, canPlay, simulating, startMatchSimulation,
                           : isCupRound ? 'JOGAR COPA' : 'JOGAR PARTIDA'}
               </Typography>
               <Typography sx={{ color: canPlay ? '#00000080' : theme.txt3, fontSize: '0.48rem', fontWeight: 700, lineHeight: 1 }}>
-                {pendingIdleAdvance ? 'descanso antes do jogo' : 'com animação'}
+                {pendingDayAdvance ? `${restDaysBeforeMatch} dia(s) até o jogo` : pendingIdleAdvance ? 'descanso antes do jogo' : 'com animação'}
               </Typography>
             </Box>
           </Box>
@@ -92,6 +94,18 @@ const NextMatchHeader = ({ viewModel, canPlay, simulating, startMatchSimulation,
         </Box>
       </Box>
 
+      {pendingDayAdvance && (
+        <Box sx={{
+          mt: 0.8, bgcolor: `${theme.teal}10`, border: `1px solid ${theme.teal}45`,
+          borderRadius: '8px', px: 1.2, py: 0.6, display: 'flex', alignItems: 'center', gap: 0.7,
+        }}>
+          <Typography sx={{ fontSize: '0.8rem' }}>🛌</Typography>
+          <Typography sx={{ color: theme.teal, fontWeight: 900, fontSize: '0.62rem' }}>
+            Hoje: {currentDateISO || 'dia de descanso'} · faltam {restDaysBeforeMatch} dia(s) para a partida. Avance o calendário um dia por vez.
+          </Typography>
+        </Box>
+      )}
+
       {pendingIdleAdvance && (
         <Box sx={{
           mt: 0.8, bgcolor: `${theme.yellow}10`, border: `1px solid ${theme.yellow}50`,
@@ -104,7 +118,7 @@ const NextMatchHeader = ({ viewModel, canPlay, simulating, startMatchSimulation,
         </Box>
       )}
 
-      {!pendingIdleAdvance && !isFullyReady && (
+      {!pendingDayAdvance && !pendingIdleAdvance && !isFullyReady && (
         <Box onClick={() => setScreen('lineup')} sx={{
           mt: 0.8, bgcolor: `${theme.red}08`, border: `1px solid ${theme.red}40`,
           borderRadius: '8px', px: 1.2, py: 0.6, cursor: 'pointer',

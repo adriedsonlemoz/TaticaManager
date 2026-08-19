@@ -1,6 +1,8 @@
 import { hasDoubleRoundRobinShape, rebuildLeagueTable, sortLeagueTable } from '../core/leagueEngine.js';
 import { evaluateSeasonObjective } from './seasonObjective.js';
 import { getSeasonFinancialHistory } from '../finances/financeLedger.js';
+import { getSerieDUserOutcome } from '../serieD/serieDCompetition.js';
+import { getSerieCUserOutcome } from '../serieC/serieCCompetition.js';
 
 const SERIE_ORDER = Object.freeze({ A: 0, B: 1, C: 2, D: 3 });
 
@@ -27,6 +29,18 @@ export function getNextSerie(prevSerie = 'A', userPosition = 0) {
   if (prevSerie === 'C' && pos >= 17) return 'D';
   if (prevSerie === 'D' && pos > 0 && pos <= 4) return 'C';
   return prevSerie;
+}
+
+
+export function getNextSerieForSeason(prevSerie = 'A', userPosition = 0, season = 2026) {
+  const pos = Number(userPosition) || 0;
+  const year = Number(season) || 2026;
+  if (prevSerie === 'C' && year === 2026) {
+    if (pos > 0 && pos <= 4) return 'B';
+    if (pos >= 19) return 'D';
+    return 'C';
+  }
+  return getNextSerie(prevSerie, pos);
 }
 
 export function getSeasonMovement(prevSerie = 'A', newSerie = prevSerie) {
@@ -59,7 +73,14 @@ const playerSnapshot = (player = {}) => ({
 export function buildSeasonSnapshot(prevState = {}, finalTable = getFinalTable(prevState), newSerie = null) {
   const userPos = getUserFinalPosition(finalTable);
   const prevSerie = prevState.serie || 'A';
-  const resolvedNewSerie = newSerie || getNextSerie(prevSerie, userPos);
+  const serieDOutcome = prevSerie === 'D' ? getSerieDUserOutcome(prevState) : null;
+  const serieCOutcome = prevSerie === 'C' ? getSerieCUserOutcome(prevState) : null;
+  const outcomeSerie = serieDOutcome
+    ? (serieDOutcome.promoted ? 'C' : 'D')
+    : serieCOutcome
+      ? (serieCOutcome.promoted ? 'B' : serieCOutcome.relegated ? 'D' : 'C')
+      : null;
+  const resolvedNewSerie = newSerie || outcomeSerie || getNextSerieForSeason(prevSerie, userPos, prevState.season);
   const movement = getSeasonMovement(prevSerie, resolvedNewSerie);
   const row = finalTable.find((entry) => entry?.id === 'user') || {};
   const players = prevState.players || [];
@@ -75,21 +96,52 @@ export function buildSeasonSnapshot(prevState = {}, finalTable = getFinalTable(p
     return acc;
   }, { income: 0, expense: 0 });
 
+  const objective = evaluateSeasonObjective({
+    objective: prevState.seasonObjective || 'survive',
+    serie: prevSerie,
+    position: userPos,
+  });
+  if (serieDOutcome && objective.applicable) {
+    if ((prevState.seasonObjective || '') === 'promotion' || (prevState.seasonObjective || '') === 'top4') {
+      objective.success = serieDOutcome.promoted;
+      objective.requirement = 'Era necessário conquistar uma das vagas de acesso à Série C.';
+      objective.message = objective.success ? null : `Objetivo: ${objective.label.toUpperCase()}. O clube não conquistou o acesso à Série C.`;
+    } else if ((prevState.seasonObjective || '') === 'champion') {
+      objective.success = serieDOutcome.champion;
+      objective.requirement = 'Era necessário conquistar o título da Série D.';
+      objective.message = objective.success ? null : `Objetivo: ${objective.label.toUpperCase()}. O clube não conquistou o título da Série D.`;
+    }
+  }
+  if (serieCOutcome && objective.applicable) {
+    const objectiveKey = prevState.seasonObjective || '';
+    if (objectiveKey === 'promotion' || objectiveKey === 'top4') {
+      objective.success = serieCOutcome.promoted;
+      objective.requirement = 'Era necessário conquistar uma das quatro vagas de acesso à Série B.';
+      objective.message = objective.success ? null : `Objetivo: ${objective.label.toUpperCase()}. O clube não conquistou o acesso à Série B.`;
+    } else if (objectiveKey === 'champion') {
+      objective.success = serieCOutcome.champion;
+      objective.requirement = 'Era necessário conquistar o título da Série C.';
+      objective.message = objective.success ? null : `Objetivo: ${objective.label.toUpperCase()}. O clube não conquistou o título da Série C.`;
+    } else if (objectiveKey === 'survive') {
+      objective.success = !serieCOutcome.relegated;
+      objective.requirement = 'Era necessário evitar as duas vagas de rebaixamento à Série D.';
+      objective.message = objective.success ? null : `Objetivo: ${objective.label.toUpperCase()}. O clube foi rebaixado à Série D.`;
+    }
+  }
+
   return {
     prevSerie,
     newSerie: resolvedNewSerie,
     userPos,
     finalPosition: userPos,
-    promoted: movement.promoted,
-    relegated: movement.relegated,
-    champion: userPos === 1,
+    promoted: serieDOutcome ? serieDOutcome.promoted : serieCOutcome ? serieCOutcome.promoted : movement.promoted,
+    relegated: serieCOutcome ? serieCOutcome.relegated : movement.relegated,
+    champion: serieDOutcome ? serieDOutcome.champion : serieCOutcome ? serieCOutcome.champion : userPos === 1,
+    serieD: serieDOutcome,
+    serieC: serieCOutcome,
     pts: Number(row.pts) || 0,
     season: prevState.season,
-    objective: evaluateSeasonObjective({
-      objective: prevState.seasonObjective || 'survive',
-      serie: prevSerie,
-      position: userPos,
-    }),
+    objective,
     league: {
       wins: Number(row.w) || 0,
       draws: Number(row.d) || 0,
@@ -115,6 +167,13 @@ export function buildSeasonSnapshot(prevState = {}, finalTable = getFinalTable(p
       transactions: history.slice(0, 8).map((entry) => ({ ...entry })),
     },
     cupResult: prevState.cups?.copaBrasil?.status || null,
+    cupResults: {
+      copaBrasil:prevState.cups?.copaBrasil?.status || null,
+      libertadores:prevState.cups?.libertadores?.status || null,
+      sulAmericana:prevState.cups?.sulAmericana?.status || null,
+      regional:prevState.cups?.regional?.status || null,
+      estadual:prevState.cups?.estadual?.status || null,
+    },
     totalLeagueRounds: prevState.fixtures?.length || 38,
     finalTable: finalTable.map((row) => ({ ...row })),
   };
@@ -132,6 +191,7 @@ export function buildCareerSeasonEntry(gameData = {}, snapshot = buildSeasonSnap
     topScorer: snapshot.squad.topScorer?.name || null,
     money: Number(gameData.club?.money) || 0,
     cupResult: snapshot.cupResult,
+    cupResults:{ ...(snapshot.cupResults || {}) },
   };
 }
 

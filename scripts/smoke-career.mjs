@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import {
   buildCareerViewModel,
+  buildCareerCupEntries,
   buildHeadToHead,
   buildSeasonHistory,
   getFanLoyaltySummary,
+  getCareerTrophyCount,
   getManagerInitials,
   getManagerLevel,
   getMoraleSummary,
@@ -35,11 +37,16 @@ assert.deepEqual(declined.trashMsgIds, ['x','offer-1']);
 
 const history = buildSeasonHistory([
   { season:2025, serie:'B', position:2, wins:10, draws:5, losses:5 },
-  { season:2026, serie:'A', position:1, wins:20, draws:10, losses:8 },
+  { season:2026, serie:'A', position:1, wins:20, draws:10, losses:8, cupResults:{ estadual:'champion', regional:'champion', copaBrasil:'eliminated' } },
 ]);
 assert.equal(history[0].season, 2026);
 assert.equal(history[0].winPct, 53);
 assert.equal(history[0].positionIcon, '🏆');
+assert.equal(history[0].cupTitleCount, 2);
+assert.deepEqual(history[0].cupTitles, ['Regional', 'Estadual']);
+assert.equal(getCareerTrophyCount({ trophies:5 }, history), 5);
+assert.equal(getCareerTrophyCount({}, [{ position:1, cupResult:'champion' }]), 2);
+assert.equal(getCareerTrophyCount({}, [{ position:2, cupResults:{ estadual:'champion', regional:'champion' } }]), 2);
 
 const h2h = buildHeadToHead({
   A:{ w:3,d:0,l:1 }, B:{ w:1,d:1,l:0 }, C:{ w:0,d:1,l:0 },
@@ -50,15 +57,26 @@ assert.equal(h2h[0].winPct, 75);
 assert.equal(getMoraleSummary(81).label, 'Excelente');
 assert.equal(getFanLoyaltySummary(10).label, 'Revoltada');
 
+
+const cupEntries = buildCareerCupEntries({
+  estadual:{ competitionKey:'paulista', label:'🏟️ Campeonato Paulista', status:'active', phaseLabel:'Semifinal' },
+  regional:{ competitionKey:'copaNordeste', label:'🌵 Copa do Nordeste', status:'eliminated', phaseLabel:'Quartas' },
+  copaBrasil:{ status:'champion', phaseLabel:'Campeão', totalPrize:1000 },
+});
+assert.equal(cupEntries.length, 3);
+assert.equal(cupEntries[0].competitionKey, 'paulista');
+assert.equal(cupEntries[2].label, 'Copa do Brasil');
+
 const vm = buildCareerViewModel({
   club:{ manager:'Ada Lovelace', managerProfile:{ wins:2, draws:1, losses:1, experience:22, style:'Ofensivo' } },
   table:[{ id:'cpu' }, { id:'user', p:4, w:3, d:0, l:1, gf:8, ga:3, pts:9 }],
-  inbox:[offer], trashMsgIds:[], careerHistory:[], h2hHistory:{},
+  inbox:[offer], trashMsgIds:[], careerHistory:[], h2hHistory:{}, cups:{ estadual:{ competitionKey:'mineiro', label:'🏟️ Campeonato Mineiro', status:'active' } },
 });
 assert.equal(vm.myPos, 2);
 assert.equal(vm.seasonWinPct, 75);
 assert.equal(vm.goalDifference, 5);
 assert.equal(vm.initials, 'AL');
 assert.equal(vm.managerLevel.label, 'Veterano');
+assert.equal(vm.cupEntries[0].competitionKey, 'mineiro');
 
-console.log('career smoke tests: 18/18 OK');
+console.log('career smoke tests: 27/27 OK');

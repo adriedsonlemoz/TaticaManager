@@ -29,7 +29,7 @@ export default function InboxMessageReader({ message, isInTrash, livePlayer, for
   const requiresResponse = ['link', 'sell', 'managerOffer', 'renew_contract'].includes(action?.type);
 
   return (
-    <Box sx={{ bgcolor: theme.bg, minHeight: '100vh', pb: 10 }}>
+    <Box sx={{ bgcolor: theme.bg, minHeight: '100dvh', pb: 5.5 }}>
       <Box sx={{ background: 'linear-gradient(180deg, #ffffff 0%, #f4f7f6 100%)', borderBottom: `1px solid ${theme.border}`, px: 1.5, pt: 3.8, pb: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
           <Box component="button" type="button" aria-label="Voltar para a lista de mensagens" onClick={onBack} sx={{ cursor: 'pointer', color: theme.teal, fontSize: '1.3rem', lineHeight: 1, px: 0.3, border: 0, bgcolor: 'transparent' }}>❮</Box>

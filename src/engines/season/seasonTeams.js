@@ -229,12 +229,22 @@ export function buildSeasonTeams(prevState = {}, finalTable = [], projectedSerie
   const sourcePools = takeover?.invalidTakeover === true
     ? (pyramid?.pools || null)
     : (takeover?.pools || pyramid?.pools || null);
-  const pools = sourcePools || {
-    A: diexDatabase.serieATeams || [],
-    B: diexDatabase.serieBTeams || [],
-    C: diexDatabase.serieCTeams || [],
-    D: diexDatabase.serieDTeams || [],
+  const fallbackPools = {
+    A: [...(diexDatabase.serieATeams || [])],
+    B: [...(diexDatabase.serieBTeams || [])],
+    C: [...(diexDatabase.serieCTeams || [])],
+    D: [...(diexDatabase.serieDTeams || [])],
   };
+  // Saves legados podem ter clube personalizado sem uma pirâmide persistida.
+  // Como esse clube não possui ID canônico para substituir um CPU, reservamos
+  // explicitamente uma vaga da divisão atual. Isso preserva o tamanho da
+  // competição e mantém o clube deslocado disponível para a pirâmide futura.
+  const fallbackReserve = [];
+  if (!sourcePools && !existingTeamId && SERIES_KEYS.includes(userSerie)) {
+    const displaced = fallbackPools[userSerie].pop();
+    if (displaced) fallbackReserve.push({ ...displaced, isPlayer:false });
+  }
+  const pools = sourcePools || fallbackPools;
   const departingForPools = managerTransferApplied ? departingUserClub : null;
 
   const poolA = buildPool(pools.A || [], 'A', existingTeamId, finalTable, prevState, releasedFreeAgents, rng, departingForPools);
@@ -242,7 +252,7 @@ export function buildSeasonTeams(prevState = {}, finalTable = [], projectedSerie
   const poolC = buildPool(pools.C || [], 'C', existingTeamId, finalTable, prevState, releasedFreeAgents, rng, departingForPools);
   const poolD = buildPool(pools.D || [], 'D', existingTeamId, finalTable, prevState, releasedFreeAgents, rng, departingForPools);
   const selectedPool = userSerie === 'A' ? poolA : userSerie === 'B' ? poolB : userSerie === 'C' ? poolC : poolD;
-  const allTeams = [userTeam, ...selectedPool.slice(0, 19)];
+  const allTeams = [userTeam, ...selectedPool];
   const teamRosters = {};
   [poolA, poolB, poolC, poolD].forEach((pool) => pool.forEach((team) => {
     if (Array.isArray(team.squad)) teamRosters[team.id] = team.squad;
@@ -260,7 +270,9 @@ export function buildSeasonTeams(prevState = {}, finalTable = [], projectedSerie
     teamRosters,
     freeAgents: releasedFreeAgents,
     pools: { A: poolA, B: poolB, C: poolC, D: poolD },
-    pyramidReserve: takeover?.pyramidReserve || pyramid?.pyramidReserve || prevState.pyramidReserve || [],
+    pyramidReserve: takeover?.pyramidReserve || pyramid?.pyramidReserve || (sourcePools
+      ? (prevState.pyramidReserve || [])
+      : [...(prevState.pyramidReserve || []), ...fallbackReserve]),
     divisionMovement: pyramid?.movement || null,
   };
 }

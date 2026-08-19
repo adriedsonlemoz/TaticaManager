@@ -9,17 +9,17 @@ export function processCpuTransfers(gameData, { leagueIdx = null, rng = Math.ran
     : { leagues: gameData.leagues, teamRosters: gameData.teamRosters, freeAgents: [] };
 
   const activity = CpuAI?.processTransferActivity
-    ? CpuAI.processTransferActivity(released.leagues, released.teamRosters, leagueRoundPlayed, rng)
+    ? CpuAI.processTransferActivity(released.leagues, released.teamRosters, leagueRoundPlayed, rng, gameData)
     : released;
 
   if (!activity || !CpuAI?.processCpuToCpuTransfers) {
     return { ...activity, freeAgents: released.freeAgents || [] };
   }
-  if (CpuAI?.isTransferWindowOpen && !CpuAI.isTransferWindowOpen(leagueRoundPlayed)) {
+  if (CpuAI?.isTransferWindowOpen && !CpuAI.isTransferWindowOpen(gameData?.currentDateISO ? gameData : leagueRoundPlayed)) {
     return { ...activity, freeAgents: released.freeAgents || [] };
   }
 
-  const trades = CpuAI.processCpuToCpuTransfers(activity.leagues, activity.teamRosters, leagueRoundPlayed, rng);
+  const trades = CpuAI.processCpuToCpuTransfers(activity.leagues, activity.teamRosters, leagueRoundPlayed, rng, gameData);
   return { ...trades, freeAgents: released.freeAgents || [] };
 }
 

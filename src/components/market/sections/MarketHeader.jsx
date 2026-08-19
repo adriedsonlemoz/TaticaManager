@@ -64,7 +64,13 @@ export default function MarketHeader({ gameData, formatMoney, tab, setTab, sales
             {windowInfo.open ? `JANELA ABERTA — ${windowInfo.label}` : 'JANELA FECHADA'}
           </Typography>
           <Typography sx={{ color:C.txt3, fontSize:'0.54rem', fontWeight:700 }}>
-            {windowInfo.open ? `Fecha em ${windowInfo.closesIn} rodada(s) · rodada de liga ${windowInfo.transferRound}` : `${windowInfo.label} abre em ${windowInfo.opensIn} rodada(s) · rodada de liga ${windowInfo.transferRound}`}
+            {windowInfo.mode === 'date'
+              ? (windowInfo.open
+                ? `Fecha em ${windowInfo.closesInDays ?? 0} dia(s) · até ${windowInfo.closesAt || '—'}`
+                : `${windowInfo.label} abre em ${windowInfo.opensInDays ?? '?'} dia(s) · ${windowInfo.opensAt || '—'}`)
+              : (windowInfo.open
+                ? `Fecha em ${windowInfo.closesIn} rodada(s) · rodada de liga ${windowInfo.transferRound}`
+                : `${windowInfo.label} abre em ${windowInfo.opensIn} rodada(s) · rodada de liga ${windowInfo.transferRound}`)}
           </Typography>
         </Box>
       </Box>

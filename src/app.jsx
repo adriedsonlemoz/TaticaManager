@@ -12,7 +12,7 @@ const Game = () => {
 
   return (
     <>
-      <Box sx={{ height: '100vh', overflowY: 'auto', bgcolor: 'background.default' }}>
+      <Box sx={{ height: '100dvh', overflowY: 'auto', bgcolor: 'background.default' }}>
         <GameScreenRouter controller={controller} />
       </Box>
 

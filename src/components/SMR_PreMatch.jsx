@@ -31,7 +31,7 @@ const SMR_PreMatch = ({ gameData, matchResultData, headerJSX, onStart }) => {
   const userSide = getUserMatchSide(gameData, matchResultData);
   if (userSide !== 'home' && userSide !== 'away') {
     return (
-      <Box sx={{ bgcolor: C.bg, minHeight: '100vh', pb: 1 }}>
+      <Box sx={{ bgcolor: C.bg, minHeight: '100dvh', pb: 1 }}>
         {headerJSX}
         <Box sx={{ px: 1.5, pt: 1.5 }}>
           <SMR_Card accent={`${C.red}70`}>
@@ -76,7 +76,7 @@ const SMR_PreMatch = ({ gameData, matchResultData, headerJSX, onStart }) => {
   );
 
   return (
-    <Box sx={{ bgcolor: C.bg, minHeight: '100vh', pb: 1, background: `radial-gradient(ellipse at 50% 0%,rgba(34,197,94,0.05) 0%,transparent 40%),${C.bg}` }}>
+    <Box sx={{ bgcolor: C.bg, minHeight: '100dvh', pb: 1, background: `radial-gradient(ellipse at 50% 0%,rgba(34,197,94,0.05) 0%,transparent 40%),${C.bg}` }}>
       {headerJSX}
       <Box sx={{ px: 1.5, pt: 1.5 }}>
 

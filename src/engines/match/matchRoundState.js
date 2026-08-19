@@ -8,6 +8,9 @@ import { buildPostMatchNotifications } from './matchNotifications.js';
 import { preparePostMatchPlayers, processMatchPlayers } from './matchPlayerPostProcessor.js';
 import { buildMatchRoundContext } from './matchRoundContext.js';
 import { processCpuTransfers, refreshTransferMarket } from './matchTransferPostProcessor.js';
+import { advanceSerieDCompetitionAfterRound } from '../serieD/serieDCompetition.js';
+import { advanceSerieCCompetitionAfterRound } from '../serieC/serieCCompetition.js';
+import { stampPlayedCalendarDate } from '../calendar/calendarDateEngine.js';
 import {
   advanceStadium,
   buildManagerProfile,
@@ -85,8 +88,9 @@ export function completeLeagueRound({ gameData, leagueRound, calculateMorale, li
     ? Math.round(startingPlayers.reduce((sum, player) => sum + (player.overall || 0), 0) / 11)
     : gameData.club?.strength;
 
+  const datedGameData = stampPlayedCalendarDate(gameData, gameData.round);
   const nextState = syncUserRosterState({
-    ...gameData,
+    ...datedGameData,
     round: rounds.calendarIndexAfter,
     leagueRound: rounds.playedLeagueAfter,
     morale,
@@ -139,8 +143,10 @@ export function completeLeagueRound({ gameData, leagueRound, calculateMorale, li
     scorers,
   }, finalPlayers);
 
+  const serieDState = advanceSerieDCompetitionAfterRound(nextState, leagueRound.leagueIdx);
+  const competitionState = advanceSerieCCompetitionAfterRound(serieDState, leagueRound.leagueIdx);
   return {
-    nextState,
+    nextState: competitionState,
     stadiumCompleted: stadiumResult.completed,
     finance,
   };

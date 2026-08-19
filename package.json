@@ -1,6 +1,6 @@
 {
   "name": "tatica-manager",
-  "version": "1.0.0-beta.52",
+  "version": "1.0.0-beta.58",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -17,7 +17,7 @@
     "test:medical": "node scripts/smoke-medical.mjs",
     "test:squad": "node scripts/smoke-squad.mjs",
     "test:field": "node scripts/smoke-field.mjs",
-    "test:smoke": "npm run test:nextmatch && npm run test:table && npm run test:league-season && npm run test:inbox && npm run test:career && npm run test:academy && npm run test:match-engine && npm run test:cpu-ai && npm run test:match-simulator && npm run test:navigation && npm run test:home && npm run test:medical && npm run test:squad && npm run test:field && npm run test:boot-about && npm run test:market && npm run test:continental && npm run test:match-post && npm run test:season-end && npm run test:matches-app && npm run test:finances && npm run test:match-live && npm run test:match-commit && npm run test:save-schema && npm run test:club-identity && npm run test:pyramid && npm run test:new-career",
+    "test:smoke": "npm run test:nextmatch && npm run test:table && npm run test:league-season && npm run test:inbox && npm run test:career && npm run test:academy && npm run test:match-engine && npm run test:cpu-ai && npm run test:match-simulator && npm run test:navigation && npm run test:home && npm run test:medical && npm run test:squad && npm run test:field && npm run test:boot-about && npm run test:market && npm run test:continental && npm run test:match-post && npm run test:season-end && npm run test:matches-app && npm run test:finances && npm run test:match-live && npm run test:match-commit && npm run test:save-schema && npm run test:club-identity && npm run test:pyramid && npm run test:serie-d && npm run test:new-career && npm run test:calendar-dates && npm run test:serie-c && npm run test:ui-density && npm run test:regionals && npm run test:state && npm run test:android-ci && npm run test:runtime-errors",
     "test:boot-about": "node scripts/smoke-boot-about.mjs",
     "test:market": "node scripts/smoke-market.mjs",
     "test:match-post": "node scripts/smoke-match-post.mjs",
@@ -33,7 +33,15 @@
     "test:save-schema": "node scripts/smoke-save-schema.mjs",
     "test:club-identity": "node scripts/smoke-club-identity.mjs",
     "test:pyramid": "node scripts/smoke-pyramid.mjs",
-    "test:new-career": "node scripts/smoke-new-career.mjs"
+    "test:new-career": "node scripts/smoke-new-career.mjs",
+    "test:serie-d": "node scripts/smoke-serie-d.mjs",
+    "test:calendar-dates": "node scripts/smoke-calendar-dates.mjs",
+    "test:serie-c": "node scripts/smoke-serie-c.mjs",
+    "test:ui-density": "node scripts/smoke-ui-density.mjs",
+    "test:regionals": "node scripts/smoke-regionals.mjs",
+    "test:state": "node scripts/smoke-state-championships.mjs",
+    "test:android-ci": "node scripts/smoke-android-ci.mjs",
+    "test:runtime-errors": "node scripts/smoke-runtime-errors.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",

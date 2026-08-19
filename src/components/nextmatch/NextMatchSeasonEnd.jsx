@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Button, Typography } from '@mui/material';
 
 const NextMatchSeasonEnd = ({ gameData, season, setScreen, theme }) => (
-  <Box sx={{ bgcolor: theme.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+  <Box sx={{ bgcolor: theme.bg, minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
     <Box sx={{ bgcolor: theme.card, border: `2px solid ${theme.green}`, borderRadius: '16px', p: 3, textAlign: 'center', maxWidth: 340, width: '100%' }}>
       <Typography sx={{ fontSize: '3rem', mb: 1 }}>🏆</Typography>
       <Typography sx={{ color: theme.green, fontWeight: 900, fontSize: '1.2rem', mb: 0.8 }}>FIM DA TEMPORADA!</Typography>

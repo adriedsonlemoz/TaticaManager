@@ -9,9 +9,9 @@ export const SETUP_PALETTE = {
 };
 
 export const SETUP_INPUT_STYLE = {
-  width: '100%', padding: '11px 14px', borderRadius: '10px',
+  width: '100%', padding: '9px 12px', borderRadius: '9px',
   border: `1.5px solid ${SETUP_PALETTE.border}`, background: SETUP_PALETTE.surface,
-  color: SETUP_PALETTE.txt1, fontSize: '0.95rem', fontFamily: '"Nunito",sans-serif',
+  color: SETUP_PALETTE.txt1, fontSize: '0.88rem', fontFamily: '"Nunito",sans-serif',
   fontWeight: 700, boxSizing: 'border-box', outline: 'none', transition: 'border-color 0.2s',
 };
 

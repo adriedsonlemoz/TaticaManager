@@ -4,6 +4,7 @@ import { DisciplineEngine } from '../engine_discipline.js';
 import { getLineupValidation } from '../lineup/lineupRules.js';
 import { isUserMatchTeam } from './matchStateUtils.js';
 import { getInactiveCupSkipCount } from '../calendar/idleCalendarAdvance.js';
+import { getDaysUntilCalendarSlot, getInitialCareerDate } from '../calendar/calendarDateEngine.js';
 
 const getTotalSlots = (gameData) => gameData?.calendar?.length || gameData?.fixtures?.length || 0;
 
@@ -12,15 +13,19 @@ export function buildInitialCompetitionState(gameData) {
   if (gameData.round === 0 && !gameData.cups && CupsEngine?.autoInitCupsForSeason) {
     const cups = CupsEngine.autoInitCupsForSeason(gameData, !gameData.seasonResult);
     const calendar = CalendarEngine?.buildCalendar
-      ? CalendarEngine.buildCalendar(gameData.fixtures?.length || 0, cups, gameData.serie || 'A')
+      ? CalendarEngine.buildCalendar(gameData.fixtures?.length || 0, cups, gameData.serie || 'A', { season:gameData.season || 2026 })
       : null;
-    return { ...gameData, cups, calendar, leagueRound: 0 };
+    return { ...gameData, cups, calendar, leagueRound: 0, currentDateISO:gameData.currentDateISO || getInitialCareerDate(calendar), currentDate:gameData.currentDate || getInitialCareerDate(calendar) };
   }
   if (!gameData.calendar && gameData.cups && CalendarEngine?.buildCalendar) {
+    const calendar = CalendarEngine.buildCalendar(gameData.fixtures?.length || 0, gameData.cups, gameData.serie || 'A', { season:gameData.season || 2026 });
+    const initialDate = getInitialCareerDate(calendar);
     return {
       ...gameData,
-      calendar: CalendarEngine.buildCalendar(gameData.fixtures?.length || 0, gameData.cups, gameData.serie || 'A'),
+      calendar,
       leagueRound: gameData.leagueRound ?? gameData.round ?? 0,
+      currentDateISO:gameData.currentDateISO || gameData.currentDate || initialDate,
+      currentDate:gameData.currentDate || gameData.currentDateISO || initialDate,
     };
   }
   return null;
@@ -82,9 +87,12 @@ export function inspectMatchStart(gameData) {
   const initialized = buildInitialCompetitionState(gameData);
   if (initialized) return { status: 'state-update', nextState: initialized };
 
-  // Slots de Copa sem partida são passagem de tempo, não uma partida.
-  // Eles precisam ser avançados antes de qualquer validação da escalação; caso
-  // contrário o jogo pode exigir 11 titulares para uma data em que o clube nem joga.
+  // O calendário civil avança um dia por vez. Nenhuma partida pode ser iniciada
+  // antes de a carreira alcançar sua data canônica.
+  const daysUntilMatch = getDaysUntilCalendarSlot(gameData);
+  if (daysUntilMatch > 0) return { status:'rest-day', starters:[], daysUntilMatch };
+
+  // Slots de Copa/competição sem partida são passagem de tempo, não uma partida.
   const skipCount = getInactiveCupSkipCount(gameData);
   if (skipCount > 0) return { status: 'skip-inactive-cups', starters: [], skipCount };
 

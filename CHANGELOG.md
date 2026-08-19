@@ -1,5 +1,150 @@
 # Changelog
 
+## [1.0.0-beta.58] - 2026-08-18
+
+### Seis novos campeonatos estaduais
+- Implementados Campeonato Paulista, Mineiro, Paranaense, Catarinense, Baiano e Pernambucano 2026, totalizando oito estaduais suportados junto de Carioca/Gauchão.
+- `stateEngine` deixa de pressupor um único desenho: suporta classificação geral parcial, confrontos entre grupos, liga simples, três grupos com melhor segundo colocado e playoff intermediário antes das semifinais.
+- Paulista: 16 clubes, oito jogos e G8 geral; Mineiro: três grupos de quatro com líderes + melhor segundo; Paranaense/Catarinense: duas chaves de seis e mata-mata; Baiano: dez clubes em turno único; Pernambucano: oito clubes com 1º/2º direto às semifinais e playoff do 3º ao 6º.
+- Clubes sem estadual implementado continuam sem competição fictícia.
+
+### Auditoria de bugs atuais
+- Migrações que inicializam Copa/estadual em save zerado deixam de poder persistir `calendar=null`: a agenda é reconstruída imediatamente quando há estado suficiente.
+- Metadados de Partidas/Copas passam a derivar rótulo/cor dos oito estaduais; a tabela informa corretamente classificação geral, grupo, melhor segundo e playoff conforme o torneio.
+- Scheduler anual deixa de duplicar manualmente chaves de estaduais/regionais e usa os catálogos canônicos, evitando esquecer novas competições em futuras expansões.
+- Card de Copas da Home deixa de olhar apenas a Copa do Brasil e passa a resumir estadual, regional e continentais ativos.
+- Tela Carreira deixa de fixar o status na Copa do Brasil: exibe todas as competições da temporada, e o histórico persiste `cupResults` de estadual/regional/continentais mantendo `cupResult` apenas para compatibilidade.
+- Game Over e histórico de carreira passam a contabilizar corretamente títulos de todas as Copas; a ordem de troféus do histórico é determinística.
+
+### Persistência e regressões
+- Save schema avança para **12**: saves beta 57 ainda zerados podem receber o novo estadual e agenda reconstruída; carreiras já iniciadas adiam a inclusão para a próxima temporada.
+- `smoke-state-championships` ampliado para **29/29**, `smoke-save-schema` para **34/34**, Home para **28/28** e Carreira para **27/27**.
+- Suíte completa pré-auditoria mecânica: **992/992 verificações aprovadas** em **35 grupos**.
+
+## [1.0.0-beta.57] - 2026-08-18
+
+### Campeonatos estaduais
+- Criada a camada canônica `stateConfig.js` + `stateEngine.js` e integrada ao ciclo de Copas, calendário, partida, histórico e tela de torneios.
+- Campeonato Carioca 2026: 12 clubes em duas chaves de seis, seis confrontos cruzados por clube, G4 de cada chave, quartas em jogo único, semifinal ida/volta e final em jogo único.
+- Campeonato Gaúcho 2026: 12 clubes em dois grupos de seis, seis confrontos cruzados por clube, G4 de cada grupo, quartas em jogo único e semifinal/final ida e volta.
+- Clubes fora dos estaduais implementados não recebem competição fictícia; a engine foi isolada para expansão gradual dos demais estados e para a futura qualificação dinâmica.
+- Calendário usa a janela estadual janeiro–março e mantém o espaçamento civil canônico já introduzido nas betas 54/55.
+
+### Android / GitHub Actions
+- Adicionado `.github/workflows/android-apk.yml` com execução manual e em push para `main/master`.
+- O runner usa Node 22, Java 21 e Capacitor 8 (incluindo o plugin de splash configurado), executa a suíte, faz o build Vite, cria/sincroniza `android/`, roda `assembleDebug` e publica `app-debug.apk` como artefato do GitHub Actions.
+- O projeto Android continua gerado no runner: `android/`, `node_modules` e artefatos Gradle não são incorporados ao ZIP do projeto.
+- CI web existente atualizado para versões atuais das actions de checkout/setup-node.
+
+### Erros atuais corrigidos
+- Splash inicial deixa de exibir a marca legada **CLUBE DE BOLSO** e passa a mostrar **TÁTICA MANAGER**.
+- `ErrorBoundary` removido de MUI, tema, branding e componentes de jogador que não eram usados; a tela de emergência passa a depender somente de React + estilos inline e ganha guards para APIs do navegador.
+- `viewport-fit=cover` e `safe-area-inset-bottom` protegem a navegação inferior em WebView/Android com área segura/gestos.
+- Nova Carreira e factory reaproveitam `teamStadiumData` quando o estádio não existe em `database_coaches`; capacidade real já cadastrada também deixa de ser substituída pelo fallback da Série.
+- Tela Sobre corrige contador legado de 80 times para os 156 clubes do catálogo nacional atual e identifica suporte Web/Android.
+- Troféus regionais e estaduais passam a entrar no histórico/contador do treinador no encerramento da temporada.
+
+### Persistência e regressões
+- Save schema avança para **11**: Carioca/Gauchão são inseridos em saves ainda zerados e ficam adiados até a próxima temporada em carreiras já iniciadas.
+- Novas suítes `smoke-state-championships.mjs`, `smoke-android-ci.mjs` e `smoke-runtime-errors.mjs`; `smoke-save-schema` ampliado para schema 11.
+- Suíte completa final: **960/960 verificações aprovadas** em **35 grupos**.
+- Auditoria mecânica final: **356 arquivos JS/JSX/MJS** sem erro de parser e **1000 imports locais** resolvidos, **0 quebrados**.
+- `npm run build` foi tentado no ambiente de auditoria e encerrou em `vite: not found` porque o ZIP-base não contém `node_modules`; o workflow do GitHub instala as dependências antes do build.
+
+## [1.0.0-beta.56] - 2026-08-18
+
+### Copas regionais nacionais
+- Implementadas Copa do Nordeste 2026 (20 clubes/4 grupos), Copa Sul-Sudeste 2026 (12 clubes/2 grupos) e Copa Verde 2026 (24 clubes/4 grupos), com primeira fase, mata-mata, histórico e integração ao calendário civil.
+- Clubes elegíveis recebem automaticamente a competição regional quando não disputam Libertadores/Sul-Americana; clube sem elegibilidade não recebe torneio inventado.
+- Slots regionais futuros tornam-se inativos com segurança após eliminação, sem criar adversário ou partida fantasma.
+
+### Erros atuais corrigidos
+- Mercado do usuário, recrutamento CPU e transferências CPU×CPU deixam de usar a rodada da Liga como autoridade e passam a respeitar `currentDateISO` e as duas janelas anuais; rodadas permanecem apenas como fallback legado.
+- Virada de temporada limpa `currentDateISO/currentDate`, impedindo dezembro da temporada anterior de contaminar o calendário/preparação de janeiro.
+- Corrigido `ReferenceError: rng is not defined` que poderia ocorrer no primeiro resultado de uma Copa regional pelo fluxo real de `matchCupRound`.
+- Partidas regionais jogadas deixam de desaparecer do calendário/histórico; resultados recentes de todas as Copas passam a usar `dateISO` canônico em vez de reconstruir datas pela antiga rodada da Liga.
+- Cores/rótulos das regionais foram separados e resultados da fase de grupos continuam visíveis depois do avanço ao mata-mata.
+
+### Copa do Brasil 2026
+- Série A entra na 5ª fase; 1ª/3ª/4ª fases são jogo único; 2ª/5ª/oitavas/quartas/semifinal são ida e volta; final passa a jogo único.
+- Removida do motor da Copa do Brasil a busca de “rodada livre” da Liga; seus índices internos agora são apenas sequência legada e as datas são definidas pelo calendário civil.
+- Cotas 2026 passam a diferenciar Série B de C/D nas fases iniciais e adotam os valores comuns da 5ª fase em diante, incluindo vice/campeão da final.
+- O calendário de Série A posiciona a entrada na 5ª fase em torno da data-base de abril e mantém a final em 6 de dezembro.
+
+### Persistência e regressões
+- Schema de save avança para **10**: saves beta 55 ainda zerados podem recriar Copa do Brasil e regional no formato novo; carreiras em andamento preservam o formato vigente até a virada para não apagar resultados.
+- Adicionada suíte `smoke-regionals.mjs` e ampliadas regressões de Mercado, CPU, Copas, Calendário, Partidas/App, Virada e Save Schema.
+- Suíte completa: **929/929 verificações aprovadas** em 32 grupos, incluindo stress de 100 temporadas.
+
+## [1.0.0-beta.55] - 2026-08-18
+
+### Calendário anual e passagem diária
+- Criado `src/engines/calendar/seasonCalendar.js` para centralizar janelas anuais da Liga, Copa do Brasil, competições continentais, estaduais/regionais e janelas de transferências.
+- `CalendarEngine` passa a distribuir Liga e Copas por datas-alvo anuais antes da aplicação do espaçamento canônico, evitando que campanhas longas de Série B/C sejam empurradas artificialmente para janeiro/fevereiro da temporada seguinte.
+- `calendarDateEngine` preserva o intervalo mínimo entre compromissos do usuário e agora diferencia recuperação, treino de campo, preparação tática, véspera e dia de jogo durante o avanço de um dia.
+- Competições que podem começar antes da Liga, como Copa do Brasil para clubes de C/D, não são mais forçadas a esperar a abertura do campeonato nacional.
+- As janelas de estaduais e regionais são registradas como contexto anual sem criar partidas fantasmas: a base ainda não possui engine/eligibilidade dessas competições e fica preparada para uma implementação dedicada futura.
+
+### Interface compacta e responsiva
+- A escala tipográfica global deixa de usar 17,5 px e passa a responder ao tamanho da tela; no mobile a densidade é menor sem reduzir excessivamente áreas de toque.
+- Viewports principais migram de `100vh` para `100dvh`, evitando altura inflada pela barra dinâmica do navegador no celular.
+- Boot/seleção de carreira, Nova Carreira, Home, cabeçalhos, cards e navegação inferior foram compactados para caber melhor na tela e reduzir rolagem desnecessária.
+- Na Nova Carreira, cabeçalho/busca/filtros/navegação permanecem dentro da altura útil e a grade de clubes vira a área interna rolável.
+- Telas com a barra inferior deixaram de reservar 10–12 rem de espaço vazio e passam a usar folga proporcional à barra real de 54 px.
+
+### Persistência e compatibilidade
+- `saveSchemaVersion` avança para **9**.
+- Saves do schema 8 sem partidas disputadas podem ser anualizados imediatamente; saves já em andamento preservam a agenda civil e os resultados existentes e recebem o modelo anual na próxima temporada.
+- O calendário persiste `calendarModel` para distinguir agendas `annual-v1` de calendários legados já iniciados sem reordenar partidas históricas.
+
+### Regressões e validação
+- `smoke-calendar-dates` ampliado para 14 verificações de janelas, espaçamento, atividades diárias, Copa antes da Liga e ausência de partidas regionais fantasmas.
+- Adicionado `scripts/smoke-ui-density.mjs` com 9 verificações para `100dvh`, tipografia responsiva, Boot/Nova Carreira, menu inferior e remoção de folgas estruturais excessivas.
+- `smoke-save-schema` ampliado para 24 verificações cobrindo a migração 8→9 em carreira zerada e em andamento.
+- Suíte completa final: **897/897 verificações aprovadas** em 31 grupos, incluindo stress de 100 temporadas.
+- Auditoria mecânica final: **348 arquivos JS/JSX/MJS**, 0 erros de parser; **970 imports locais**, 0 quebrados.
+- `npm run build` foi tentado; o ambiente de auditoria não possui `node_modules`/Vite instalado e encerrou em `vite: not found`.
+
+## [1.0.0-beta.54] - 2026-08-17
+
+### Calendário civil e carga de jogos
+- Criado `src/engines/calendar/calendarDateEngine.js` como fonte canônica de datas: cada slot recebe `dateISO` e a carreira passa a possuir `currentDateISO`.
+- O avanço normal da carreira passa a mover exatamente um dia civil por ação quando ainda não é dia de jogo, exibindo recuperação, véspera e partida no fluxo de Next Match/Home.
+- Liga, Copa do Brasil, Libertadores e Sul-Americana são redistribuídas por datas com intervalo mínimo de três datas entre compromissos, garantindo pelo menos dois dias completos sem partida do usuário.
+- Slots de competição inativos só podem ser pulados quando a sua própria data chega; o motor não salta mais vários dias futuros apenas porque o usuário não participa daquele confronto.
+- A camada de datas aceita tipos não-Liga futuros (incluindo um eventual calendário regional) com a mesma regra de espaçamento, sem implementar ou inventar uma competição regional inexistente.
+
+### Cronômetro e eventos ao vivo
+- `matchPlayback.js` passa a usar um único playhead canônico para relógio, narração, placar e liberação dos eventos.
+- Um lance só é exibido quando o playhead alcança seu minuto; acréscimos de 45+N permanecem antes do intervalo e pausa/retomada conservam o mesmo instante.
+- Removido o timer de minuto paralelo de `useMatchPresentation`; a UI recebe `liveMinute` diretamente do playback e não pode mais adiantar ou atrasar em relação aos lances.
+
+### Série C 2027 e expansão da pirâmide
+- Criado `src/engines/serieC/serieCCompetition.js`: em 2027 a Série C trabalha com 24 clubes e primeira fase de 23 rodadas em grupo único, com estado dedicado para classificação e fases seguintes.
+- A pirâmide corrige a transição estrutural: 2026→2027 leva a Série C a 24 clubes; 2027→2028 mantém seis acessos da D e apenas dois rebaixamentos da C, levando a divisão a 28 clubes.
+- A partir de 2028 o motor volta ao equilíbrio interno de quatro trocas C↔D; a Série D mantém os playoffs extras de acesso também em 2027 e os remove a partir de 2028.
+- Tabela/legendas da C usam Z2 em 2026/2027 e Z4 a partir da estrutura de 28 clubes.
+- Schema de save avança para **8**: calendários antigos recebem datas civis; Série C 2027 ainda não iniciada migra para o motor dedicado, enquanto uma temporada já jogada permanece no formato legado até acabar.
+
+### Regressões
+- Adicionados `smoke-calendar-dates.mjs` e `smoke-serie-c.mjs`; `smoke-match-live`, `smoke-pyramid`, `smoke-serie-d`, `smoke-table`, `smoke-save-schema`, Home e Next Match foram ampliados/ajustados para as novas invariantes.
+- A suíte continua incluindo o stress de 100 temporadas completas e as auditorias das refatorações anteriores.
+- Suíte completa final: **881/881 verificações aprovadas** em 30 grupos.
+
+## [1.0.0-beta.53] - 2026-08-17
+
+### Série D completa e pirâmide 2026/2027
+- A Série D passa a usar 96 participantes distribuídos em 16 grupos de seis, com dez rodadas em turno e returno na primeira fase.
+- Os quatro primeiros de cada grupo avançam para a fase de 64 clubes; o mata-mata segue em ida e volta até a final.
+- Em 2026, os quatro vencedores das quartas garantem acesso e os quatro eliminados disputam dois playoffs pelas duas vagas adicionais, totalizando seis promovidos.
+- A virada 2026→2027 rebaixa dois clubes da Série C e expande a divisão para 24 participantes; a partir de 2027 a troca C↔D volta a quatro vagas.
+- `serieDCompetition` passa a guardar grupos, tabelas, classificados, confrontos, promovidos, campeão e estado do usuário de forma canônica.
+- Slots sem partida do usuário após eliminação são avançados com segurança e o restante da competição CPU é concluído deterministicamente.
+- Schema 7 migra saves beta 52: temporadas D ainda não iniciadas recebem o formato completo; temporadas já em andamento preservam o calendário legado até a próxima virada.
+- Corrigida compatibilidade de clube personalizado legado sem pirâmide persistida, evitando nova temporada com 21 clubes.
+- Nova suíte `smoke-serie-d` cobre estrutura 96×16, 480 jogos da fase de grupos, mata-mata, playoffs, acessos e temporadas posteriores.
+- Suíte completa: 857/857 verificações aprovadas, incluindo stress de 100 temporadas.
+
 ## [1.0.0-beta.52] - 2026-08-17
 
 ### Nova Carreira canônica por clube real

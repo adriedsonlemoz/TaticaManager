@@ -12,7 +12,7 @@ import {
 } from '../src/engines/cups/continentalConfig.js';
 import { collectUsedContinentalTeamIds } from '../src/engines/cups/continentalKnockout.js';
 import { getCupPrizeDelta, appendCupPrizeToEvents } from '../src/engines/cups/cupPrizeAccounting.js';
-import { COPA_PRIZES, LIBERTA_PRIZES, LIBERTA_SCHEDULE } from '../src/engines/cups/cupConfig.js';
+import { COPA_PRIZES, LIBERTA_PRIZES, LIBERTA_SCHEDULE, getCopaConfigForSerie, getCopaPhasePrize } from '../src/engines/cups/cupConfig.js';
 import { initCopaBrasil, registerCopaLegResult } from '../src/engines/cups/copaBrasilEngine.js';
 
 let passed = 0;
@@ -137,6 +137,32 @@ test('vitória nas Oitavas avança sem repetir adversário anterior', () => {
 
 
 
+test('Copa do Brasil 2026 faz Série A entrar na 5ª fase', () => {
+  const cup = initCopaBrasil({ ...game(), fixtures:Array.from({ length:38 }, () => []) });
+  assert.equal(cup.phaseLabel, '5ª Fase');
+  assert.ok(cup.currentTie.leg2, '5ª Fase deve ser ida e volta');
+});
+
+test('Copa do Brasil 2026 modela jogos únicos e ida/volta por fase', () => {
+  const a = getCopaConfigForSerie('A');
+  const c = getCopaConfigForSerie('C');
+  assert.deepEqual(a.schedule['5ª Fase'], [1, 2]);
+  assert.deepEqual(a.schedule.Final, [9]);
+  assert.deepEqual(c.schedule['1ª Fase'], [1]);
+  assert.deepEqual(c.schedule['2ª Fase'], [2, 3]);
+  assert.deepEqual(c.schedule['3ª Fase'], [4]);
+  assert.deepEqual(c.schedule['4ª Fase'], [5]);
+});
+
+test('cotas da Copa do Brasil diferenciam Série B de C/D nas fases iniciais', () => {
+  assert.equal(getCopaPhasePrize('B', '2ª Fase'), 1_380_000);
+  assert.equal(getCopaPhasePrize('B', '4ª Fase'), 1_680_000);
+  assert.equal(getCopaPhasePrize('C', '2ª Fase'), 830_000);
+  assert.equal(getCopaPhasePrize('D', '4ª Fase'), 1_070_000);
+  assert.equal(getCopaPhasePrize('A', '5ª Fase'), 2_000_000);
+  assert.equal(COPA_PRIZES.Campeão, 78_000_000);
+});
+
 test('Copa do Brasil usa composição dinâmica das divisões da carreira', () => {
   const dynamic = {
     ...game(),
@@ -167,7 +193,7 @@ test('avanço na Copa do Brasil também produz delta financeiro de fase', () => 
   const before = cup;
   cup = registerCopaLegResult(cup, 'leg1', 2, 0);
   cup = registerCopaLegResult(cup, 'leg2', 0, 1);
-  assert.equal(getCupPrizeDelta(before, cup), COPA_PRIZES['3ª Fase']);
+  assert.equal(getCupPrizeDelta(before, cup), getCopaPhasePrize('A', '5ª Fase'));
 });
 
 test('delta de prêmio retorna somente o valor novo da partida', () => {
@@ -190,6 +216,6 @@ test('initSulAmericana mantém chave correta da competição', () => {
 const source = await readFile(new URL('../src/engines/cups/continentalEngine.js', import.meta.url), 'utf8');
 const matchCupSource = await readFile(new URL('../src/engines/match/matchCupRound.js', import.meta.url), 'utf8');
 test('continentalEngine virou fachada curta', () => assert.ok(source.trim().split('\n').length < 160));
-test('fluxo financeiro de Copa usa delta de totalPrize', () => assert.ok(matchCupSource.includes('getCupPrizeDelta(beforeCup, cups[cupKey])')));
+test('fluxo financeiro de Copa usa delta de totalPrize', () => assert.ok(matchCupSource.includes('getCupPrizeDelta(beforeCup, cups[storageKey])')));
 
 console.log(`Continental smoke: ${passed}/${passed} verificações aprovadas.`);

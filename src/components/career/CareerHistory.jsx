@@ -35,7 +35,7 @@ const CareerHistory = ({ entries, theme, formatMoney }) => {
             <Box sx={{ height:'100%', width:`${entry.winPct}%`, bgcolor:pctColor, borderRadius:2 }}/>
           </Box>
         </Box>
-        {entry.cupResult === 'champion' && <Typography sx={{ fontSize:'0.9rem', flexShrink:0 }}>🏆</Typography>}
+        {entry.cupTitleCount > 0 && <Typography title={entry.cupTitles.join(', ')} sx={{ fontSize:'0.72rem', flexShrink:0, color:C.gold, fontWeight:900 }}>🏆{entry.cupTitleCount > 1 ? `×${entry.cupTitleCount}` : ''}</Typography>}
         {entry.money > 0 && formatMoney && <Typography sx={{ color:C.txt3, fontSize:'0.5rem', fontWeight:700, textAlign:'right', flexShrink:0 }}>{formatMoney(entry.money)}</Typography>}
       </Box>;
     })}

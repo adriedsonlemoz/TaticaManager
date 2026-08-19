@@ -3,7 +3,10 @@ import { DisciplineEngine } from '../engine_discipline.js';
 import { getLineupValidation } from '../lineup/lineupRules.js';
 import { resolveMatchInfo } from '../../utils/matchDateUtils.js';
 import { isUserMatchTeam } from '../match/matchStateUtils.js';
-import { findNextPlayableCalendarSlot } from '../calendar/idleCalendarAdvance.js';
+import { findNextPlayableCalendarSlot, getInactiveCupSkipCount } from '../calendar/idleCalendarAdvance.js';
+import { getSerieDPhaseLabel } from '../serieD/serieDCompetition.js';
+import { getSerieCPhaseLabel } from '../serieC/serieCCompetition.js';
+import { getCareerCurrentDate, getDaysUntilCalendarSlot, toDateISO } from '../calendar/calendarDateEngine.js';
 
 export const NEXT_MATCH_POSITION_ORDER = {
   GOL: 0,
@@ -89,7 +92,11 @@ export const resolveNextMatchContext = (gameData) => {
   } else if (leagueMatch) {
     displayHome = leagueMatch.home;
     displayAway = leagueMatch.away;
-    matchLabel = `Série ${gameData.serie} · Rodada ${(leagueIdx >= 0 ? leagueIdx : (calendarEntry?.leagueIdx ?? gameData.round)) + 1}/${gameData.fixtures?.length || 0}`;
+    matchLabel = gameData.serie === 'D' && gameData.serieDCompetition
+      ? `Série D · ${getSerieDPhaseLabel(gameData, leagueIdx) || 'Competição'}`
+      : gameData.serie === 'C' && gameData.serieCCompetition
+        ? `Série C · ${getSerieCPhaseLabel(gameData, leagueIdx) || 'Competição'}`
+        : `Série ${gameData.serie} · Rodada ${(leagueIdx >= 0 ? leagueIdx : (calendarEntry?.leagueIdx ?? gameData.round)) + 1}/${gameData.fixtures?.length || 0}`;
   }
 
   const idleOnly = playable.skippedSlots > 0 && !calendarEntry;
@@ -99,11 +106,15 @@ export const resolveNextMatchContext = (gameData) => {
   if (displayAway) displayAway = { ...displayAway, isPlayer: awayIsUser && !homeIsUser };
   const userSide = homeIsUser !== awayIsUser ? (homeIsUser ? 'home' : 'away') : null;
 
+  const dueIdleSlots = getInactiveCupSkipCount(gameData);
+  const restDaysBeforeMatch = dueIdleSlots > 0 ? 0 : (calendarEntry ? getDaysUntilCalendarSlot(gameData, slotIndex) : 0);
+  const currentDate = getCareerCurrentDate(gameData);
+
   return {
     calendar,
     calendarEntry,
     slotIndex,
-    skippedSlots: playable.skippedSlots,
+    skippedSlots: dueIdleSlots,
     isCalendarCup,
     cupInfo,
     isCupRound,
@@ -118,6 +129,8 @@ export const resolveNextMatchContext = (gameData) => {
     matchInfoSecondary,
     competition,
     matchInfo: resolveMatchInfo(gameData, slotIndex),
+    restDaysBeforeMatch,
+    currentDateISO:currentDate ? toDateISO(currentDate) : null,
   };
 };
 

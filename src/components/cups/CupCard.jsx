@@ -42,7 +42,7 @@ const CupCard = ({ cup, label, color, formatMoney }) => {
       </Box>
 
       {currentTie && <CupTieCard tie={currentTie} cupColor={color} label={label} formatMoney={formatMoney} />}
-      {isGroup && <CupGroupTable group={cup.group || []} color={color} />}
+      {isGroup && <CupGroupTable group={cup.group || []} color={color} qualifyCount={cup.qualifyCount || 2} tableLabel={cup.tableLabel} qualificationNote={cup.qualificationNote} />}
       {isGroup && <CupGroupMatches matches={cup.groupMatches || []} color={color} />}
       <CupHistory history={cup.history || []} />
     </Box>

@@ -4,8 +4,9 @@ import { DARK_THEME as D } from '../../theme.js';
 
 export default function SeasonEndHero({ vm, color }) {
   const r = vm.result;
+  const serieDGroup = r.prevSerie === 'D' && r.serieD?.group;
   const stats = [
-    { value: `${r.userPos || '—'}º`, label: 'LUGAR', color },
+    { value: serieDGroup ? `${r.serieD?.groupPosition || '—'}º ${serieDGroup}` : `${r.userPos || '—'}º`, label: serieDGroup ? 'GRUPO' : 'LUGAR', color },
     { value: r.pts || 0, label: 'PONTOS', color: D.txt1 },
     { value: `${vm.league.wins}V ${vm.league.draws}E ${vm.league.losses}D`, label: 'RESULTADOS', color: D.green, fontSize: '1.1rem' },
   ];

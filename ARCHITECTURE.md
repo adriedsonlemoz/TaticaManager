@@ -90,7 +90,7 @@ A temporada só é encerrada quando o calendário completo termina. O snapshot d
 - `matchSimulationEvents.js`: linha do tempo de 90 minutos, gols, pênaltis, cartões, expulsões e ajustes táticos da CPU.
 - `matchSimulationStats.js`: posse, finalizações, chutes no alvo, escanteios e faltas com invariantes consistentes.
 - `matchSimulationConfig.js`: taxas e frases do simulador.
-- `matchPlayback.js`: reprodução e narração.
+- `matchPlayback.js`: reprodução e narração com um único playhead canônico compartilhado pelo relógio e pela liberação dos eventos.
 - `matchPlayerStats.js`: estatísticas individuais.
 - `matchPostProcessor.js`: barril legado que reexporta os processadores especializados para compatibilidade.
 
@@ -125,6 +125,10 @@ O resultado da rodada pode ser pré-calculado para alimentar a narração, mas `
 As estatísticas secundárias exibidas no pós-jogo são produzidas/persistidas pelo motor da partida, evitando aleatoriedade dentro da camada React.
 
 
+
+### Série C 2027
+`src/engines/serieC/serieCCompetition.js` isola a estrutura especial de 2027 da liga genérica. A primeira fase usa 24 clubes em turno único; o estado dedicado mantém classificados, fases seguintes, promovidos, rebaixados e campeão sem forçar `leagueEngine.js` a representar formatos incompatíveis. A pirâmide expande C para 24 clubes em 2027 e 28 em 2028, enquanto saves 2027 já iniciados no formato anterior usam `serieCLegacyFormat` até a virada.
+
 ## Calendário e partidas
 - `src/components/ScreenMatches.jsx`: orquestra apenas estado visual, filtros, dia selecionado e súmula.
 - `src/components/matches/`: calendário, próximos jogos, resultados recentes, detalhe do dia e diálogo de súmula.
@@ -136,7 +140,7 @@ As estatísticas secundárias exibidas no pós-jogo são produzidas/persistidas 
 - `matchesTimelineService.js`: próximos compromissos e resultados recentes de Liga/Copas.
 - `src/utils/matchDateUtils.js`: fonte única das datas de rodadas e jogos de Copa.
 
-Jogos de Copa já disputados permanecem recuperáveis no calendário mensal e no histórico, enquanto saves legados sem `calendar` continuam usando `leagueRound` como fallback.
+Jogos de Copa já disputados permanecem recuperáveis no calendário mensal e no histórico, enquanto saves legados sem `calendar` continuam usando `leagueRound` como fallback. Desde a beta 54, `src/engines/calendar/calendarDateEngine.js` atribui uma data civil canônica a cada slot, impõe intervalo mínimo entre compromissos e controla `currentDateISO`. Na beta 55, `src/engines/calendar/seasonCalendar.js` adiciona a camada anual de datas-alvo por competição; Liga e Copas são mescladas no ano antes da canonicalização, e dias sem partida são avançados individualmente como recuperação, treino de campo, preparação tática, véspera ou dia de jogo. Janelas de estaduais/regionais existem somente como contexto do calendário até que uma engine de elegibilidade/competição própria seja implementada.
 
 
 ## Finanças
@@ -336,6 +340,23 @@ O antigo shim de `src/main.jsx` foi removido. Motores, componentes, regras e ban
 
 Os únicos usos de `window` mantidos no código são APIs do navegador: `location`, listeners de eventos e `AudioContext`/`webkitAudioContext`.
 
+## Densidade responsiva da interface
+A beta 55 trata a altura útil do aparelho como restrição real de layout: containers principais usam `100dvh`, regiões com listas longas recebem `minHeight: 0` + scroll interno e a tipografia-base responde ao viewport. Boot, Nova Carreira, Home e a navegação inferior usam densidade móvel menor, enquanto telas maiores preservam escala confortável. A regra arquitetural é evitar `100vh` e grandes `padding-bottom` fixos para compensar a barra inferior; cada tela deve reservar apenas a área efetivamente ocupada pela navegação.
+
+
+## Campeonatos estaduais
+- `src/engines/cups/stateConfig.js`: cadastro explícito das competições estaduais suportadas, participantes, chaves e número de jogos do mata-mata.
+- `src/engines/cups/stateEngine.js`: fase classificatória cruzada, tabela, avanço do usuário e mata-mata; expõe a mesma interface de calendário/resultado usada pelas demais Copas.
+
+A beta 58 amplia a camada para **oito estaduais 2026**: Carioca, Gauchão, Paulista, Mineiro, Paranaense, Catarinense, Baiano e Pernambucano. A engine declara o formato por competição (classificação geral, grupos cruzados, melhor segundo, playoff intermediário e número de pernas do mata-mata) em vez de duplicar motores. Clubes fora dos estaduais implementados não recebem torneio inventado. Ramos paralelos oficiais de permanência/taças secundárias continuam separados do caminho principal de título até receberem modelagem própria.
+
+## Android / Capacitor
+- `capacitor.config.json`: identidade nativa e `webDir` canônico (`dist`).
+- `.github/workflows/android-apk.yml`: fronteira de entrega Android; instala Capacitor 8 no runner, valida o projeto, cria/sincroniza `android/`, compila com Gradle e publica o APK debug como artefato.
+- `scripts/smoke-android-ci.mjs`: regressões estruturais do workflow/configuração Android.
+
+A pasta `android/` é deliberadamente efêmera nesta fase: não existe lógica nativa customizada que precise ser versionada. Se surgirem plugins com alterações manuais no Manifest/Gradle/Java/Kotlin, essa decisão deverá ser revista. O APK atual é de debug; assinatura/AAB pertencem a uma etapa de release separada.
+
 ## Persistência, schema de save e estado canônico
 - `src/engines/persistence/saveSchema.js`: fronteira única para carregar, migrar, normalizar e preparar uma carreira antes da gravação.
 - `src/engines/core/gameStateIntegrity.js`: invariantes de sessão do elenco do usuário e folha salarial.
@@ -345,14 +366,13 @@ O banco físico continua em `BrasfootDB`/Dexie v1 para não perder carreiras exi
 
 No domínio do elenco, `players` é a fonte canônica do usuário. `teamRosters.user` é apenas um espelho compartilhado com engines que também operam clubes CPU e deve ser atualizado na mesma mutação de estado; `syncUserRosterState()` centraliza essa regra e recalcula `club.wage`. Para clubes CPU, `teamRosters[teamId]` é o roster canônico e `teams[].squad`/`leagues[serie][].squad` permanecem espelhos de compatibilidade reconciliados na fronteira de persistência.
 
-O schema 3 também normaliza Inbox/IDs, contadores de transferências, propriedade dos atletas e classificação. Isso substitui o modelo anterior em que cada tela tentava reparar apenas o pedaço de save que consumia.
+O schema 3 também normaliza Inbox/IDs, contadores de transferências, propriedade dos atletas e classificação. Isso substitui o modelo anterior em que cada tela tentava reparar apenas o pedaço de save que consumia. A cadeia evoluiu até o schema 12. O schema 9 introduz `calendarModel` e anualiza apenas carreiras ainda sem partidas; o schema 10 introduz regionais/Copa do Brasil 2026 sem reescrever temporadas iniciadas; o schema 11 injeta a primeira camada estadual somente em saves zerados; e o schema 12 amplia para oito estaduais e garante reconstrução imediata da agenda quando uma competição é adicionada a um save ainda não iniciado, evitando estado intermediário com `calendar=null`.
 
 ## Compatibilidade
 O banco Dexie legado e o `appId` do Capacitor foram preservados no rename. Saves antigos são migrados pelo conteúdo, enquanto saves de schema mais novo são bloqueados explicitamente para evitar downgrade destrutivo.
 
 ## Próximos alvos
-1. Auditar o cadastro canônico de clubes CPU: hoje identidade/metadados ainda aparecem em `teams`, `leagues`, tabela, fixtures e Copas; a próxima etapa deve reduzir referências duplicadas sem quebrar saves.
-2. Refatorar os componentes médios restantes antes da versão estável.
-3. Continuar centralizando a aleatoriedade remanescente; simulador e IA CPU já aceitam RNG injetável nos fluxos críticos.
-4. Fazer uma revisão final de acessibilidade, estados vazios e responsividade antes da primeira versão estável.
-
+1. Expandir os estaduais com regulamentos próprios e modelar os ramos paralelos de permanência/Taça Rio/Taça Farroupilha, em vez de tratar todos os estados como um formato genérico.
+2. Tornar a classificação para Copa do Brasil e regionais derivada da temporada anterior, reduzindo listas fixas de elegibilidade.
+3. Criar workflow Android de **release/AAB assinado** usando GitHub Secrets, mantendo o APK debug como caminho de teste.
+4. Continuar a auditoria de runtime, acessibilidade, estados vazios e responsividade antes da primeira versão estável.

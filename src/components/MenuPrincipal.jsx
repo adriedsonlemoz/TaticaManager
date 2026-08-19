@@ -12,7 +12,7 @@ const MenuPrincipal = ({ gameData, setScreen, formatMoney }) => {
   const navigate = React.useCallback((screen) => setScreen(screen), [setScreen]);
 
   return (
-    <Box sx={{ bgcolor: HOME_THEME.bg, minHeight: '100vh', pb: 10, fontFamily: '"Nunito", sans-serif' }}>
+    <Box sx={{ bgcolor: HOME_THEME.bg, minHeight: '100dvh', pb: 7.5, fontFamily: '"Nunito", sans-serif' }}>
       <style>{`
         @keyframes v1-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.5)} 60%{box-shadow:0 0 0 8px rgba(220,38,38,0)} }
         @keyframes v1-in { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }

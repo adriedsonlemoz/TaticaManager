@@ -14,6 +14,7 @@ const useMatchPresentation = ({
   simulating,
   visibleEvents,
   liveScore,
+  liveMinute,
   matchControlsRef,
 }) => {
   const [step, setStep] = React.useState(-1);
@@ -32,7 +33,6 @@ const useMatchPresentation = ({
   const [liveStyle, setLiveStyle] = React.useState('Equilibrado');
 
   const soundEnabledRef = React.useRef(soundEnabled);
-  const minuteTimerRef = React.useRef(null);
   const ballTimerRef = React.useRef(null);
   const fieldTimerRef = React.useRef(null);
   const celebrationTimerRef = React.useRef(null);
@@ -58,7 +58,6 @@ const useMatchPresentation = ({
   ]);
 
   React.useEffect(() => () => {
-    clearInterval(minuteTimerRef.current);
     clearInterval(ballTimerRef.current);
     clearTimeout(fieldTimerRef.current);
     clearTimeout(celebrationTimerRef.current);
@@ -115,20 +114,12 @@ const useMatchPresentation = ({
   }, [step, simulating, isPaused]);
 
   React.useEffect(() => {
-    clearInterval(minuteTimerRef.current);
-    if ((step === 0 || step === 2) && simulating && !isPaused) {
-      const increment = 45 / (30000 / 100);
-      minuteTimerRef.current = setInterval(() => {
-        setMinute((current) => Math.min(current + increment, step === 0 ? 45 : 90));
-      }, 100);
-    }
-    return () => clearInterval(minuteTimerRef.current);
-  }, [step, simulating, isPaused]);
+    if (step === 0 || step === 2) setMinute(Number.isFinite(Number(liveMinute)) ? Number(liveMinute) : (step === 2 ? 45 : 0));
+  }, [liveMinute, step]);
 
   React.useEffect(() => {
     if (!simulating && !isPaused && step === 0 && matchResultData) {
-      clearInterval(minuteTimerRef.current);
-      setMinute(45);
+        setMinute(45);
       const timer = setTimeout(() => setStep(1), 250);
       return () => clearTimeout(timer);
     }
@@ -137,8 +128,7 @@ const useMatchPresentation = ({
 
   React.useEffect(() => {
     if (!simulating && !isPaused && step === 2 && matchResultData) {
-      clearInterval(minuteTimerRef.current);
-      setMinute(90);
+        setMinute(90);
       setPossession(getFinalPossession(matchResultData, possession));
       const timer = setTimeout(() => setStep(5), 250);
       return () => clearTimeout(timer);

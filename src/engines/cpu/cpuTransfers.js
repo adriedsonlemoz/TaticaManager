@@ -103,8 +103,8 @@ export function releaseExpiredCpuPlayers(leagues = {}, teamRosters = {}) {
   };
 }
 
-export function processCpuToCpuTransfers(leagues = {}, teamRosters = {}, round = 1, rng = Math.random) {
-  if (!isTransferWindowOpen(round) || Number(round) % CPU_TRADE_INTERVAL !== 0) {
+export function processCpuToCpuTransfers(leagues = {}, teamRosters = {}, round = 1, rng = Math.random, transferContext = null) {
+  if (!isTransferWindowOpen(transferContext || round) || Number(round) % CPU_TRADE_INTERVAL !== 0) {
     return { leagues, teamRosters };
   }
 

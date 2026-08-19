@@ -19,7 +19,11 @@ export function getCupInfoForSlot(cups, calendarEntry) {
     : { hasCupMatch: false };
   if (direct?.hasCupMatch) return { ...direct, played: false };
 
-  const cup = cups?.[calendarEntry.cupKey];
+  const cup = calendarEntry.cupKey === cups?.regional?.competitionKey
+    ? cups.regional
+    : calendarEntry.cupKey === cups?.estadual?.competitionKey
+      ? cups.estadual
+      : cups?.[calendarEntry.cupKey];
   if (!cup) return { hasCupMatch: false };
 
   const candidates = [
@@ -44,6 +48,6 @@ export function getCupInfoForSlot(cups, calendarEntry) {
     cup,
     tie,
     leg: calendarEntry.leg,
-    label: getCupLabel(calendarEntry.cupKey),
+    label: cup?.label || getCupLabel(calendarEntry.cupKey),
   };
 }

@@ -81,8 +81,11 @@ test('janela fecha fora dos intervalos', () => {
 });
 
 test('informação da janela usa rótulo e contagem corretos', () => {
-  assert.deepEqual(CpuAI.getTransferWindowInfo(5), { open: true, closesIn: 0, label: 'Janela de Inverno' });
-  assert.deepEqual(CpuAI.getTransferWindowInfo(19), { open: false, opensIn: 1, label: 'Janela de Verão' });
+  assert.deepEqual(CpuAI.getTransferWindowInfo(5), { open: true, mode:'round', closesIn: 0, label: 'Janela de Inverno' });
+  assert.deepEqual(CpuAI.getTransferWindowInfo(19), { open: false, mode:'round', opensIn: 1, label: 'Janela de Verão' });
+  assert.equal(CpuAI.isTransferWindowOpen({ season:2026, currentDateISO:'2026-03-03' }), true);
+  assert.equal(CpuAI.isTransferWindowOpen({ season:2026, currentDateISO:'2026-03-04' }), false);
+  assert.equal(CpuAI.getTransferWindowInfo({ season:2026, currentDateISO:'2026-07-20' }).mode, 'date');
 });
 
 test('generateSquad grava teamId em jogadores CPU', () => {

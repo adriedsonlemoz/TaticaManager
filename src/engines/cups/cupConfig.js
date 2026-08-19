@@ -1,53 +1,88 @@
 export const COPA_PRIZES = {
-  '2ª Fase': 418000,
-  '3ª Fase': 730000,
-  Oitavas: 1300000,
-  Quartas: 2100000,
-  Semifinal: 3700000,
-  Final: 7400000,
-  Campeão: 73400000,
+  '1ª Fase': 400000,
+  '2ª Fase': 830000,
+  '3ª Fase': 950000,
+  '4ª Fase': 1070000,
+  '5ª Fase': 2000000,
+  Oitavas: 3000000,
+  Quartas: 4000000,
+  Semifinal: 9000000,
+  Final: 34000000,
+  Campeão: 78000000,
 };
 
-export const COPA_PHASES_A = ['3ª Fase', 'Oitavas', 'Quartas', 'Semifinal', 'Final'];
-export const COPA_PHASES_B = ['2ª Fase', '3ª Fase', 'Oitavas', 'Quartas', 'Semifinal', 'Final'];
-export const COPA_PHASES_C = ['1ª Fase', '2ª Fase', '3ª Fase', 'Oitavas', 'Quartas', 'Semifinal', 'Final'];
-export const COPA_PHASES_D = ['1ª Fase', '2ª Fase', '3ª Fase', 'Oitavas', 'Quartas', 'Semifinal', 'Final'];
+// Cotas 2026: Série B possui valores próprios nas fases 2–4. Da 5ª fase em
+// diante, os valores são comuns a todos os participantes. O motor atribui a
+// cota da fase disputada independentemente do resultado e, na final, usa
+// "Final" para o vice e "Campeão" para o vencedor.
+export const COPA_PRIZES_BY_SERIE = Object.freeze({
+  A: Object.freeze({ ...COPA_PRIZES }),
+  B: Object.freeze({
+    ...COPA_PRIZES,
+    '2ª Fase': 1380000,
+    '3ª Fase': 1530000,
+    '4ª Fase': 1680000,
+  }),
+  C: Object.freeze({ ...COPA_PRIZES }),
+  D: Object.freeze({ ...COPA_PRIZES }),
+});
 
-// Fonte única para posicionamento das copas no calendário. Os valores indicam
-// depois de qual rodada da liga o slot deve ser inserido.
+export const getCopaPhasePrize = (serie = 'A', phase = '') => (
+  COPA_PRIZES_BY_SERIE[String(serie || 'A').toUpperCase()]?.[phase]
+  ?? COPA_PRIZES[phase]
+  ?? 0
+);
+
+export const COPA_PHASES_A = ['5ª Fase', 'Oitavas', 'Quartas', 'Semifinal', 'Final'];
+// A elegibilidade completa das 102 vagas estaduais ainda não é modelada pelo
+// jogo. Para clubes B/C/D, preservamos a entrada simplificada já existente,
+// mas o caminho de fases e a quantidade de pernas seguem o formato 2026.
+export const COPA_PHASES_B = ['2ª Fase', '3ª Fase', '4ª Fase', '5ª Fase', 'Oitavas', 'Quartas', 'Semifinal', 'Final'];
+export const COPA_PHASES_C = ['1ª Fase', '2ª Fase', '3ª Fase', '4ª Fase', '5ª Fase', 'Oitavas', 'Quartas', 'Semifinal', 'Final'];
+export const COPA_PHASES_D = ['1ª Fase', '2ª Fase', '3ª Fase', '4ª Fase', '5ª Fase', 'Oitavas', 'Quartas', 'Semifinal', 'Final'];
+
+// Sequência lógica legada usada por consumidores antigos. Desde o calendário
+// civil anual, estes números NÃO significam mais "rodada da Liga"; são apenas
+// índices estáveis dos compromissos da Copa do Brasil para compatibilidade.
 export const COPA_CALENDAR_POSITIONS = {
   A: {
-    '3ª Fase': { leg1: 4, leg2: 7 },
-    Oitavas: { leg1: 11, leg2: 14 },
-    Quartas: { leg1: 18, leg2: 21 },
-    Semifinal: { leg1: 25, leg2: 28 },
-    Final: { leg1: 33, leg2: 36 },
+    '5ª Fase': { leg1: 1, leg2: 2 },
+    Oitavas: { leg1: 3, leg2: 4 },
+    Quartas: { leg1: 5, leg2: 6 },
+    Semifinal: { leg1: 7, leg2: 8 },
+    Final: { leg1: 9, leg2: null },
   },
   B: {
-    '2ª Fase': { leg1: 2, leg2: 5 },
-    '3ª Fase': { leg1: 8, leg2: 12 },
-    Oitavas: { leg1: 15, leg2: 19 },
-    Quartas: { leg1: 22, leg2: 26 },
-    Semifinal: { leg1: 30, leg2: 34 },
-    Final: { leg1: 37, leg2: 39 },
+    '2ª Fase': { leg1: 1, leg2: 2 },
+    '3ª Fase': { leg1: 3, leg2: null },
+    '4ª Fase': { leg1: 4, leg2: null },
+    '5ª Fase': { leg1: 5, leg2: 6 },
+    Oitavas: { leg1: 7, leg2: 8 },
+    Quartas: { leg1: 9, leg2: 10 },
+    Semifinal: { leg1: 11, leg2: 12 },
+    Final: { leg1: 13, leg2: null },
   },
   C: {
-    '1ª Fase': { leg1: 2, leg2: 5 },
-    '2ª Fase': { leg1: 8, leg2: 12 },
-    '3ª Fase': { leg1: 15, leg2: 19 },
-    Oitavas: { leg1: 22, leg2: 26 },
-    Quartas: { leg1: 30, leg2: 34 },
-    Semifinal: { leg1: 37, leg2: 39 },
-    Final: { leg1: 41, leg2: 43 },
+    '1ª Fase': { leg1: 1, leg2: null },
+    '2ª Fase': { leg1: 2, leg2: 3 },
+    '3ª Fase': { leg1: 4, leg2: null },
+    '4ª Fase': { leg1: 5, leg2: null },
+    '5ª Fase': { leg1: 6, leg2: 7 },
+    Oitavas: { leg1: 8, leg2: 9 },
+    Quartas: { leg1: 10, leg2: 11 },
+    Semifinal: { leg1: 12, leg2: 13 },
+    Final: { leg1: 14, leg2: null },
   },
   D: {
-    '1ª Fase': { leg1: 1, leg2: 3 },
-    '2ª Fase': { leg1: 6, leg2: 9 },
-    '3ª Fase': { leg1: 12, leg2: 16 },
-    Oitavas: { leg1: 19, leg2: 23 },
-    Quartas: { leg1: 26, leg2: 30 },
-    Semifinal: { leg1: 33, leg2: 36 },
-    Final: { leg1: 39, leg2: 41 },
+    '1ª Fase': { leg1: 1, leg2: null },
+    '2ª Fase': { leg1: 2, leg2: 3 },
+    '3ª Fase': { leg1: 4, leg2: null },
+    '4ª Fase': { leg1: 5, leg2: null },
+    '5ª Fase': { leg1: 6, leg2: 7 },
+    Oitavas: { leg1: 8, leg2: 9 },
+    Quartas: { leg1: 10, leg2: 11 },
+    Semifinal: { leg1: 12, leg2: 13 },
+    Final: { leg1: 14, leg2: null },
   },
 };
 

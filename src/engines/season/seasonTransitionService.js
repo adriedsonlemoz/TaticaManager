@@ -2,10 +2,27 @@ import { CupsEngine } from '../cups_engine.js';
 import { generateNextSeason } from '../core/seasonEngine.js';
 import { buildLeagueIntegrityReport, buildLeagueScheduleReport, isCompleteDoubleRoundRobin } from '../core/leagueEngine.js';
 import { buildCareerSeasonEntry, buildSeasonSnapshot, getFinalTable } from './seasonOutcome.js';
+import { getSerieCUserOutcome } from '../serieC/serieCCompetition.js';
 
 export function prepareSeasonTransition(gameData = {}) {
   const sourceTable = Array.isArray(gameData.table) ? gameData.table : [];
   const fixtures = Array.isArray(gameData.fixtures) ? gameData.fixtures : [];
+
+  if (gameData.serie === 'C' && gameData.serieCCompetition) {
+    const outcome = getSerieCUserOutcome(gameData);
+    const promoted = outcome?.promotedCanonicalIds || [];
+    const relegated = outcome?.relegatedCanonicalIds || [];
+    const complete = promoted.length === 4 && relegated.length === 2
+      && Boolean(outcome?.championCanonicalId)
+      && !['active', 'quadrangular', 'final'].includes(String(gameData.serieCCompetition?.phase || 'active'));
+    if (!complete) {
+      return {
+        status:'invalid-season',
+        reason:'A Série C ainda não concluiu todas as fases ou não consolidou acesso/rebaixamento.',
+        serieCCompetition:gameData.serieCCompetition,
+      };
+    }
+  }
 
   // Saves modernos usam 20 clubes em pontos corridos. Antes da virada, exige
   // calendário íntegro e todos os 380 jogos processados para não coroar/rebaixar

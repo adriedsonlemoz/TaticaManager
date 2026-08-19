@@ -99,7 +99,7 @@ const SMR_Halftime = ({
   const changed = selForm !== currentFormation || selStyle !== currentStyle;
 
   return (
-    <Box sx={{ bgcolor: C.bg, minHeight: '100vh' }}>
+    <Box sx={{ bgcolor: C.bg, minHeight: '100dvh' }}>
       {headerJSX}
       <Box sx={{ px: 1.5, pt: 1.5, pb: 14 }}>
 

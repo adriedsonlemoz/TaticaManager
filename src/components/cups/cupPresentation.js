@@ -41,12 +41,15 @@ export const getGroupMatchDisplay = (match) => ({
   leg2Score: match?.leg2?.played
     ? `${match.leg2.away ?? '?'} – ${match.leg2.home ?? '?'}`
     : '—',
-  rounds: `${match?.leg1?.round ?? '?'} / ${match?.leg2?.round ?? '?'}`,
+  rounds: match?.leg2 ? `${match?.leg1?.round ?? '?'} / ${match?.leg2?.round ?? '?'}` : `${match?.leg1?.round ?? '?'}`,
+  hasLeg2: Boolean(match?.leg2),
   isUserGame: Boolean(match?.home?.isPlayer || match?.away?.isPlayer),
 });
 
 export const getCupByTab = (cups, tab) => ({
+  estadual: cups?.estadual || null,
   copa: cups?.copaBrasil || null,
   liberta: cups?.libertadores || null,
   sulam: cups?.sulAmericana || null,
+  regional: cups?.regional || null,
 }[tab] || null);

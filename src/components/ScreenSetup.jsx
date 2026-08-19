@@ -25,19 +25,19 @@ const ScreenSetup = ({ setupData, setSetupData, handleStartNewGame, savesList, s
   const isCardValid = React.useCallback(step => isSetupStepValid(step, setupData), [setupData]);
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: P.bg, background: `radial-gradient(ellipse at 60% 0%, rgba(16,185,129,0.07) 0%, transparent 50%), radial-gradient(ellipse at 10% 90%, rgba(16,185,129,0.04) 0%, transparent 40%), ${P.bg}`, display: 'flex', flexDirection: 'column', alignItems: 'center', overflowY: 'auto' }}>
+    <Box sx={{ height: '100dvh', minHeight: 0, bgcolor: P.bg, background: `radial-gradient(ellipse at 60% 0%, rgba(16,185,129,0.07) 0%, transparent 50%), radial-gradient(ellipse at 10% 90%, rgba(16,185,129,0.04) 0%, transparent 40%), ${P.bg}`, display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden' }}>
       <style>{`.setup-input:focus { border-color: #10b981 !important; } .setup-input::placeholder { color: #b5d4c2; } select option { background: #fff; color: #0d1f17; }`}</style>
-      <Box sx={{ width: '100%', maxWidth: 480, px: 2, pt: 3, pb: 0.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+      <Box sx={{ width: '100%', maxWidth: 520, px: { xs: 1.15, sm: 1.75 }, pt: 1.15, pb: 0.25 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.65 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box sx={{ width: 38, height: 38, borderRadius: '11px', bgcolor: P.green, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 12px ${P.shadow}` }}><Typography sx={{ fontSize: '1.35rem', lineHeight: 1 }}>⚽</Typography></Box>
-            <Box><Typography sx={{ color: P.txt1, fontWeight: 900, fontSize: '1.0rem', fontFamily: '"Nunito",sans-serif', lineHeight: 1 }}>TÁTICA MANAGER</Typography><Typography sx={{ color: P.green, fontWeight: 900, fontSize: '0.46rem', letterSpacing: 3, lineHeight: 1 }}>NOVA CARREIRA · CLUBE REAL</Typography></Box>
+            <Box sx={{ width: 32, height: 32, borderRadius: '9px', bgcolor: P.green, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 12px ${P.shadow}` }}><Typography sx={{ fontSize: '1.1rem', lineHeight: 1 }}>⚽</Typography></Box>
+            <Box><Typography sx={{ color: P.txt1, fontWeight: 900, fontSize: '0.92rem', fontFamily: '"Nunito",sans-serif', lineHeight: 1 }}>TÁTICA MANAGER</Typography><Typography sx={{ color: P.green, fontWeight: 900, fontSize: '0.46rem', letterSpacing: 3, lineHeight: 1 }}>NOVA CARREIRA · CLUBE REAL</Typography></Box>
           </Box>
           <Box sx={{ bgcolor: P.surface, border: `1px solid ${P.border}`, borderRadius: '8px', px: 1.1, py: 0.5, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}><Typography sx={{ color: P.green, fontWeight: 900, fontSize: '0.68rem' }}>{card}/{SETUP_TOTAL_STEPS}</Typography></Box>
         </Box>
         <SetupProgressBar step={card} />
       </Box>
-      <Box sx={{ width: '100%', maxWidth: 480, px: 2, pb: 3, flex: 1, display: 'flex', flexDirection: 'column', opacity: entering ? 0 : 1, transform: entering ? 'translateY(10px)' : 'translateY(0px)', transition: 'opacity 0.17s ease, transform 0.17s ease' }}>
+      <Box sx={{ width: '100%', maxWidth: 520, px: { xs: 1.15, sm: 1.75 }, pb: 0.7, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', opacity: entering ? 0 : 1, transform: entering ? 'translateY(10px)' : 'translateY(0px)', transition: 'opacity 0.17s ease, transform 0.17s ease' }}>
         <SetupSteps card={card} setupData={setupData} up={up} goCard={goCard} isCardValid={isCardValid} availableTeams={availableTeams} brand={brand} teamSearch={teamSearch} setTeamSearch={setTeamSearch} signing={signing} setSigning={setSigning} signed={signed} setSigned={setSigned} handleStartNewGame={handleStartNewGame} savesList={savesList} setScreen={setScreen} />
       </Box>
     </Box>

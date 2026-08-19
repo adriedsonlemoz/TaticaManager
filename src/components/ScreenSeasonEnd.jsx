@@ -25,7 +25,7 @@ const ScreenSeasonEnd = ({ gameData, setScreen, formatMoney, saveGame }) => {
   ), [formatMoney]);
 
   return (
-    <Box sx={{ bgcolor: D.bg, minHeight: '100vh', pb: 10, background: `radial-gradient(ellipse at 50% 0%, ${color}15 0%, transparent 50%), ${D.bg}` }}>
+    <Box sx={{ bgcolor: D.bg, minHeight: '100dvh', pb: 5.5, background: `radial-gradient(ellipse at 50% 0%, ${color}15 0%, transparent 50%), ${D.bg}` }}>
       <SeasonEndHero vm={vm} color={color} />
       <SeasonEndTabs tab={tab} onChange={setTab} />
       <Box sx={{ px: 1.5 }}>

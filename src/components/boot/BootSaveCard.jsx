@@ -86,24 +86,24 @@ const BootSaveCard = ({ save, featured, expanded, loading, onToggle, onLoad, onD
   const incompatible = save.incompatible === true;
 
   return (
-    <Box sx={{ bgcolor: featured ? '#fffdf7' : C.bgCard, border: `1.5px solid ${featured ? C.borderAcc : C.border}`, borderRadius: '14px', overflow: 'hidden', boxShadow: featured ? `0 4px 20px ${C.shadow}, inset 0 1px 0 rgba(255,255,255,0.7)` : `0 2px 8px ${C.shadow}` }}>
+    <Box sx={{ bgcolor: featured ? '#fffdf7' : C.bgCard, border: `1.5px solid ${featured ? C.borderAcc : C.border}`, borderRadius: '11px', overflow: 'hidden', boxShadow: featured ? `0 4px 20px ${C.shadow}, inset 0 1px 0 rgba(255,255,255,0.7)` : `0 2px 8px ${C.shadow}` }}>
       {branding && <Box sx={{ height: 3, background: `linear-gradient(90deg,${branding.primary},${branding.secondary})` }} />}
 
-      <Box sx={{ px: 1.5, pt: 1.3, pb: 1, display: 'flex', gap: 1.3 }}>
+      <Box sx={{ px: 1, pt: 0.85, pb: 0.65, display: 'flex', gap: 0.85 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-          <Box sx={{ width: 60, height: 60, borderRadius: '10px', bgcolor: C.bgCardAlt, border: `1.5px solid ${featured ? C.borderAcc : C.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0.2, overflow: 'hidden' }}>
-            <TeamIcon name={save.clubName} size={40} />
-            <Typography sx={{ color: C.ink3, fontSize: '0.52rem', fontWeight: 700, px: 0.3, textAlign: 'center', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 56 }}>
+          <Box sx={{ width: 52, height: 52, borderRadius: '10px', bgcolor: C.bgCardAlt, border: `1.5px solid ${featured ? C.borderAcc : C.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0.2, overflow: 'hidden' }}>
+            <TeamIcon name={save.clubName} size={34} />
+            <Typography sx={{ color: C.ink3, fontSize: '0.52rem', fontWeight: 700, px: 0.3, textAlign: 'center', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 48 }}>
               {save.clubName?.toUpperCase().substring(0, 11)}
             </Typography>
           </Box>
-          <Box sx={{ width: 26, height: 26, borderRadius: '50%', bgcolor: C.bgCardAlt, border: `1.5px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Typography sx={{ fontSize: '1.1rem', lineHeight: 1 }}>{save.avatarEmoji}</Typography>
+          <Box sx={{ width: 22, height: 22, borderRadius: '50%', bgcolor: C.bgCardAlt, border: `1.5px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Typography sx={{ fontSize: '0.95rem', lineHeight: 1 }}>{save.avatarEmoji}</Typography>
           </Box>
         </Box>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ color: C.ink, fontWeight: 900, fontSize: '1.1rem', fontFamily: '"Nunito",sans-serif', lineHeight: 1.1, mb: 0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{String(save.name || '').toUpperCase()}</Typography>
+          <Typography sx={{ color: C.ink, fontWeight: 900, fontSize: '0.95rem', fontFamily: '"Nunito",sans-serif', lineHeight: 1.1, mb: 0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{String(save.name || '').toUpperCase()}</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mb: 0.45, flexWrap: 'wrap' }}>
             <Box sx={{ bgcolor: `${serieColor}18`, border: `1px solid ${serieColor}40`, borderRadius: '4px', px: 0.6, py: 0.1 }}>
               <Typography sx={{ color: serieColor, fontWeight: 900, fontSize: '0.6rem', letterSpacing: 0.5 }}>SÉRIE {save.serie}</Typography>
@@ -117,7 +117,7 @@ const BootSaveCard = ({ save, featured, expanded, loading, onToggle, onLoad, onD
             )}
           </Box>
 
-          <Box sx={{ display: 'flex', gap: 1.2, mb: 0.4 }}>
+          <Box sx={{ display: 'flex', gap: 0.8, mb: 0.3 }}>
             <Box>
               <Typography sx={{ color: C.ink3, fontSize: '0.5rem', fontWeight: 700 }}>POSIÇÃO</Typography>
               <Typography sx={{ color: save.position <= 4 ? C.green : save.position >= 17 ? C.red : C.ink, fontWeight: 900, fontSize: '1rem', lineHeight: 1 }}>{save.positionLabel}</Typography>
@@ -159,7 +159,7 @@ const BootSaveCard = ({ save, featured, expanded, loading, onToggle, onLoad, onD
         </Box>
       </Box>
 
-      <Box component="button" type="button" onClick={onToggle} aria-expanded={expanded} aria-label={`${expanded ? 'Ocultar' : 'Mostrar'} histórico da carreira ${save.name}`} sx={{ width: '100%', border: 0, borderTop: `1px solid ${C.border}`, px: 1.5, py: 0.65, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', bgcolor: expanded ? C.bgCardAlt : 'transparent', transition: 'background 0.15s', '&:hover': { bgcolor: C.bgCardAlt } }}>
+      <Box component="button" type="button" onClick={onToggle} aria-expanded={expanded} aria-label={`${expanded ? 'Ocultar' : 'Mostrar'} histórico da carreira ${save.name}`} sx={{ width: '100%', border: 0, borderTop: `1px solid ${C.border}`, px: 1, py: 0.45, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', bgcolor: expanded ? C.bgCardAlt : 'transparent', transition: 'background 0.15s', '&:hover': { bgcolor: C.bgCardAlt } }}>
         <Typography sx={{ color: C.ink3, fontWeight: 900, fontSize: '0.6rem', letterSpacing: 1 }}>📊 HISTÓRICO DE CARREIRA</Typography>
         <Typography sx={{ color: C.ink3, fontSize: '0.8rem', transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</Typography>
       </Box>
@@ -167,8 +167,8 @@ const BootSaveCard = ({ save, featured, expanded, loading, onToggle, onLoad, onD
       {expanded && <CareerHistory save={save} theme={C} />}
 
       <Box sx={{ display: 'flex', borderTop: `1px solid ${C.border}` }}>
-        <Button onClick={onLoad} disabled={Boolean(loading) || incompatible} sx={{ flex: 2, py: 1.2, borderRadius: 0, bgcolor: isLoading ? C.primaryDim : C.green, color: '#fff', fontWeight: 900, fontSize: '0.88rem', borderRight: '1px solid rgba(0,0,0,0.1)', '&:hover': { bgcolor: C.primaryDim }, '&:disabled': { bgcolor: C.bgDark, color: C.ink3 } }}>{incompatible ? '⚠ ATUALIZE O JOGO' : isLoading ? '⏳ Carregando...' : '▶ JOGAR'}</Button>
-        <Button onClick={onDelete} disabled={Boolean(loading)} sx={{ flex: 0.8, py: 1.2, borderRadius: 0, bgcolor: 'transparent', color: C.red, fontWeight: 900, fontSize: '0.75rem', '&:hover': { bgcolor: `${C.red}10` } }}>🗑 DELETAR</Button>
+        <Button onClick={onLoad} disabled={Boolean(loading) || incompatible} sx={{ flex: 2, py: 0.85, borderRadius: 0, bgcolor: isLoading ? C.primaryDim : C.green, color: '#fff', fontWeight: 900, fontSize: '0.88rem', borderRight: '1px solid rgba(0,0,0,0.1)', '&:hover': { bgcolor: C.primaryDim }, '&:disabled': { bgcolor: C.bgDark, color: C.ink3 } }}>{incompatible ? '⚠ ATUALIZE O JOGO' : isLoading ? '⏳ Carregando...' : '▶ JOGAR'}</Button>
+        <Button onClick={onDelete} disabled={Boolean(loading)} sx={{ flex: 0.8, py: 0.85, borderRadius: 0, bgcolor: 'transparent', color: C.red, fontWeight: 900, fontSize: '0.75rem', '&:hover': { bgcolor: `${C.red}10` } }}>🗑 DELETAR</Button>
       </Box>
     </Box>
   );

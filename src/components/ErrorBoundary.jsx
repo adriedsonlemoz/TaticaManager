@@ -1,11 +1,5 @@
 // @migrated to ES module
 import React from 'react';
-import { Box, Typography, Button, Paper, Dialog, DialogContent, CircularProgress, LinearProgress, Chip, Tabs, Tab, TextField, Slider, Switch, FormControlLabel, IconButton, Tooltip, Divider, Avatar, Badge } from '@mui/material';
-import { ThemeProvider } from '@mui/material/styles';
-import { THEME } from '../theme.js';
-import { TeamIcon } from '../data/database_branding.js';
-import JerseyBadge from './player/JerseyBadge.jsx';
-import { posColor, ovrColor } from '../utils/playerVisuals.js';
 
 // components/ErrorBoundary.js — v2.0
 // Captura erros de renderização em qualquer componente filho
@@ -34,8 +28,8 @@ class ErrorBoundary extends React.Component {
     const text = [
       '=== TÁTICA MANAGER — ERROR REPORT ===',
       'Data: ' + new Date().toISOString(),
-      'URL: ' + (window.location?.href || '—'),
-      'UserAgent: ' + (navigator?.userAgent?.substring(0, 100) || '—'),
+      'URL: ' + (typeof window !== 'undefined' ? (window.location?.href || '—') : '—'),
+      'UserAgent: ' + (typeof navigator !== 'undefined' ? (navigator.userAgent?.substring(0, 100) || '—') : '—'),
       '',
       'MENSAGEM:',
       error?.message || 'Desconhecido',
@@ -47,15 +41,15 @@ class ErrorBoundary extends React.Component {
       (info?.componentStack || '—').split('\n').slice(0, 5).join('\n'),
     ].join('\n');
 
-    if (navigator.clipboard) {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(text)
         .then(() => {
           this.setState({ copied: true });
           setTimeout(() => this.setState({ copied: false }), 2500);
         })
-        .catch(() => prompt('Copie o relatório abaixo:', text));
+        .catch(() => { if (typeof window !== 'undefined' && window.prompt) window.prompt('Copie o relatório abaixo:', text); });
     } else {
-      prompt('Copie o relatório abaixo:', text);
+      if (typeof window !== 'undefined' && window.prompt) window.prompt('Copie o relatório abaixo:', text);
     }
   }
 
@@ -64,7 +58,7 @@ class ErrorBoundary extends React.Component {
   }
 
   handleReload() {
-    window.location.reload();
+    if (typeof window !== 'undefined') window.location.reload();
   }
 
   render() {
@@ -74,7 +68,7 @@ class ErrorBoundary extends React.Component {
 
     const S = {
       wrap: {
-        minHeight: '100vh',
+        minHeight: '100dvh',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'linear-gradient(160deg, #0d1b2a 0%, #09131c 100%)',
         padding: '20px',

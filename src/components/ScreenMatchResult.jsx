@@ -14,7 +14,7 @@ const C = THEME || {};
 const resultColorMap = { win:C.green, loss:C.red, draw:C.yellow };
 
 const ScreenMatchResult = ({
-  gameData, matchResultData, simulating, visibleEvents, liveScore,
+  gameData, matchResultData, simulating, visibleEvents, liveScore, liveMinute,
   matchFeedRef, matchControlsRef, roundSummary, setScreen, formatMoney,
 }) => {
   const presentation = useMatchPresentation({
@@ -23,6 +23,7 @@ const ScreenMatchResult = ({
     simulating,
     visibleEvents,
     liveScore,
+    liveMinute,
     matchControlsRef,
   });
 

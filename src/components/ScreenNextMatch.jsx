@@ -25,9 +25,10 @@ const ScreenNextMatch = ({ gameData, startMatchSimulation, simulating, setScreen
   }
 
   const canAdvanceCalendar = (viewModel.skippedSlots || 0) > 0;
-  const canPlay = (canAdvanceCalendar || viewModel.isFullyReady) && !simulating && (canAdvanceCalendar || !!viewModel.displayHome);
+  const canAdvanceDay = (viewModel.restDaysBeforeMatch || 0) > 0;
+  const canPlay = (canAdvanceDay || canAdvanceCalendar || viewModel.isFullyReady) && !simulating && (canAdvanceDay || canAdvanceCalendar || !!viewModel.displayHome);
   const handleAutoSimulate = () => {
-    if (!canPlay || canAdvanceCalendar) return;
+    if (!canPlay || canAdvanceCalendar || canAdvanceDay) return;
     startMatchSimulation({ autoSimulate: true });
   };
 
@@ -35,8 +36,8 @@ const ScreenNextMatch = ({ gameData, startMatchSimulation, simulating, setScreen
     return (
       <Box sx={{
         bgcolor: theme.bg,
-        minHeight: '100vh',
-        pb: 12,
+        minHeight: '100dvh',
+        pb: 6.5,
         background: `radial-gradient(ellipse at 50% 0%, #fef3c7 0%, transparent 35%), ${theme.bg}`,
       }}>
         <NextMatchHeader
@@ -64,8 +65,8 @@ const ScreenNextMatch = ({ gameData, startMatchSimulation, simulating, setScreen
   return (
     <Box sx={{
       bgcolor: theme.bg,
-      minHeight: '100vh',
-      pb: 12,
+      minHeight: '100dvh',
+      pb: 6.5,
       background: `radial-gradient(ellipse at 50% 0%, #dcfce7 0%, transparent 35%), ${theme.bg}`,
     }}>
       <NextMatchHeader

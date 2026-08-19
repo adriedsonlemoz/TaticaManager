@@ -116,7 +116,7 @@ const ScreenLineup = ({
   }, [saveGame, setIsDirtyLineup]);
 
   return (
-    <Box sx={{ bgcolor:C.bg, minHeight:'100vh', pb:12 }}>
+    <Box sx={{ bgcolor:C.bg, minHeight:'100dvh', pb:6.5 }}>
       <LineupHeader
         club={vm.club}
         currentRound={vm.currentRound}

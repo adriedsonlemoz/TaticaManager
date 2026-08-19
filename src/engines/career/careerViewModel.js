@@ -41,17 +41,58 @@ export const getFanLoyaltySummary = (value = 0) => {
   return { score, label:'Revoltada', tone:'red' };
 };
 
+
+const CUP_LABELS = Object.freeze({
+  copaBrasil:'Copa do Brasil', libertadores:'Libertadores', sulAmericana:'Sul-Americana', regional:'Regional', estadual:'Estadual',
+});
+const CUP_HISTORY_ORDER = Object.freeze(['copaBrasil','libertadores','sulAmericana','regional','estadual']);
+
+export const buildCareerCupEntries = (cups = {}) => (
+  ['estadual','regional','copaBrasil','libertadores','sulAmericana']
+    .map((storageKey) => {
+      const cup = cups?.[storageKey];
+      if (!cup) return null;
+      return {
+        storageKey,
+        competitionKey:cup.competitionKey || storageKey,
+        label:cup.label || CUP_LABELS[storageKey] || 'Copa',
+        phaseLabel:cup.phaseLabel || cup.phase || '—',
+        status:cup.status || 'active',
+        totalPrize:Number(cup.totalPrize) || 0,
+      };
+    })
+    .filter(Boolean)
+);
+
 export const buildSeasonHistory = (history = []) => [...history].reverse().map(entry => {
   const games = (entry.wins || 0) + (entry.draws || 0) + (entry.losses || 0);
   const winPct = games > 0 ? Math.round((entry.wins || 0) / games * 100) : 0;
+  const normalizedCupResults = entry.cupResults && typeof entry.cupResults === 'object'
+    ? { ...entry.cupResults }
+    : (entry.cupResult ? { copaBrasil:entry.cupResult } : {});
+  const cupTitles = CUP_HISTORY_ORDER
+    .filter((key) => normalizedCupResults[key] === 'champion')
+    .map((key) => CUP_LABELS[key] || key);
   return {
     ...entry,
+    cupResults:normalizedCupResults,
+    cupTitles,
+    cupTitleCount:cupTitles.length,
     games,
     winPct,
     serieColor: SERIE_COLORS[entry.serie] || null,
     positionIcon: entry.position === 1 ? '🏆' : entry.position <= 4 ? '🟢' : entry.position >= 17 ? '🔴' : '⚪',
   };
 });
+
+
+export const getCareerTrophyCount = (managerProfile = {}, history = []) => {
+  const canonical = Number(managerProfile?.trophies);
+  if (Number.isFinite(canonical)) return Math.max(0, canonical);
+  return buildSeasonHistory(history).reduce((sum, entry) => (
+    sum + (Number(entry?.position) === 1 ? 1 : 0) + (Number(entry?.cupTitleCount) || 0)
+  ), 0);
+};
 
 export const buildHeadToHead = (history = {}, limit = 6) => Object.entries(history || {})
   .map(([name, record]) => {
@@ -90,6 +131,7 @@ export const buildCareerViewModel = (gameData = {}, fallbackColor = '#64748b') =
     pendingOffer:findPendingManagerOffer(gameData),
     seasonHistory:buildSeasonHistory(gameData.careerHistory || []),
     headToHead:buildHeadToHead(gameData.h2hHistory || {}),
+    cupEntries:buildCareerCupEntries(gameData.cups || {}),
   };
 };
 

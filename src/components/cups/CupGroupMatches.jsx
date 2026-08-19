@@ -30,9 +30,11 @@ const CupGroupMatches = ({ matches = [], color }) => {
               <Typography sx={{ color: match.leg1?.played ? C.txt1 : C.txt3, fontWeight: 900, fontSize: '0.56rem', fontFamily: 'monospace' }}>
                 I {display.leg1Score}
               </Typography>
-              <Typography sx={{ color: match.leg2?.played ? C.txt1 : C.txt3, fontWeight: 900, fontSize: '0.56rem', fontFamily: 'monospace' }}>
-                V {display.leg2Score}
-              </Typography>
+              {display.hasLeg2 && (
+                <Typography sx={{ color: match.leg2?.played ? C.txt1 : C.txt3, fontWeight: 900, fontSize: '0.56rem', fontFamily: 'monospace' }}>
+                  V {display.leg2Score}
+                </Typography>
+              )}
             </Box>
             <Typography sx={{ flex: 1, color: match.away?.isPlayer ? C.primary : C.txt2, fontWeight: match.away?.isPlayer ? 900 : 600, fontSize: '0.68rem', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
               {match.away?.name || '?'}

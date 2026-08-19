@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { APP_VERSION } from '../src/config/appMeta.js';
 import { getInitialGameState } from '../src/engines/core/gameStateFactory.js';
+import { generateFixtures, generateInitialTable } from '../src/engines/core/leagueEngine.js';
 import { getPyramidSeriesTeams2026 } from '../src/data/clubCatalog.js';
 import { toggleStarterState } from '../src/engines/lineup/lineupService.js';
+import { CalendarEngine } from '../src/engines/CalendarEngine.js';
 import {
   CURRENT_SAVE_SCHEMA_VERSION,
   getSaveSchemaVersion,
@@ -36,17 +38,22 @@ const legacy = (overrides = {}) => ({
   ...overrides,
 });
 
-check(() => assert.equal(CURRENT_SAVE_SCHEMA_VERSION, 6));
+check(() => assert.equal(CURRENT_SAVE_SCHEMA_VERSION, 12));
 check(() => assert.equal(getSaveSchemaVersion(legacy()), 0));
-check(() => assert.equal(isSaveSchemaSupported({ saveSchemaVersion:5 }), true));
-check(() => assert.equal(isSaveSchemaSupported({ saveSchemaVersion:7 }), false));
+check(() => assert.equal(isSaveSchemaSupported({ saveSchemaVersion:8 }), true));
+check(() => assert.equal(isSaveSchemaSupported({ saveSchemaVersion:10 }), true));
+check(() => {
+  assert.equal(isSaveSchemaSupported({ saveSchemaVersion:11 }), true);
+  assert.equal(isSaveSchemaSupported({ saveSchemaVersion:12 }), true);
+});
+check(() => assert.equal(isSaveSchemaSupported({ saveSchemaVersion:13 }), false));
 
 check(() => {
   const result = migrateSaveState(legacy());
-  assert.deepEqual(result.appliedMigrations, ['0->1','1->2','2->3','3->4','4->5','5->6']);
+  assert.deepEqual(result.appliedMigrations, ['0->1','1->2','2->3','3->4','4->5','5->6','6->7','7->8','8->9','9->10','10->11','11->12']);
   assert.equal(result.fromVersion, 0);
-  assert.equal(result.toVersion, 6);
-  assert.equal(result.state.saveSchemaVersion, 6);
+  assert.equal(result.toVersion, 12);
+  assert.equal(result.state.saveSchemaVersion, 12);
   assert.equal(result.state.saveAppVersion, APP_VERSION);
 });
 
@@ -156,13 +163,67 @@ check(() => {
   };
   assert.equal(beta50.leagues.A.length, 20);
   const migrated = prepareSaveState(beta50);
-  assert.equal(migrated.saveSchemaVersion, 6);
+  assert.equal(migrated.saveSchemaVersion, 12);
   assert.equal(migrated.club.teamId, null, 'clube personalizado legado permanece sem teamId canônico');
   assert.equal(migrated.leagues.A.length, 19);
-  assert.equal(migrated.pyramidReserve.length, 1);
+  assert.equal(migrated.leagues.D.length, 96);
+  assert.equal(migrated.pyramidReserve.length >= 1, true);
   const ids = ['A','B','C','D'].flatMap((serie) => migrated.leagues[serie].map((team) => String(team.id)));
-  assert.equal(ids.length, 79);
-  assert.equal(new Set(ids).size, 79);
+  assert.equal(ids.length, 155);
+  assert.equal(new Set(ids).size, 155);
+});
+
+
+check(() => {
+  const base = getInitialGameState('br-brasiliense', 'Manager', 'D', { formation:'4-4-2' });
+  const dPool = getPyramidSeriesTeams2026('D').filter((team) => team.id !== 'br-brasiliense').slice(0, 19);
+  const user = { id:'user', name:base.club.name, strength:base.club.strength, isPlayer:true, teamId:'br-brasiliense' };
+  const legacyTeams = [user, ...dPool];
+  const beta52 = {
+    ...base,
+    saveSchemaVersion:6,
+    serieDCompetition:null,
+    serieDLegacyFormat:undefined,
+    teams:legacyTeams,
+    table:generateInitialTable(legacyTeams),
+    fixtures:generateFixtures(legacyTeams),
+    round:0,
+    leagueRound:0,
+    calendar:null,
+  };
+  const migrated = prepareSaveState(beta52);
+  assert.equal(migrated.saveSchemaVersion, 12);
+  assert.equal(migrated.serieDLegacyFormat, false);
+  assert.equal(migrated.serieDCompetition?.format, '2026-96x16');
+  assert.equal(Object.keys(migrated.serieDCompetition?.groups || {}).length, 16);
+  assert.equal(migrated.teams.length, 6);
+  assert.equal(migrated.fixtures.length, 22);
+  assert.equal(migrated.leagues.D.length, 95);
+});
+
+check(() => {
+  const base = getInitialGameState('br-brasiliense', 'Manager', 'D', { formation:'4-4-2' });
+  const dPool = getPyramidSeriesTeams2026('D').filter((team) => team.id !== 'br-brasiliense').slice(0, 19);
+  const user = { id:'user', name:base.club.name, strength:base.club.strength, isPlayer:true, teamId:'br-brasiliense' };
+  const legacyTeams = [user, ...dPool];
+  const fixtures = generateFixtures(legacyTeams);
+  fixtures[0] = fixtures[0].map((match) => ({ ...match, played:true, result:'1 - 0' }));
+  const migrated = prepareSaveState({
+    ...base,
+    saveSchemaVersion:6,
+    serieDCompetition:null,
+    teams:legacyTeams,
+    table:generateInitialTable(legacyTeams),
+    fixtures,
+    round:1,
+    leagueRound:1,
+    calendar:null,
+  });
+  assert.equal(migrated.serieDLegacyFormat, true);
+  assert.equal(migrated.serieDCompetition, null);
+  assert.equal(migrated.teams.length, 20);
+  assert.equal(migrated.fixtures.length, 38);
+  assert.equal(migrated.leagues.D.length, 95, 'a pirâmide já expande sem alterar o calendário legado em andamento');
 });
 
 check(() => {
@@ -172,6 +233,96 @@ check(() => {
   assert.equal(malformed.round, 0);
   assert.deepEqual(malformed.players, []);
   assert.deepEqual(Object.keys(malformed.leagues), ['A','B','C','D']);
+});
+
+check(() => {
+  const base = getInitialGameState('br-palmeiras', 'Manager', 'A', { formation:'4-4-2' });
+  const migrated = prepareSaveState({
+    ...base,
+    saveSchemaVersion:7,
+    calendar:[{ type:'league', leagueIdx:0 }, { type:'cup', cupKey:'copaBrasil' }],
+    currentDateISO:null,
+    currentDate:null,
+    round:0,
+    leagueRound:0,
+  });
+  assert.equal(migrated.saveSchemaVersion, 12);
+  assert.match(migrated.calendar[0].dateISO, /^2026-\d{2}-\d{2}$/);
+  assert.match(migrated.calendar[1].dateISO, /^2026-\d{2}-\d{2}$/);
+  assert.ok(migrated.currentDateISO);
+});
+
+check(() => {
+  const base = getInitialGameState('br-amazonas', 'Manager', 'C', { formation:'4-4-2' });
+  const migrated = prepareSaveState({
+    ...base,
+    season:2027,
+    saveSchemaVersion:7,
+    serieCCompetition:null,
+    serieCLegacyFormat:undefined,
+    calendar:null,
+    round:0,
+    leagueRound:0,
+  });
+  assert.equal(migrated.saveSchemaVersion, 12);
+  assert.equal(migrated.serieCLegacyFormat, false);
+  assert.equal(migrated.serieCCompetition?.format, '2027-24-single-quadrangular');
+  assert.equal(migrated.teams.length, 24);
+  assert.equal(migrated.fixtures.length, 31);
+});
+
+check(() => {
+  const base = getInitialGameState('br-amazonas', 'Manager', 'C', { formation:'4-4-2' });
+  const fixtures = base.fixtures.map((round) => round.map((match) => ({ ...match })));
+  fixtures[0][0] = { ...fixtures[0][0], played:true, result:'1 - 0' };
+  const migrated = prepareSaveState({
+    ...base,
+    season:2027,
+    saveSchemaVersion:7,
+    serieCCompetition:null,
+    serieCLegacyFormat:undefined,
+    fixtures,
+    calendar:[{ type:'league', leagueIdx:0 }, { type:'cup', cupKey:'copaBrasil' }],
+    round:1,
+    leagueRound:1,
+  });
+  assert.equal(migrated.serieCLegacyFormat, true);
+  assert.equal(migrated.serieCCompetition, null);
+  assert.equal(migrated.fixtures.length, 38);
+  assert.equal(migrated.calendar[0].dateISO, migrated.currentDateISO);
+});
+
+check(() => {
+  const base = getInitialGameState('br-palmeiras', 'Manager', 'A', { formation:'4-4-2' });
+  const beta54 = {
+    ...base,
+    saveSchemaVersion:8,
+    calendar:CalendarEngine.buildCalendar(base.fixtures.length, {}, 'A', { season:2026 }).map(({ targetDateISO, targetSource, ...entry }) => entry),
+    round:0,
+    leagueRound:0,
+  };
+  const migrated = prepareSaveState(beta54);
+  assert.equal(migrated.saveSchemaVersion, 12);
+  assert.equal(migrated.calendarModel, 'annual-v1');
+  assert.equal(migrated.calendar.some((entry) => entry?.targetSource), true);
+  assert.ok(migrated.currentDateISO);
+});
+
+check(() => {
+  const base = getInitialGameState('br-flamengo', 'Manager', 'A', { formation:'4-4-2' });
+  const calendar = CalendarEngine.buildCalendar(base.fixtures.length, {}, 'A', { season:2026 }).map(({ targetDateISO, targetSource, ...entry }) => entry);
+  const firstDate = calendar[0]?.dateISO || calendar[0]?.calendarDate;
+  const migrated = prepareSaveState({
+    ...base,
+    saveSchemaVersion:8,
+    calendar,
+    round:1,
+    leagueRound:1,
+    currentDateISO:firstDate,
+    currentDate:firstDate,
+  });
+  assert.equal(migrated.calendarModel, 'legacy-dated-v1');
+  assert.equal(migrated.round, 1);
 });
 
 check(() => {
@@ -185,6 +336,121 @@ check(() => {
   assert.equal(result.error, undefined);
   assert.equal(result.gameData.players[0].isStarting, true);
   assert.equal(result.gameData.teamRosters.user[0].isStarting, true);
+});
+
+
+check(() => {
+  const raw = getInitialGameState('br-vitoria', 'Treinador');
+  const migrated = migrateSaveState({
+    ...raw,
+    saveSchemaVersion:9,
+    round:0,
+    leagueRound:0,
+    calendar:[{ type:'league', leagueIdx:0, dateISO:'2026-01-28' }],
+    cups:{ copaBrasil:{ status:'active' } },
+  }).state;
+  assert.equal(migrated.cups.regional?.competitionKey, 'copaNordeste');
+  assert.equal(migrated.regionalCalendarModel, 'cbf-regional-v1');
+  assert.equal(migrated.cups.copaBrasil?.phaseLabel, '5ª Fase');
+  assert.equal(Boolean(migrated.cups.copaBrasil?.currentTie?.leg2), true);
+  assert.equal(migrated.copaBrasilCalendarModel, 'cbf-2026-v2');
+  assert.ok(Array.isArray(migrated.calendar) && migrated.calendar.length > 0);
+  assert.ok(migrated.currentDateISO);
+  assert.ok(migrated.calendar.some((entry) => entry.cupKey === 'copaNordeste'));
+});
+
+check(() => {
+  const raw = getInitialGameState('br-vitoria', 'Treinador');
+  const migrated = migrateSaveState({
+    ...raw,
+    saveSchemaVersion:9,
+    round:1,
+    leagueRound:1,
+    cups:{ copaBrasil:{ status:'active' } },
+  }).state;
+  assert.equal(migrated.cups.regional, undefined);
+  assert.equal(migrated.regionalCalendarModel, 'deferred-until-next-season');
+  assert.equal(migrated.copaBrasilCalendarModel, 'legacy-format-until-next-season');
+});
+
+check(() => {
+  const raw = getInitialGameState('br-flamengo', 'Treinador');
+  const migrated = migrateSaveState({ ...raw, saveSchemaVersion:9, cups:{ copaBrasil:{ status:'active' } } }).state;
+  assert.equal(migrated.cups.regional, undefined);
+  assert.equal(migrated.regionalCalendarModel, 'not-eligible');
+  assert.equal(migrated.cups.copaBrasil?.phaseLabel, '5ª Fase');
+  assert.equal(migrated.copaBrasilCalendarModel, 'cbf-2026-v2');
+});
+
+check(() => {
+  const raw = getInitialGameState('br-vitoria', 'Treinador');
+  const migrated = migrateSaveState({
+    ...raw,
+    saveSchemaVersion:9,
+    cups:{ copaBrasil:{ status:'active' }, libertadores:{ status:'active' } },
+  }).state;
+  assert.equal(migrated.cups.regional, undefined);
+  assert.equal(migrated.regionalCalendarModel, 'not-eligible');
+});
+
+
+check(() => {
+  const raw = getInitialGameState('br-flamengo', 'Treinador');
+  const migrated = migrateSaveState({
+    ...raw,
+    saveSchemaVersion:10,
+    round:0,
+    leagueRound:0,
+    cups:{ copaBrasil:{ status:'active' } },
+  }).state;
+  assert.equal(migrated.cups.estadual?.competitionKey, 'carioca');
+  assert.equal(migrated.stateChampionshipModel, 'state-v2-8-championships');
+  assert.ok(Array.isArray(migrated.calendar) && migrated.calendar.length > 0);
+  assert.ok(migrated.currentDateISO);
+  assert.ok(migrated.calendar.some((entry) => entry.cupKey === 'carioca'));
+});
+
+check(() => {
+  const raw = getInitialGameState('br-flamengo', 'Treinador');
+  const migrated = migrateSaveState({
+    ...raw,
+    saveSchemaVersion:10,
+    round:1,
+    leagueRound:0,
+    cups:{ copaBrasil:{ status:'active' } },
+  }).state;
+  assert.equal(migrated.cups.estadual, undefined);
+  assert.equal(migrated.stateChampionshipModel, 'deferred-until-next-season');
+});
+
+
+
+check(() => {
+  const raw = getInitialGameState('br-palmeiras', 'Treinador');
+  const migrated = migrateSaveState({
+    ...raw,
+    saveSchemaVersion:11,
+    cups:{ copaBrasil:raw.cups?.copaBrasil },
+    round:0,
+    leagueRound:0,
+  }).state;
+  assert.equal(migrated.cups.estadual?.competitionKey, 'paulista');
+  assert.equal(migrated.stateChampionshipModel, 'state-v2-8-championships');
+  assert.ok(Array.isArray(migrated.calendar) && migrated.calendar.some((entry) => entry.cupKey === 'paulista'));
+  assert.ok(migrated.currentDateISO);
+});
+
+check(() => {
+  const raw = getInitialGameState('br-palmeiras', 'Treinador');
+  const migrated = migrateSaveState({
+    ...raw,
+    saveSchemaVersion:11,
+    cups:{},
+    round:1,
+    leagueRound:0,
+  }).state;
+  assert.equal(migrated.cups.estadual, undefined);
+  assert.equal(migrated.stateChampionshipModel, 'deferred-until-next-season');
 });
 
 console.log(`Save schema smoke: ${checks}/${checks} verificações aprovadas.`);

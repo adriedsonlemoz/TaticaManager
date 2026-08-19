@@ -1,4 +1,5 @@
 import { getCupDate } from '../../utils/matchDateUtils.js';
+import { fromDateISO } from '../calendar/calendarDateEngine.js';
 import { getCupColor } from './matchesConstants.js';
 import { getCupInfoForSlot, getCupTeams } from './cupMatchResolver.js';
 
@@ -22,7 +23,7 @@ export function buildDayRoundsMap({ gameData, currentRound, roundDates }) {
 
     if (entry.type === 'league') {
       const leagueIdx = entry.leagueIdx;
-      const date = roundDates[leagueIdx];
+      const date = fromDateISO(entry.dateISO || entry.calendarDate) || roundDates[leagueIdx];
       if (!date) return;
       const fixtures = gameData.fixtures?.[leagueIdx] || [];
       const userMatch = fixtures.find(match => match.home?.isPlayer || match.away?.isPlayer);
@@ -44,7 +45,7 @@ export function buildDayRoundsMap({ gameData, currentRound, roundDates }) {
     if (!cupInfo.hasCupMatch) return;
 
     const leagueRoundAfter = entry.afterLeague ?? (entry.leagueIdx ?? 0);
-    const date = getCupRoundDate(roundDates, leagueRoundAfter);
+    const date = fromDateISO(entry.dateISO || entry.calendarDate) || getCupRoundDate(roundDates, leagueRoundAfter);
     if (!date) return;
     const tie = cupInfo.tie;
     const teams = getCupTeams(cupInfo);

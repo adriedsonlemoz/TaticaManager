@@ -102,7 +102,7 @@ const ScreenPostMatch = ({
   };
 
   return (
-    <Box sx={{ bgcolor: C.bg, minHeight: '100vh', pb: 10 }}>
+    <Box sx={{ bgcolor: C.bg, minHeight: '100dvh', pb: 5.5 }}>
       <PostMatchHeader
         gameData={gameData}
         matchResultData={matchResultData}

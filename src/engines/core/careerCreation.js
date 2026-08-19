@@ -1,5 +1,6 @@
 import { getCareerSelectableClubs2026, resolveClub } from '../../data/clubCatalog.js';
 import { getTeamStadium } from '../../data/database_coaches.js';
+import { getTeamStadiumData } from '../../data/teamStadiumData.js';
 
 
 const CAREER_SERIES = new Set(['A','B','C','D']);
@@ -23,7 +24,7 @@ export function getCareerTeamSelectionPatch(teamId) {
     teamName:team.name,
     serie:team.serie2026,
     initialMoney:team.money ?? null,
-    stadiumName:getTeamStadium(team.name) || '',
+    stadiumName:getTeamStadium(team.name) || getTeamStadiumData(team.name)?.stadium || '',
     _colorsSet:false,
   };
 }
@@ -121,7 +122,7 @@ export function buildCareerCreationConfig(setupData = {}) {
       style:STYLES.has(setupData.managerStyle) ? setupData.managerStyle : 'Equilibrado',
       colorPrimary:/^#[0-9a-f]{6}$/i.test(setupData.colorPrimary || '') ? setupData.colorPrimary : '#118a8b',
       colorSecondary:/^#[0-9a-f]{6}$/i.test(setupData.colorSecondary || '') ? setupData.colorSecondary : '#ffffff',
-      stadiumName:getTeamStadium(team.name) || null,
+      stadiumName:getTeamStadium(team.name) || getTeamStadiumData(team.name)?.stadium || null,
       avatarStyle:cleanText(setupData.avatarStyle || 'suit', 24) || 'suit',
       wins:0, draws:0, losses:0, experience:0, seasonsTotal:0, trophies:0,
     },

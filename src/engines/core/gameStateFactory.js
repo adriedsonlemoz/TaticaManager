@@ -2,8 +2,10 @@
 import { diexDatabase } from '../../data/database.js';
 import { getCareerSelectableClubs2026, resolveClub } from '../../data/clubCatalog.js';
 import { getTeamStadium } from '../../data/database_coaches.js';
+import { getTeamStadiumData } from '../../data/teamStadiumData.js';
 import { generatePlayer, generateSquad } from './playerFactory.js';
 import { generateFixtures, generateInitialTable } from './leagueEngine.js';
+import { initializeSerieDCompetition } from '../serieD/serieDCompetition.js';
 
 // Nova carreira usa apenas clubes canônicos. Finanças personalizadas ficam reservadas
 // para uma futura criação de clubes próprios exclusivamente na Série D.
@@ -31,7 +33,8 @@ const getInitialGameState = (teamRef, managerName, legacySerieOrProfile = {}, ma
   const teamName = dbTeam.name;
   const existingTeamId = dbTeam.id;
   const userStrength = dbTeam.strength || { A:78, B:70, C:60, D:50 }[serie] || 60;
-  const canonicalStadiumName = getTeamStadium(teamName) || null;
+  const stadiumData = getTeamStadiumData(teamName) || null;
+  const canonicalStadiumName = getTeamStadium(teamName) || stadiumData?.stadium || null;
   const userTeam = { id:'user', teamId:existingTeamId, name:teamName, strength:userStrength, isPlayer:true };
 
   const poolA = (db.serieATeams || []).filter((team) => team.id !== existingTeamId)
@@ -44,14 +47,18 @@ const getInitialGameState = (teamRef, managerName, legacySerieOrProfile = {}, ma
     .map((team) => ({ ...team, isPlayer:false, squad:generateSquad('D', team.name, team.strength, team.id) }));
 
   const selectedPool = serie === 'A' ? poolA : serie === 'B' ? poolB : serie === 'C' ? poolC : poolD;
-  const activeCpuPool = selectedPool.slice(0, 19);
-  const allTeams = [userTeam, ...activeCpuPool];
+  const activeCpuPool = serie === 'D' ? selectedPool : selectedPool.slice(0, 19);
+  const preliminaryTeams = serie === 'D' ? [userTeam, ...activeCpuPool] : [userTeam, ...activeCpuPool];
   const leagues = {
     A: serie === 'A' ? activeCpuPool : poolA,
     B: serie === 'B' ? activeCpuPool : poolB,
     C: serie === 'C' ? activeCpuPool : poolC,
     D: serie === 'D' ? activeCpuPool : poolD,
   };
+  const serieDSeason = serie === 'D'
+    ? initializeSerieDCompetition({ userTeam, userCanonicalId:existingTeamId, cpuTeams:activeCpuPool, season:2026 })
+    : null;
+  const allTeams = serieDSeason?.teams || preliminaryTeams;
   const activeCpuIds = new Set(Object.values(leagues).flat().map((team) => String(team.id)));
   const allSelectable = getCareerSelectableClubs2026();
   const pyramidReserve = [poolA, poolB, poolC, poolD].flat()
@@ -96,7 +103,7 @@ const getInitialGameState = (teamRef, managerName, legacySerieOrProfile = {}, ma
       fanLoyalty:dbTeam.fanBase != null ? Math.round(dbTeam.fanBase * 100) : 50,
       stadium: {
         name:canonicalStadiumName || 'Estádio não cadastrado',
-        capacity:{ A:20000, B:12000, C:7000, D:4000 }[serie] || 12000,
+        capacity:Number(stadiumData?.capacity) || ({ A:20000, B:12000, C:7000, D:4000 }[serie] || 12000),
         level:1,
         ticketPrice:{ A:50, B:30, C:20, D:12 }[serie] || 30,
       },
@@ -104,11 +111,14 @@ const getInitialGameState = (teamRef, managerName, legacySerieOrProfile = {}, ma
     players:userPlayers,
     teams:allTeams,
     teamRosters,
-    table:generateInitialTable(allTeams),
-    fixtures:generateFixtures(allTeams),
+    table:serieDSeason?.table || generateInitialTable(allTeams),
+    fixtures:serieDSeason?.fixtures || generateFixtures(allTeams),
     leagues,
     pyramidReserve,
-    leaguePyramidVersion:1,
+    leaguePyramidVersion:2,
+    serieDCompetition:serieDSeason?.competition || null,
+    serieCCompetition:null,
+    serieCLegacyFormat:false,
     market:Array.from({ length:15 }, () => {
       const player = generatePlayer(null, 'Livre', mktOvr);
       return player ? { ...player, teamName:'Livre' } : null;

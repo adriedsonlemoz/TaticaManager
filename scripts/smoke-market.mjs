@@ -50,6 +50,20 @@ check(() => assert.equal(getTransferRound({ round:30, leagueRound:4 }), 5));
 check(() => assert.equal(getTransferWindowState(baseGame()).open, true));
 check(() => assert.equal(getTransferWindowState(baseGame({ leagueRound:5 })).open, false));
 check(() => assert.equal(getTransferWindowState(baseGame({ leagueRound:20 })).transferRound, 21));
+check(() => {
+  const info = getTransferWindowState(baseGame({ currentDateISO:'2026-03-03', season:2026, leagueRound:12 }));
+  assert.equal(info.open, true);
+  assert.equal(info.mode, 'date');
+  assert.equal(info.closesAt, '2026-03-03');
+});
+check(() => {
+  const info = getTransferWindowState(baseGame({ currentDateISO:'2026-03-04', season:2026, leagueRound:0 }));
+  assert.equal(info.open, false);
+  assert.equal(info.mode, 'date');
+  assert.equal(info.opensAt, '2026-07-20');
+  assert.ok(info.opensInDays > 100);
+});
+check(() => assert.equal(getTransferWindowState(baseGame({ currentDateISO:'2026-07-20', season:2026, leagueRound:10 })).open, true));
 
 check(() => assert.deepEqual(getTransferFunds(baseGame()).available, 5_000_000));
 check(() => assert.equal(getTransferFunds(baseGame({ club:{ money:2_000_000, transferBudget:0 } })).available, 0));
@@ -63,6 +77,8 @@ check(() => assert.equal(getMinimumSerieForPlayer(69), null));
 
 check(() => assert.equal(evaluateTransferPurchase(baseGame(), player()).allowed, true));
 check(() => assert.equal(evaluateTransferPurchase(baseGame({ leagueRound:5 }), player()).code, 'window_closed'));
+check(() => assert.equal(evaluateTransferPurchase(baseGame({ currentDateISO:'2026-03-04', season:2026, leagueRound:0 }), player()).code, 'window_closed'));
+check(() => assert.equal(evaluateTransferPurchase(baseGame({ currentDateISO:'2026-07-20', season:2026, leagueRound:12 }), player()).allowed, true));
 check(() => assert.equal(evaluateTransferPurchase(baseGame({ players:Array.from({ length:30 }, (_, i) => player({ id:`u${i}` })) }), player()).code, 'squad_full'));
 
 check(() => {
@@ -336,6 +352,6 @@ check(() => assert.ok(screenSource.split('\n').length < 110));
 check(() => assert.ok(!screenSource.includes('const posColor')));
 check(() => assert.ok(squadHookSource.includes('applyUserPurchase')));
 check(() => assert.ok(transferTxSource.includes('removePlayerFromAllCpuRosters')));
-check(() => assert.ok(transferPostSource.includes('isTransferWindowOpen(leagueRoundPlayed)')));
+check(() => assert.ok(transferPostSource.includes('isTransferWindowOpen(gameData?.currentDateISO ? gameData : leagueRoundPlayed)')));
 
 console.log(`Market smoke: ${checks}/${checks} verificações aprovadas.`);

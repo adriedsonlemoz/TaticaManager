@@ -31,7 +31,7 @@ const ScreenMedical = ({ gameData, setGameData, showToast, formatMoney }) => {
   const handlePhysio = React.useCallback(() => commit(runPhysioSessionState(gameData)), [commit, gameData]);
 
   return (
-    <Box sx={{ bgcolor:C.bg, minHeight:'100vh', pb:10 }}>
+    <Box sx={{ bgcolor:C.bg, minHeight:'100dvh', pb:5.5 }}>
       <MedicalHeader viewModel={viewModel} />
       <Box sx={{ px:1.5, pt:1.5 }}>
         <Button fullWidth onClick={handlePhysio} variant="outlined" sx={{ mb:2, py:1.2, borderColor:C.primary, color:C.primary, fontWeight:900, fontSize:'0.82rem', borderRadius:'10px', '&:hover':{ bgcolor:'rgba(17,138,139,0.08)', borderColor:C.prim2 } }}>
