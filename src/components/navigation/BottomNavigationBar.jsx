@@ -4,14 +4,18 @@ import { THEME } from '../../theme.js';
 
 const C = THEME;
 
-export default function BottomNavigationBar({ items, onItemClick, activeColor = C.act }) {
+export default function BottomNavigationBar({ items, onItemClick, activeColor = C.act, systemBarColor = '#04150b' }) {
   return (
     <Paper elevation={0} component="nav" aria-label="Navegação principal" sx={{
       position: 'fixed', bottom: 0, left: 0, right: 0,
-      height: 'calc(54px + env(safe-area-inset-bottom, 0px))', zIndex: 1200,
-      pb: 'env(safe-area-inset-bottom, 0px)', boxSizing: 'border-box',
+      height: 'calc(54px + var(--app-safe-bottom))', zIndex: 1200,
+      pb: 'var(--app-safe-bottom)', boxSizing: 'border-box',
       bgcolor: C.bg, borderTop: `1px solid ${C.border}`,
       display: 'flex', alignItems: 'stretch',
+      '&::after': {
+        content:'\"\"', position:'absolute', left:0, right:0, bottom:0,
+        height:'var(--app-safe-bottom)', bgcolor:systemBarColor, pointerEvents:'none',
+      },
     }}>
       {items.map((item) => (
         <Box

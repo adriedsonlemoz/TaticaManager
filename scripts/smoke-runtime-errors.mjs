@@ -9,15 +9,17 @@ const check = (name, fn) => { fn(); checks += 1; console.log(`✅ ${name}`); };
 check('splash não usa mais a marca legada Clube de Bolso', () => {
   const html = fs.readFileSync('index.html', 'utf8');
   assert.doesNotMatch(html, /CLUBE DE|BOLSO/);
-  assert.match(html, /id="msm-title">TÁTICA</);
-  assert.match(html, /id="msm-subtitle">MANAGER</);
+  assert.match(html, /tatica-manager-splash\.png/);
+  assert.match(html, /aria-label="Tática Manager iniciando"/);
 });
 
 check('viewport do app está preparado para safe area nativa', () => {
   const html = fs.readFileSync('index.html', 'utf8');
   const nav = fs.readFileSync('src/components/navigation/BottomNavigationBar.jsx', 'utf8');
+  const style = fs.readFileSync('src/style.css', 'utf8');
   assert.match(html, /viewport-fit=cover/);
-  assert.match(nav, /safe-area-inset-bottom/);
+  assert.match(nav, /--app-safe-bottom/);
+  assert.match(style, /safe-area-inset-bottom/);
 });
 
 check('ErrorBoundary de emergência não importa MUI nem componentes de domínio', () => {

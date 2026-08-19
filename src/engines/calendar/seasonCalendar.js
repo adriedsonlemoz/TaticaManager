@@ -1,5 +1,10 @@
 import { REGIONAL_CUP_KEYS } from '../cups/regionalConfig.js';
 import { STATE_CUP_KEYS } from '../cups/stateConfig.js';
+import {
+  buildStateCompetitionTargetDates,
+  getStateCalendarEnvelope,
+  getStateCompetitionWindow,
+} from '../cups/stateCalendar2026.js';
 
 const iso = (year, month, day) => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 const parseISO = (value) => {
@@ -41,7 +46,9 @@ export const OFFICIAL_2026_CALENDAR = Object.freeze({
     D: { start:'2026-04-05', end:'2026-09-13', label:'Brasileirão Série D', official:true },
   },
   competitions: {
-    estaduais: { start:'2026-01-11', end:'2026-03-08', label:'Campeonatos Estaduais', official:true },
+    // Envelope apenas para a visão anual. Cada estadual usa seu próprio
+    // calendário em stateCalendar2026.js.
+    estaduais: { start:'2026-01-07', end:'2026-03-21', label:'Campeonatos Estaduais', official:true },
     copaBrasil: { start:'2026-02-18', end:'2026-12-06', label:'Copa do Brasil', official:true },
     libertadores: { start:'2026-04-07', end:'2026-11-28', label:'CONMEBOL Libertadores', official:true },
     sulAmericana: { start:'2026-04-07', end:'2026-11-21', label:'CONMEBOL Sul-Americana', official:true },
@@ -64,11 +71,14 @@ const STATE_COMPETITION_KEYS = new Set(STATE_CUP_KEYS);
 
 export function getSeasonCompetitionWindow(season = 2026, competitionKey = 'copaBrasil') {
   const year = Math.max(2026, Number(season) || 2026);
-  const resolvedKey = REGIONAL_COMPETITION_KEYS.has(competitionKey)
-    ? 'regionals'
-    : STATE_COMPETITION_KEYS.has(competitionKey)
-      ? 'estaduais'
-      : competitionKey;
+  if (STATE_COMPETITION_KEYS.has(competitionKey)) {
+    return getStateCompetitionWindow(competitionKey, { season:year });
+  }
+  if (competitionKey === 'estaduais') {
+    return getStateCalendarEnvelope({ season:year })
+      || copyWindowToYear(OFFICIAL_2026_CALENDAR.competitions.estaduais, year);
+  }
+  const resolvedKey = REGIONAL_COMPETITION_KEYS.has(competitionKey) ? 'regionals' : competitionKey;
   return copyWindowToYear(OFFICIAL_2026_CALENDAR.competitions[resolvedKey], year);
 }
 
@@ -116,6 +126,10 @@ const earliestPhaseRatio = (events = []) => {
 export function buildCompetitionTargetDates(events = [], competitionKey, { season = 2026 } = {}) {
   const list = Array.isArray(events) ? events : [];
   if (!list.length) return [];
+  if (STATE_COMPETITION_KEYS.has(competitionKey)) {
+    const stateTargets = buildStateCompetitionTargetDates(list, competitionKey, { season });
+    if (stateTargets?.every(Boolean)) return stateTargets;
+  }
   const window = getSeasonCompetitionWindow(season, competitionKey);
   if (!window) return list.map(() => null);
   const start = parseISO(window.start);
@@ -188,7 +202,7 @@ export function getAnnualCalendarContext(dateValue, { season = 2026, serie = 'A'
   const regionalWindow = getSeasonCompetitionWindow(season, 'regionals');
   const transferWindow = getSeasonTransferWindows(season).find((window) => inWindow(date, window));
   if (transferWindow) badges.push({ key:'transfer', icon:'🔁', label:'Janela CBF', detail:transferWindow.label });
-  if (inWindow(date, stateWindow)) badges.push({ key:'state', icon:'🏟️', label:'Janela dos estaduais', detail:'Período nacional reservado aos campeonatos estaduais' });
+  if (inWindow(date, stateWindow)) badges.push({ key:'state', icon:'🏟️', label:'Janela dos estaduais', detail:'Cada estadual usa suas próprias datas de rodadas e fases' });
   if (inWindow(date, regionalWindow)) badges.push({ key:'regional', icon:'🏆', label:'Janela regional CBF', detail:'Período reservado às copas regionais' });
   if (inWindow(date, leagueWindow)) badges.push({ key:'league', icon:'⚽', label:`Série ${String(serie || 'A').toUpperCase()}`, detail:'Temporada nacional em andamento' });
   return { badges, leagueWindow, stateWindow, regionalWindow, transferWindow };

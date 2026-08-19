@@ -13,7 +13,7 @@ import { initCopaBrasil } from '../cups/copaBrasilEngine.js';
 import { CalendarEngine } from '../CalendarEngine.js';
 import { reconcileNewsFeed } from '../news/newsEngine.js';
 
-export const CURRENT_SAVE_SCHEMA_VERSION = 15;
+export const CURRENT_SAVE_SCHEMA_VERSION = 16;
 export const SAVE_SCHEMA_FIELD = 'saveSchemaVersion';
 
 const SERIES_KEYS = Object.freeze(['A', 'B', 'C', 'D']);
@@ -521,6 +521,50 @@ function migrateV14ToV15(input = {}) {
 }
 
 
+// Schema 16 instala as datas individuais de 2026 dos 14 estaduais já
+// suportados. Uma carreira ainda zerada pode recriar o estadual e a agenda
+// com segurança; saves que já disputaram qualquer compromisso preservam a
+// tabela/calendário legado até a próxima temporada para não reescrever história.
+function migrateV15ToV16(input = {}) {
+  const normalized = reconcileLeaguePyramid(input);
+  const cups = asObject(normalized.cups);
+  const estadual = cups.estadual;
+  const hasLeaguePlayed = (normalized.fixtures || []).flat().some((match) => match?.played === true);
+  const hasStatePlayed = Boolean(
+    (estadual?.groupRounds || []).flat().some((match) => match?.played === true)
+    || (estadual?.groupMatches || []).some((match) => match?.leg1?.played === true || match?.leg2?.played === true)
+    || estadual?.currentTie?.leg1?.played === true
+    || estadual?.currentTie?.leg2?.played === true
+    || (estadual?.history || []).length > 0
+    || ['eliminated','completed','champion'].includes(String(estadual?.status || ''))
+  );
+  const alreadyStarted = (Number(normalized.round) || 0) > 0
+    || (Number(normalized.leagueRound) || 0) > 0
+    || hasLeaguePlayed
+    || hasStatePlayed;
+
+  if (alreadyStarted) {
+    return {
+      ...normalized,
+      stateCalendarModel:estadual ? 'legacy-2026-until-next-season' : 'deferred-until-next-season',
+      saveSchemaVersion:16,
+    };
+  }
+
+  const refreshedState = estadual ? initStateCompetition(normalized) : null;
+  const nextCups = refreshedState ? { ...cups, estadual:refreshedState } : cups;
+  return {
+    ...normalized,
+    cups:nextCups,
+    ...(refreshedState ? rebuildUnstartedCalendar(normalized, nextCups) : {}),
+    stateChampionshipModel:refreshedState ? 'state-v4-14-individual-calendars' : normalized.stateChampionshipModel,
+    stateCalendarModel:refreshedState ? 'state-2026-individual-dates-v1' : 'not-initialized',
+    calendarModel:refreshedState ? 'annual-v3-state-dates' : normalized.calendarModel,
+    saveSchemaVersion:16,
+  };
+}
+
+
 const MIGRATIONS = Object.freeze({
   0: migrateV0ToV1,
   1: migrateV1ToV2,
@@ -537,6 +581,7 @@ const MIGRATIONS = Object.freeze({
   12: migrateV12ToV13,
   13: migrateV13ToV14,
   14: migrateV14ToV15,
+  15: migrateV15ToV16,
 });
 
 function normalizeCurrentSchema(input = {}) {

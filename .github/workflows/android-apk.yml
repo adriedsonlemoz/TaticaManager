@@ -12,6 +12,8 @@ on:
       - 'package-lock.json'
       - 'vite.config.js'
       - 'capacitor.config.json'
+      - 'android-branding/**'
+      - 'scripts/apply-android-branding.mjs'
       - '.github/workflows/android-apk.yml'
 
 permissions:
@@ -47,7 +49,7 @@ jobs:
         run: npm ci
 
       - name: Install Capacitor 8 on runner
-        run: npm install --no-save --no-package-lock @capacitor/core@8 @capacitor/cli@8 @capacitor/android@8 @capacitor/splash-screen@8
+        run: npm install --no-save --no-package-lock @capacitor/core@8 @capacitor/cli@8 @capacitor/android@8 @capacitor/splash-screen@8 @capacitor/status-bar@8
 
       - name: Run regression suite
         run: npm run test:smoke
@@ -62,6 +64,9 @@ jobs:
             npx cap add android
           fi
           npx cap sync android
+
+      - name: Apply Tática Manager Android branding
+        run: node scripts/apply-android-branding.mjs
 
       - name: Build debug APK
         working-directory: android

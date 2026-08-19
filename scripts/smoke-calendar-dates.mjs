@@ -122,7 +122,16 @@ test('janelas oficiais de 2026 refletem as datas-base nacionais', () => {
   assert.deepEqual(getSeasonLeagueWindow(2026, 'A'), { start:'2026-01-28', end:'2026-12-02', label:'Brasileirão Série A', official:true });
   assert.equal(getSeasonLeagueWindow(2026, 'B').start, '2026-03-21');
   assert.equal(getSeasonCompetitionWindow(2026, 'copaBrasil').start, '2026-02-18');
-  assert.equal(getSeasonCompetitionWindow(2026, 'estaduais').end, '2026-03-08');
+  assert.equal(getSeasonCompetitionWindow(2026, 'estaduais').start, '2026-01-07');
+  assert.equal(getSeasonCompetitionWindow(2026, 'estaduais').end, '2026-03-21');
+  assert.deepEqual(
+    [getSeasonCompetitionWindow(2026, 'paulista').start, getSeasonCompetitionWindow(2026, 'paulista').end],
+    ['2026-01-11','2026-03-08'],
+  );
+  assert.deepEqual(
+    [getSeasonCompetitionWindow(2026, 'paraense').start, getSeasonCompetitionWindow(2026, 'paraense').end],
+    ['2026-01-24','2026-03-08'],
+  );
   assert.equal(getSeasonCompetitionWindow(2026, 'regionals').start, '2026-03-24');
 });
 

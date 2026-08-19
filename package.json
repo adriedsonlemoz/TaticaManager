@@ -1,6 +1,6 @@
 {
   "name": "tatica-manager",
-  "version": "1.0.0-beta.62",
+  "version": "1.0.0-beta.63",
   "private": true,
   "scripts": {
     "dev": "vite",

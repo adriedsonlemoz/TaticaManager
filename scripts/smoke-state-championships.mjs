@@ -3,6 +3,11 @@ import { CalendarEngine } from '../src/engines/CalendarEngine.js';
 import { getInitialGameState } from '../src/engines/core/gameStateFactory.js';
 import { CupsEngine } from '../src/engines/cups_engine.js';
 import { STATE_2026_CONFIGS, STATE_CUP_KEYS } from '../src/engines/cups/stateConfig.js';
+import {
+  STATE_2026_CALENDARS,
+  buildStateCompetitionTargetDates,
+  validateStateCalendarAgainstEvents,
+} from '../src/engines/cups/stateCalendar2026.js';
 import { initStateCompetition, getStateMatchForCalendarSlot, registerStateResult } from '../src/engines/cups/stateEngine.js';
 import { validateCalendarSpacing } from '../src/engines/calendar/calendarDateEngine.js';
 import { simulateCupRound } from '../src/engines/match/matchCupRound.js';
@@ -21,7 +26,7 @@ const winAllFirstStage = (initial) => {
   return cup;
 };
 
-check('beta 60 expõe quatorze estaduais implementados', () => {
+check('beta 63 mantém quatorze estaduais implementados', () => {
   assert.deepEqual([...STATE_CUP_KEYS].sort(), [
     'alagoano','baiano','carioca','catarinense','gauchao','goiano','mineiro','paraense','paraibano',
     'paranaense','paulista','pernambucano','potiguar','sergipano',
@@ -45,7 +50,7 @@ check('Paulistão 2026 usa 16 clubes, oito jogos e G8 geral', () => {
   assert.equal(config.participants.length, 16);
   assert.equal(config.firstStage.rounds, 8);
   assert.equal(config.firstStage.qualify.count, 8);
-  assert.deepEqual(config.knockout.map((p) => p.legs), [1,1,2]);
+  assert.deepEqual(config.knockout.map((p) => p.legs), [1,1,1]);
 });
 
 check('Mineiro 2026 usa três grupos de quatro e semifinal direta', () => {
@@ -286,14 +291,58 @@ check('slot de mata-mata de fase errada não antecipa confronto', () => {
   assert.equal(getStateMatchForCalendarSlot(cup, { phase:'Quartas', leg:'leg1' }).hasCupMatch, true);
 });
 
-check('calendário estadual ocupa janeiro-março e mantém espaçamento seguro', () => {
+check('cada estadual tem calendário 2026 próprio e todos os eventos recebem data-base', () => {
+  assert.equal(Object.keys(STATE_2026_CALENDARS).length, STATE_CUP_KEYS.length);
+  const windows = new Set();
+  for (const key of STATE_CUP_KEYS) {
+    const config = STATE_2026_CONFIGS[key];
+    const participant = config.participants?.[0] || Object.values(config.groups || {})[0]?.[0];
+    const estadual = initStateCompetition(game(participant, `Teste ${key}`));
+    const report = validateStateCalendarAgainstEvents(estadual.calendarEvents, key, { season:2026 });
+    assert.equal(report.valid, true, `${key}: ${report.missing.join(', ')}`);
+    assert.equal(report.targets.length, estadual.calendarEvents.length);
+    assert.equal(report.targets[0], STATE_2026_CALENDARS[key].start);
+    assert.equal(report.targets.at(-1), STATE_2026_CALENDARS[key].end);
+    windows.add(`${STATE_2026_CALENDARS[key].start}|${STATE_2026_CALENDARS[key].end}`);
+  }
+  assert.ok(windows.size >= 9, 'os estaduais não podem compartilhar uma única janela genérica');
+});
+
+check('Paulistão usa datas próprias de rodadas/fases e calendário global mantém espaçamento seguro', () => {
   const estadual = initStateCompetition(game('br-palmeiras', 'Palmeiras'));
+  const targetDates = buildStateCompetitionTargetDates(estadual.calendarEvents, 'paulista', { season:2026 });
+  assert.deepEqual(targetDates.slice(0, 3), ['2026-01-11','2026-01-14','2026-01-18']);
+  assert.deepEqual(targetDates.slice(-3), ['2026-02-22','2026-03-01','2026-03-08']);
   const calendar = CalendarEngine.buildCalendar(38, { estadual }, 'A', { season:2026 });
   const entries = calendar.filter((entry) => entry.cupKey === 'paulista');
   assert.equal(entries.length, estadual.calendarEvents.length);
   assert.equal(validateCalendarSpacing(calendar).ok, true);
-  assert.ok(entries[0].targetDateISO >= '2026-01-11');
-  assert.ok(entries.at(-1).targetDateISO <= '2026-03-08');
+  assert.equal(entries[0].targetDateISO, '2026-01-11');
+  assert.equal(entries.at(-1).targetDateISO, '2026-03-08');
+});
+
+check('Baianão usa datas-base próprias inclusive nas rodadas de fevereiro', () => {
+  const estadual = initStateCompetition(game('br-bahia', 'Bahia'));
+  const targets = buildStateCompetitionTargetDates(estadual.calendarEvents, 'baiano', { season:2026 });
+  assert.deepEqual(targets.slice(0, 4), ['2026-01-10','2026-01-13','2026-01-17','2026-01-20']);
+  assert.deepEqual(targets.slice(-4), ['2026-02-11','2026-02-21','2026-02-28','2026-03-07']);
+});
+
+check('Paraense, Paraibano, Potiguar e Sergipano usam as datas-base próprias verificadas de 2026', () => {
+  const cases = [
+    ['paraense','br-remo','Remo',
+      ['2026-01-24','2026-01-31','2026-02-04','2026-02-07','2026-02-11','2026-02-15','2026-02-18','2026-02-22','2026-03-01','2026-03-08']],
+    ['paraibano','br-botafogo-pb','Botafogo-PB',
+      ['2026-01-17','2026-01-21','2026-01-24','2026-01-28','2026-01-31','2026-02-04','2026-02-08','2026-02-09','2026-02-21','2026-02-28','2026-03-07','2026-03-15','2026-03-21']],
+    ['potiguar','br-abc','ABC',
+      ['2026-01-10','2026-01-14','2026-01-17','2026-01-24','2026-01-31','2026-02-04','2026-02-07','2026-02-28','2026-03-04','2026-03-07','2026-03-14','2026-03-18','2026-03-21']],
+    ['sergipano','br-confianca','Confiança',
+      ['2026-01-10','2026-01-16','2026-01-21','2026-01-24','2026-01-31','2026-02-03','2026-02-07','2026-02-10','2026-02-14','2026-02-20','2026-02-25','2026-02-28','2026-03-07','2026-03-14']],
+  ];
+  for (const [key, teamId, name, expected] of cases) {
+    const estadual = initStateCompetition(game(teamId, name));
+    assert.deepEqual(buildStateCompetitionTargetDates(estadual.calendarEvents, key, { season:2026 }), expected, key);
+  }
 });
 
 check('primeiro jogo paulista percorre criação, calendário e simulação sem erro', () => {

@@ -67,7 +67,8 @@ test('rodapé da seleção de carreira mantém ações grandes e lado a lado', (
 test('menu principal reserva menos espaço para a navegação inferior', () => {
   assert.match(home, /pb:\s*7\.5/);
   assert.match(bottomNav, /54px/);
-  assert.match(bottomNav, /safe-area-inset-bottom/);
+  assert.match(bottomNav, /--app-safe-bottom/);
+  assert.match(style, /safe-area-inset-bottom/);
 });
 
 test('telas principais não reservam dez ou doze rem de espaço vazio sob o conteúdo', () => {

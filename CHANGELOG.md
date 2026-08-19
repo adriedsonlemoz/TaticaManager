@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.0.0-beta.63] - 2026-08-19
+
+### Android e identidade
+- Integra a arte aprovada do **Tática Manager** no splash web/nativo e deriva dela os ícones Android por densidade, sem gerar uma nova imagem.
+- O workflow Android aplica o branding depois de `cap sync` e instala `@capacitor/status-bar@8`.
+- Status/navigation bars usam edge-to-edge com ícones claros e uma área segura vinculada à cor do clube, evitando a faixa desconectada no Android moderno.
+
+### Estaduais 2026
+- Remove a interpolação única de 11/01–08/03 para os estaduais.
+- Carioca, Gauchão, Paulista, Mineiro, Paranaense, Catarinense, Baiano, Pernambucano, Goiano, Paraense, Paraibano, Alagoano, Potiguar e Sergipano passam a ter datas-base próprias por rodada e por fase.
+- A visão anual usa apenas o envelope 07/01–21/03; cada competição consulta sua própria janela real.
+- O gerenciador global continua podendo reposicionar o jogo do usuário quando houver choque, mantendo o descanso mínimo sem apagar a data-base da competição.
+- Paraense, Paraibano, Potiguar e Sergipano tiveram as sequências de 2026 revisadas novamente contra tabelas/resultados publicados, cobrindo também quartas/playoff, semifinais e finais.
+- Save schema sobe para **16**: estaduais ainda não iniciados migram para o novo calendário; campeonatos já em andamento preservam sua agenda legada até a virada da temporada.
+
+### Regressões
+- Estaduais: **48/48**; calendário civil: **17/17**; Android/CI: **19/19**; schema/migrações: **40/40**.
+- Suíte funcional completa: **1.057/1.057 verificações aprovadas em 37 grupos**.
+
 ## [1.0.0-beta.62] - 2026-08-19
 
 ### Série C 2026 e calendário

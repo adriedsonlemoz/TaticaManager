@@ -18,7 +18,20 @@
   --danger:       #941818;
   --warning:      #b87a00;
   --info:         #1565c0;
+  --app-system-top: #04150b;
+  --app-system-bottom: #04150b;
+  --app-safe-top: env(safe-area-inset-top, 0px);
+  --app-safe-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/* Android 15/16 força edge-to-edge. O Capacitor marca a WebView como nativa
+   em app.jsx e estes pisos garantem que conteúdo e navegação não disputem
+   espaço com os ícones das barras do sistema. */
+html.is-native-app {
+  --app-safe-top: max(env(safe-area-inset-top, 0px), 24px);
+  --app-safe-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
+}
+
 
 /* Reset base */
 *, *::before, *::after { box-sizing: border-box; }

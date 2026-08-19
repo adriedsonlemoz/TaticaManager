@@ -104,7 +104,7 @@ export const STATE_2026_CONFIGS = Object.freeze({
       'br-corinthians','br-ponte-preta','br-palmeiras','br-portuguesa-sp','br-sao-paulo','br-mirassol','br-santos','br-novorizontino',
       'state-primavera-sp','br-guarani','br-noroeste','br-sao-bernardo','br-velo-clube','br-red-bull-bragantino','state-capivariano-sp','br-botafogo-sp',
     ]),
-    knockout:Object.freeze([phase('Quartas','Quartas de Final',1), phase('Semifinal','Semifinal',1), phase('Final','Final',2)]),
+    knockout:Object.freeze([phase('Quartas','Quartas de Final',1), phase('Semifinal','Semifinal',1), phase('Final','Final',1)]),
   }),
   mineiro: Object.freeze({
     key:'mineiro', label:'🏟️ Campeonato Mineiro', shortLabel:'Mineiro', color:'#6a1b9a',
