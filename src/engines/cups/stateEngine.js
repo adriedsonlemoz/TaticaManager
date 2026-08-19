@@ -188,6 +188,14 @@ function getOverallTable(cup) {
   return sortTable(Object.values(cup.groupTables || {}).flat());
 }
 
+function visibleTable(config, tables, userGroupKey) {
+  if (config?.firstStage?.tableMode === 'global') {
+    if (tables?.Geral) return sortTable(tables.Geral);
+    return sortTable(Object.values(tables || {}).flat());
+  }
+  return sortTable(tables?.[userGroupKey] || tables?.Geral || []);
+}
+
 function uniqueTeams(teams = []) {
   const seen = new Set();
   return teams.filter((team) => {
@@ -196,6 +204,10 @@ function uniqueTeams(teams = []) {
     seen.add(id);
     return true;
   });
+}
+
+function isDirectSemiPlayoff(qualify = {}) {
+  return ['pernambuco-2026', 'direct-semi-playoff'].includes(qualify.type);
 }
 
 function qualificationSnapshot(cup, config) {
@@ -222,7 +234,7 @@ function qualificationSnapshot(cup, config) {
     };
   }
 
-  if (qualify.type === 'pernambuco-2026') {
+  if (isDirectSemiPlayoff(qualify)) {
     const top = all.slice(0, Math.max(qualify.playoffTo || 6, qualify.directSemi || 2));
     const rank = userOverallRank;
     if (rank >= 1 && rank <= (qualify.directSemi || 2)) return { qualified:top, user, userRank:rank, userQualified:true, startIndex:1, directSemi:true };
@@ -246,12 +258,14 @@ function firstOpponent(cup, config, snapshot) {
     const count = Number(config.firstStage?.qualify?.count) || 4;
     return findByRank(table, count + 1 - snapshot.userRank);
   }
-  if (pairing === 'pernambuco-playoff' && snapshot.startIndex === 0) {
-    return findByRank(getOverallTable(cup), 9 - snapshot.userRank);
+  if (['pernambuco-playoff', 'direct-semi-playoff'].includes(pairing) && snapshot.startIndex === 0) {
+    const qualify = config.firstStage?.qualify || {};
+    return findByRank(getOverallTable(cup), (Number(qualify.playoffFrom) || 3) + (Number(qualify.playoffTo) || 6) - snapshot.userRank);
   }
   const qualified = sortTable(snapshot.qualified || []);
-  if (snapshot.startIndex === 1 && pairing === 'pernambuco-playoff') {
-    const playoffPool = qualified.slice(2).filter((team) => !team.isPlayer);
+  if (snapshot.startIndex === 1 && ['pernambuco-playoff', 'direct-semi-playoff'].includes(pairing)) {
+    const directSemi = Number(config.firstStage?.qualify?.directSemi) || 2;
+    const playoffPool = qualified.slice(directSemi).filter((team) => !team.isPlayer);
     return playoffPool.at(-1) || playoffPool[0] || qualified.find((team) => !team.isPlayer) || null;
   }
   const seed = qualified.findIndex((team) => team.isPlayer) + 1;
@@ -315,7 +329,7 @@ function buildTeamsAndTables(config, gameData) {
 
 function displayQualifyCount(config) {
   const qualify = config.firstStage?.qualify || {};
-  if (qualify.type === 'pernambuco-2026') return qualify.playoffTo || 6;
+  if (isDirectSemiPlayoff(qualify)) return qualify.playoffTo || 6;
   if (qualify.type === 'group-winners-plus-best-runner-up') return 1;
   return qualify.count || 4;
 }
@@ -323,8 +337,10 @@ function displayQualifyCount(config) {
 function stateTablePresentation(config) {
   const qualify = config.firstStage?.qualify || {};
   const tableLabel = config.firstStage?.tableMode === 'global' ? 'CLASSIFICAÇÃO GERAL' : 'TABELA DO GRUPO';
-  if (qualify.type === 'pernambuco-2026') {
-    return { tableLabel, qualificationNote:`🟢 1º–${qualify.directSemi || 2}º às semifinais · ${qualify.playoffFrom || 3}º–${qualify.playoffTo || 6}º aos playoffs` };
+  if (isDirectSemiPlayoff(qualify)) {
+    const direct = Number(qualify.directSemi) || 2;
+    const directLabel = direct === 1 ? '1º direto à semifinal' : `1º–${direct}º às semifinais`;
+    return { tableLabel, qualificationNote:`🟢 ${directLabel} · ${qualify.playoffFrom || (direct + 1)}º–${qualify.playoffTo || 6}º aos playoffs` };
   }
   if (qualify.type === 'group-winners-plus-best-runner-up') {
     return { tableLabel, qualificationNote:'🟢 Líder de cada grupo + melhor 2º avançam' };
@@ -350,7 +366,7 @@ export function initStateCompetition(gameData = {}, { rng = Math.random } = {}) 
     phase:'group', phaseLabel:'Fase Classificatória', qualifyCount:displayQualifyCount(config),
     ...stateTablePresentation(config),
     tableMode:config.firstStage?.tableMode || (config.groups ? 'groups' : 'global'),
-    group:groupTables[userGroupKey] || groupTables.Geral || [], groupTables, groupRounds,
+    group:visibleTable(config, groupTables, userGroupKey), groupTables, groupRounds,
     groupMatches:buildUserGroupMatches(groupRounds),
     qualifiedTeams:[], knockoutPhaseIndex:-1, currentTie:null, history:[], totalPrize:0,
     calendarEvents:buildCalendarEvents(config, groupRounds.length),
@@ -361,7 +377,7 @@ function finishGroup(cup, rng) {
   const config = STATE_2026_CONFIGS[cup.competitionKey];
   if (!config) return cup;
   const snapshot = qualificationSnapshot(cup, config);
-  const table = sortTable(cup.groupTables?.[cup.userGroupKey] || cup.groupTables?.Geral || []);
+  const table = visibleTable(config, cup.groupTables, cup.userGroupKey);
   const historyGroup = config.firstStage?.tableMode === 'global' ? getOverallTable(cup) : table;
   const firstStageHistory = { label:'Fase Classificatória', group:historyGroup };
   if (!snapshot.userQualified) {
@@ -403,7 +419,7 @@ function recordGroupResult(cup, entry, homeGoals, awayGoals, rng) {
     groupTables:tables,
     groupRounds:cpu.rounds,
     groupMatches,
-    group:sortTable(tables[cup.userGroupKey] || tables.Geral || []),
+    group:visibleTable(STATE_2026_CONFIGS[cup.competitionKey], tables, cup.userGroupKey),
   };
   return groupMatches.every((item) => item.leg1?.played) ? finishGroup(next, rng) : next;
 }

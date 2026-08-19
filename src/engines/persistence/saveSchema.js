@@ -13,7 +13,7 @@ import { initCopaBrasil } from '../cups/copaBrasilEngine.js';
 import { CalendarEngine } from '../CalendarEngine.js';
 import { reconcileNewsFeed } from '../news/newsEngine.js';
 
-export const CURRENT_SAVE_SCHEMA_VERSION = 13;
+export const CURRENT_SAVE_SCHEMA_VERSION = 14;
 export const SAVE_SCHEMA_FIELD = 'saveSchemaVersion';
 
 const SERIES_KEYS = Object.freeze(['A', 'B', 'C', 'D']);
@@ -433,6 +433,43 @@ function migrateV12ToV13(input = {}) {
   };
 }
 
+// Schema 14 amplia a camada estadual de 8 para 14 campeonatos. Como nas
+// migrações anteriores, uma competição nova só é anexada imediatamente quando
+// a temporada ainda está zerada; carreiras em andamento preservam a agenda e
+// recebem o novo estadual na próxima virada.
+function migrateV13ToV14(input = {}) {
+  const normalized = reconcileLeaguePyramid(input);
+  const cups = asObject(normalized.cups);
+  const hasPlayed = (normalized.fixtures || []).flat().some((match) => match?.played === true);
+  const alreadyStarted = (Number(normalized.round) || 0) > 0 || (Number(normalized.leagueRound) || 0) > 0 || hasPlayed;
+
+  if (alreadyStarted) {
+    return {
+      ...normalized,
+      stateChampionshipModel:cups.estadual ? 'state-v3-14-championships' : 'deferred-until-next-season',
+      saveSchemaVersion:14,
+    };
+  }
+
+  if (cups.estadual) {
+    return {
+      ...normalized,
+      stateChampionshipModel:'state-v3-14-championships',
+      saveSchemaVersion:14,
+    };
+  }
+
+  const estadual = initStateCompetition(normalized);
+  const nextCups = estadual ? { ...cups, estadual } : cups;
+  return {
+    ...normalized,
+    cups:nextCups,
+    ...(estadual ? rebuildUnstartedCalendar(normalized, nextCups) : {}),
+    stateChampionshipModel:estadual ? 'state-v3-14-championships' : 'not-eligible',
+    saveSchemaVersion:14,
+  };
+}
+
 
 const MIGRATIONS = Object.freeze({
   0: migrateV0ToV1,
@@ -448,6 +485,7 @@ const MIGRATIONS = Object.freeze({
   10: migrateV10ToV11,
   11: migrateV11ToV12,
   12: migrateV12ToV13,
+  13: migrateV13ToV14,
 });
 
 function normalizeCurrentSchema(input = {}) {

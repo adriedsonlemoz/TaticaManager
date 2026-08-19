@@ -21,8 +21,11 @@ const winAllFirstStage = (initial) => {
   return cup;
 };
 
-check('beta 58 expõe oito estaduais implementados', () => {
-  assert.deepEqual([...STATE_CUP_KEYS].sort(), ['baiano','carioca','catarinense','gauchao','mineiro','paranaense','paulista','pernambucano'].sort());
+check('beta 60 expõe quatorze estaduais implementados', () => {
+  assert.deepEqual([...STATE_CUP_KEYS].sort(), [
+    'alagoano','baiano','carioca','catarinense','gauchao','goiano','mineiro','paraense','paraibano',
+    'paranaense','paulista','pernambucano','potiguar','sergipano',
+  ].sort());
 });
 
 check('Carioca 2026 mantém duas chaves de seis clubes', () => {
@@ -83,8 +86,55 @@ check('Pernambucano 2026 usa oito clubes e playoff entre 3º e 6º', () => {
   assert.deepEqual(config.knockout.map((p) => p.legs), [2,2,2]);
 });
 
+check('Goiano 2026 usa três grupos de quatro, oito jogos e G8 geral', () => {
+  const config = STATE_2026_CONFIGS.goiano;
+  assert.deepEqual(Object.values(config.groups).map((group) => group.length), [4,4,4]);
+  assert.equal(config.firstStage.mode, 'outside-groups');
+  assert.equal(config.firstStage.qualify.count, 8);
+  assert.deepEqual(config.knockout.map((p) => p.legs), [2,2,2]);
+});
 
-check('metadados de calendário/partidas cobrem os oito estaduais sem fallback genérico', () => {
+check('Paraense 2026 usa duas chaves de seis, tabela geral e quartas/semis únicas', () => {
+  const config = STATE_2026_CONFIGS.paraense;
+  assert.deepEqual(Object.values(config.groups).map((group) => group.length), [6,6]);
+  assert.equal(config.firstStage.tableMode, 'global');
+  assert.equal(config.firstStage.qualify.count, 8);
+  assert.deepEqual(config.knockout.map((p) => p.legs), [1,1,2]);
+});
+
+check('Paraibano 2026 usa dez clubes e semifinal/final em ida e volta', () => {
+  const config = STATE_2026_CONFIGS.paraibano;
+  assert.equal(config.participants.length, 10);
+  assert.equal(config.firstStage.qualify.count, 4);
+  assert.deepEqual(config.knockout.map((p) => p.legs), [2,2]);
+});
+
+check('Alagoano 2026 usa oito clubes e mata-mata em ida e volta', () => {
+  const config = STATE_2026_CONFIGS.alagoano;
+  assert.equal(config.participants.length, 8);
+  assert.equal(config.firstStage.qualify.count, 4);
+  assert.deepEqual(config.knockout.map((p) => p.legs), [2,2]);
+});
+
+check('Potiguar 2026 dá semifinal direta ao G2 e playoff ao 3º–6º', () => {
+  const config = STATE_2026_CONFIGS.potiguar;
+  assert.equal(config.participants.length, 8);
+  assert.equal(config.firstStage.qualify.directSemi, 2);
+  assert.equal(config.firstStage.qualify.playoffFrom, 3);
+  assert.equal(config.firstStage.qualify.playoffTo, 6);
+  assert.deepEqual(config.knockout.map((p) => p.legs), [2,2,2]);
+});
+
+check('Sergipano 2026 dá semifinal direta ao líder e playoff ao 2º–7º', () => {
+  const config = STATE_2026_CONFIGS.sergipano;
+  assert.equal(config.participants.length, 10);
+  assert.equal(config.firstStage.qualify.directSemi, 1);
+  assert.equal(config.firstStage.qualify.playoffFrom, 2);
+  assert.equal(config.firstStage.qualify.playoffTo, 7);
+  assert.deepEqual(config.knockout.map((p) => p.legs), [1,2,2]);
+});
+
+check('metadados de calendário/partidas cobrem os quatorze estaduais sem fallback genérico', () => {
   for (const key of STATE_CUP_KEYS) {
     const config = STATE_2026_CONFIGS[key];
     assert.equal(getCupLabel(key), config.label);
@@ -103,6 +153,12 @@ check('tabela estadual descreve corretamente classificação global e regras esp
   const pernambucano = initStateCompetition(game('br-sport', 'Sport'));
   assert.match(pernambucano.qualificationNote, /semifinais/);
   assert.match(pernambucano.qualificationNote, /playoffs/);
+  const sergipano = initStateCompetition(game('br-confianca', 'Confiança', 'C'));
+  assert.match(sergipano.qualificationNote, /1º direto/);
+  assert.match(sergipano.qualificationNote, /2º–7º/);
+  const goiano = initStateCompetition(game('br-goias', 'Goiás', 'B'));
+  assert.equal(goiano.tableLabel, 'CLASSIFICAÇÃO GERAL');
+  assert.match(goiano.qualificationNote, /Top 8/);
 });
 
 const autoCases = [
@@ -114,6 +170,12 @@ const autoCases = [
   ['br-avai','Avaí','catarinense',6],
   ['br-bahia','Bahia','baiano',9],
   ['br-sport','Sport','pernambucano',7],
+  ['br-goias','Goiás','goiano',8],
+  ['br-remo','Remo','paraense',6],
+  ['br-botafogo-pb','Botafogo-PB','paraibano',9],
+  ['br-crb','CRB','alagoano',7],
+  ['br-abc','ABC','potiguar',7],
+  ['br-confianca','Confiança','sergipano',9],
 ];
 
 for (const [teamId, name, key, rounds] of autoCases) {
@@ -172,6 +234,39 @@ check('sete vitórias colocam Sport direto na semifinal e pulam slot de playoff'
   const semifinal = getStateMatchForCalendarSlot(cup, { phase:'Semifinal', leg:'leg1', isGroup:false });
   assert.equal(playoff.hasCupMatch, false);
   assert.equal(semifinal.hasCupMatch, true);
+});
+
+check('Goiano gera oito rodadas sem confronto dentro do próprio grupo e tabela global de 12', () => {
+  const cup = initStateCompetition(game('br-goias', 'Goiás', 'B'));
+  const groupOf = new Map(Object.entries(STATE_2026_CONFIGS.goiano.groups).flatMap(([key, ids]) => ids.map((id) => [id,key])));
+  assert.equal(cup.groupRounds.length, 8);
+  assert.equal(cup.group.length, 12);
+  for (const round of cup.groupRounds) {
+    for (const match of round) assert.notEqual(groupOf.get(match.home.sourceTeamId), groupOf.get(match.away.sourceTeamId));
+  }
+});
+
+check('Paraense gera seis jogos cruzados e classificação global de 12 clubes', () => {
+  const cup = initStateCompetition(game('br-remo', 'Remo'));
+  assert.equal(cup.groupMatches.length, 6);
+  assert.equal(cup.group.length, 12);
+  const opponents = cup.groupMatches.map((match) => (match.home.isPlayer ? match.away : match.home).sourceTeamId);
+  assert.equal(new Set(opponents).size, 6);
+});
+
+check('sete vitórias colocam ABC direto na semifinal potiguar e pulam playoff', () => {
+  const cup = winAllFirstStage(initStateCompetition(game('br-abc','ABC','D')));
+  assert.equal(cup.phaseLabel, 'Semifinal');
+  assert.equal(cup.knockoutPhaseIndex, 1);
+  assert.equal(getStateMatchForCalendarSlot(cup, { phase:'Playoff', leg:'leg1' }).hasCupMatch, false);
+  assert.equal(getStateMatchForCalendarSlot(cup, { phase:'Semifinal', leg:'leg1' }).hasCupMatch, true);
+});
+
+check('nove vitórias colocam Confiança direto na semifinal sergipana', () => {
+  const cup = winAllFirstStage(initStateCompetition(game('br-confianca','Confiança','C')));
+  assert.equal(cup.phaseLabel, 'Semifinal');
+  assert.equal(cup.knockoutPhaseIndex, 1);
+  assert.equal(getStateMatchForCalendarSlot(cup, { phase:'Playoff', leg:'leg1' }).hasCupMatch, false);
 });
 
 check('resultado estadual não é aplicado duas vezes', () => {

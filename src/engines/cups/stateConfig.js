@@ -37,6 +37,43 @@ export const STATE_EXTRA_TEAMS = Object.freeze({
   // PE
   'state-jaguar-pe': extra('state-jaguar-pe', 'Jaguar', 51),
   'state-vitoria-tabocas-pe': extra('state-vitoria-tabocas-pe', 'Vitória das Tabocas', 52),
+  // GO
+  'state-anapolina-go': extra('state-anapolina-go', 'Anapolina', 53),
+  'state-jataiense-go': extra('state-jataiense-go', 'Jataiense', 52),
+  'state-centro-oeste-go': extra('state-centro-oeste-go', 'Centro Oeste', 51),
+  // PA
+  'state-cameta-pa': extra('state-cameta-pa', 'Cametá', 53),
+  'state-capitao-poco-pa': extra('state-capitao-poco-pa', 'Capitão Poço', 51),
+  'state-santa-rosa-pa': extra('state-santa-rosa-pa', 'Santa Rosa-PA', 51),
+  'state-sao-raimundo-pa': extra('state-sao-raimundo-pa', 'São Raimundo-PA', 52),
+  'state-amazonia-pa': extra('state-amazonia-pa', 'Amazônia Independente', 51),
+  'state-bragantino-pa': extra('state-bragantino-pa', 'Bragantino-PA', 52),
+  'state-castanhal-pa': extra('state-castanhal-pa', 'Castanhal', 52),
+  'state-sao-francisco-pa': extra('state-sao-francisco-pa', 'São Francisco-PA', 52),
+  // PB
+  'state-atletico-pb': extra('state-atletico-pb', 'Atlético-PB', 51),
+  'state-confianca-pb': extra('state-confianca-pb', 'Confiança-PB', 51),
+  'state-esporte-patos-pb': extra('state-esporte-patos-pb', 'Esporte de Patos', 52),
+  'state-nacional-patos-pb': extra('state-nacional-patos-pb', 'Nacional de Patos', 52),
+  'state-pombal-pb': extra('state-pombal-pb', 'Pombal', 51),
+  // AL
+  'state-coruripe-al': extra('state-coruripe-al', 'Coruripe', 52),
+  'state-cruzeiro-al': extra('state-cruzeiro-al', 'Cruzeiro-AL', 51),
+  'state-murici-al': extra('state-murici-al', 'Murici', 52),
+  'state-penedense-al': extra('state-penedense-al', 'Penedense', 51),
+  // RN
+  'state-potiguar-rn': extra('state-potiguar-rn', 'Potiguar de Mossoró', 53),
+  'state-globo-rn': extra('state-globo-rn', 'Globo', 51),
+  'state-santa-cruz-rn': extra('state-santa-cruz-rn', 'Santa Cruz-RN', 51),
+  'state-qfc-rn': extra('state-qfc-rn', 'QFC', 51),
+  'state-potyguar-rn': extra('state-potyguar-rn', 'Potyguar Seridoense', 51),
+  // SE
+  'state-america-propria-se': extra('state-america-propria-se', 'América de Propriá', 51),
+  'state-guarany-se': extra('state-guarany-se', 'Guarany-SE', 51),
+  'state-desportiva-aracaju-se': extra('state-desportiva-aracaju-se', 'Desportiva Aracaju', 50),
+  'state-atletico-gloriense-se': extra('state-atletico-gloriense-se', 'Atlético Gloriense', 50),
+  'state-dorense-se': extra('state-dorense-se', 'Dorense', 51),
+  'state-falcon-se': extra('state-falcon-se', 'Falcon', 52),
 });
 
 const phase = (name, label, legs = 1) => Object.freeze({ phase:name, label, legs });
@@ -107,11 +144,62 @@ export const STATE_2026_CONFIGS = Object.freeze({
     key:'pernambucano', label:'🏟️ Campeonato Pernambucano', shortLabel:'Pernambucano', color:'#c62828',
     firstStage:Object.freeze({
       mode:'round-robin', tableMode:'global',
-      qualify:Object.freeze({ type:'pernambuco-2026', directSemi:2, playoffFrom:3, playoffTo:6 }),
-      firstPairing:'pernambuco-playoff',
+      qualify:Object.freeze({ type:'direct-semi-playoff', directSemi:2, playoffFrom:3, playoffTo:6 }),
+      firstPairing:'direct-semi-playoff',
     }),
     participants:Object.freeze(['br-decisao','state-jaguar-pe','br-maguary','br-nautico','br-retro','br-santa-cruz','br-sport','state-vitoria-tabocas-pe']),
     knockout:Object.freeze([phase('Playoff','Fase Eliminatória',2), phase('Semifinal','Semifinal',2), phase('Final','Final',2)]),
+  }),
+  goiano: Object.freeze({
+    key:'goiano', label:'🏟️ Campeonato Goiano', shortLabel:'Goiano', color:'#00897b',
+    firstStage:Object.freeze({ mode:'outside-groups', tableMode:'global', qualify:Object.freeze({ type:'global-top', count:8 }), firstPairing:'global-seeded' }),
+    groups:Object.freeze({
+      A:Object.freeze(['br-vila-nova','br-crac','br-inhumas','br-goiatuba']),
+      B:Object.freeze(['br-anapolis','br-goias','state-jataiense-go','br-aparecidense']),
+      C:Object.freeze(['br-atletico-go','br-abecat','state-centro-oeste-go','state-anapolina-go']),
+    }),
+    knockout:Object.freeze([phase('Quartas','Quartas de Final',2), phase('Semifinal','Semifinal',2), phase('Final','Final',2)]),
+  }),
+  paraense: Object.freeze({
+    key:'paraense', label:'🏟️ Campeonato Paraense', shortLabel:'Paraense', color:'#1565c0',
+    firstStage:Object.freeze({ mode:'cross-groups', tableMode:'global', qualify:Object.freeze({ type:'global-top', count:8 }), firstPairing:'global-seeded' }),
+    groups:Object.freeze({
+      A:Object.freeze(['br-remo','state-cameta-pa','state-capitao-poco-pa','state-santa-rosa-pa','state-sao-raimundo-pa','br-tuna-luso']),
+      B:Object.freeze(['br-paysandu','state-amazonia-pa','br-aguia-de-maraba','state-bragantino-pa','state-castanhal-pa','state-sao-francisco-pa']),
+    }),
+    knockout:Object.freeze([phase('Quartas','Quartas de Final',1), phase('Semifinal','Semifinal',1), phase('Final','Final',2)]),
+  }),
+  paraibano: Object.freeze({
+    key:'paraibano', label:'🏟️ Campeonato Paraibano', shortLabel:'Paraibano', color:'#3949ab',
+    firstStage:Object.freeze({ mode:'round-robin', tableMode:'global', qualify:Object.freeze({ type:'global-top', count:4 }), firstPairing:'global-seeded' }),
+    participants:Object.freeze(['state-atletico-pb','br-botafogo-pb','br-campinense','state-confianca-pb','state-esporte-patos-pb','state-nacional-patos-pb','state-pombal-pb','br-serra-branca','br-sousa','br-treze']),
+    knockout:Object.freeze([phase('Semifinal','Semifinal',2), phase('Final','Final',2)]),
+  }),
+  alagoano: Object.freeze({
+    key:'alagoano', label:'🏟️ Campeonato Alagoano', shortLabel:'Alagoano', color:'#2e7d32',
+    firstStage:Object.freeze({ mode:'round-robin', tableMode:'global', qualify:Object.freeze({ type:'global-top', count:4 }), firstPairing:'global-seeded' }),
+    participants:Object.freeze(['br-asa','state-coruripe-al','br-csa','br-crb','br-cse','state-cruzeiro-al','state-murici-al','state-penedense-al']),
+    knockout:Object.freeze([phase('Semifinal','Semifinal',2), phase('Final','Final',2)]),
+  }),
+  potiguar: Object.freeze({
+    key:'potiguar', label:'🏟️ Campeonato Potiguar', shortLabel:'Potiguar', color:'#558b2f',
+    firstStage:Object.freeze({
+      mode:'round-robin', tableMode:'global',
+      qualify:Object.freeze({ type:'direct-semi-playoff', directSemi:2, playoffFrom:3, playoffTo:6 }),
+      firstPairing:'direct-semi-playoff',
+    }),
+    participants:Object.freeze(['br-abc','br-america-rn','state-potiguar-rn','br-laguna','state-globo-rn','state-santa-cruz-rn','state-qfc-rn','state-potyguar-rn']),
+    knockout:Object.freeze([phase('Playoff','Mata-Mata Classificatório',2), phase('Semifinal','Semifinal',2), phase('Final','Final',2)]),
+  }),
+  sergipano: Object.freeze({
+    key:'sergipano', label:'🏟️ Campeonato Sergipano', shortLabel:'Sergipano', color:'#f9a825',
+    firstStage:Object.freeze({
+      mode:'round-robin', tableMode:'global',
+      qualify:Object.freeze({ type:'direct-semi-playoff', directSemi:1, playoffFrom:2, playoffTo:7 }),
+      firstPairing:'direct-semi-playoff',
+    }),
+    participants:Object.freeze(['state-america-propria-se','state-guarany-se','state-desportiva-aracaju-se','state-atletico-gloriense-se','br-confianca','br-itabaiana','br-sergipe','state-dorense-se','state-falcon-se','br-lagarto']),
+    knockout:Object.freeze([phase('Playoff','Fase Eliminatória',1), phase('Semifinal','Semifinal',2), phase('Final','Final',2)]),
   }),
 });
 

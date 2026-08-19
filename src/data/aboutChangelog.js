@@ -5,6 +5,19 @@ export const buildAboutChangelog = (C) => [
     v: APP_VERSION_LABEL,
     tag: 'ATUAL',
     color: C.green,
+    title: '6 novos estaduais · 14/27 · schema 14',
+    items: [
+      '🏟️ Goiano, Paraense, Paraibano, Alagoano, Potiguar e Sergipano 2026 entram no ciclo da carreira; o total sobe para 14 dos 27 estaduais planejados',
+      '🧩 Goiano/Paraense usam classificação geral mesmo com grupos; Potiguar e Sergipano compartilham uma regra genérica de vaga direta à semifinal + playoff intermediário',
+      '🗓️ Os seis campeonatos entram no scheduler estadual existente, preservando calendário civil, espaçamento entre jogos e os formatos de uma ou duas partidas do mata-mata',
+      '💾 Schema 14 adiciona os novos estaduais somente a saves ainda zerados; temporadas em andamento preservam a agenda e recebem a competição na próxima virada',
+      '🧪 Regressões estaduais passam a cobrir 14 competições, classificação global entre grupos e os atalhos de semifinal do Potiguar/Sergipano',
+    ],
+  },
+  {
+    v: 'v1.0 beta.59',
+    tag: '',
+    color: C.teal,
     title: 'Central de Notícias · determinismo · schema 13',
     items: [
       '📰 Nova Central de Notícias persistente reúne transferências, resultados, Copas, títulos, lesões, suspensões e desfechos de temporada a partir dos eventos reais do save',

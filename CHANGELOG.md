@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.0-beta.60] - 2026-08-18
+
+### Mais seis campeonatos estaduais
+- Implementados Campeonato Goiano, Paraense, Paraibano, Alagoano, Potiguar e Sergipano 2026, elevando a cobertura estadual de 8 para **14 dos 27** campeonatos planejados.
+- Goiano usa três grupos de quatro com oito confrontos contra as outras chaves, classificação geral G8 e quartas/semifinal/final em ida e volta.
+- Paraense usa duas chaves de seis com confrontos cruzados, classificação geral G8, quartas e semifinal em jogo único e final em ida e volta.
+- Paraibano usa dez clubes em turno único e G4 para semifinal/final em ida e volta; Alagoano usa oito clubes em turno único, G4 e semifinal/final em ida e volta.
+- Potiguar usa oito clubes, G2 direto às semifinais e playoff 3º–6º em ida e volta; Sergipano usa dez clubes, líder direto à semifinal e eliminatória 2º–7º em jogo único.
+- A regra especial de vaga direta à semifinal + playoff deixa de ser específica do Pernambucano e passa a ser declarativa/reutilizável entre competições.
+- Competições com grupos mas classificação geral (Goiano/Paraense) passam a expor a tabela global correta na UI e no histórico da fase.
+
+### Persistência e regressões
+- Save schema avança para **14**: saves beta 59 ainda zerados de clubes recém-atendidos podem receber o estadual imediatamente; carreiras já iniciadas preservam a agenda e recebem a competição apenas na próxima temporada.
+- `smoke-state-championships` sobe para **45/45** e `smoke-save-schema` para **36/36**.
+- Suíte completa: **1.032/1.032 verificações aprovadas em 37 grupos** antes da auditoria mecânica final.
+
 ## [1.0.0-beta.59] - 2026-08-18
 
 ### Central de Notícias
