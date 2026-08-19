@@ -5,7 +5,7 @@ import { HOME_THEME } from './homeTheme.js';
 
 const moneyFallback = (value) => `R$${((Number(value) || 0) / 1e6).toFixed(1)}M`;
 
-export default function HomeHeader({ viewModel, formatMoney }) {
+export default function HomeHeader({ viewModel, formatMoney, theme = HOME_THEME }) {
   const { club, clubSummary, headerStats, recentForm } = viewModel;
   const fmoney = (value) => formatMoney ? formatMoney(value) : moneyFallback(value);
   const position = clubSummary.position;
@@ -19,7 +19,7 @@ export default function HomeHeader({ viewModel, formatMoney }) {
 
   return (
     <Box sx={{
-      background: `linear-gradient(180deg, ${HOME_THEME.grassDk} 0%, ${HOME_THEME.grass} 100%)`,
+      background: `linear-gradient(180deg, ${theme.headerStart || theme.grassDk} 0%, ${theme.headerEnd || theme.grass} 100%)`,
       pt: { xs: 2, sm: 3 }, pb: 0, position: 'relative', overflow: 'hidden',
     }}>
       <Box aria-hidden="true" sx={{ position: 'absolute', inset: 0, opacity: 0.12, pointerEvents: 'none' }}>
@@ -44,13 +44,13 @@ export default function HomeHeader({ viewModel, formatMoney }) {
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography sx={{
-              color: '#fff', fontWeight: 900, fontSize: '1rem', fontFamily: '"Cinzel", serif',
+              color: '#fff', fontWeight: 900, fontSize: '1.08rem', fontFamily: '"Cinzel", serif',
               lineHeight: 1.1, textShadow: '0 2px 8px rgba(0,0,0,0.4)', overflow: 'hidden',
               whiteSpace: 'nowrap', textOverflow: 'ellipsis',
             }}>
               {club.name || 'Meu Clube'}
             </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.6rem', fontWeight: 700, mt: 0.3 }}>
+            <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.68rem', fontWeight: 700, mt: 0.3 }}>
               👔 {club.manager || 'Treinador'} · {club.managerProfile?.style || 'Equilibrado'}
             </Typography>
           </Box>
@@ -65,7 +65,7 @@ export default function HomeHeader({ viewModel, formatMoney }) {
             }}>
               {position > 0 ? position : '—'}
             </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.38rem', fontWeight: 800, letterSpacing: 1 }}>
+            <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.46rem', fontWeight: 800, letterSpacing: 1 }}>
               POSIÇÃO
             </Typography>
           </Box>
@@ -78,8 +78,8 @@ export default function HomeHeader({ viewModel, formatMoney }) {
               border: '1px solid rgba(255,255,255,0.3)', borderRadius: '8px', px: 0.75, py: 0.38,
               textAlign: 'center', minWidth: 56,
             }}>
-              <Typography sx={{ color: stat.color, fontWeight: 900, fontSize: '0.65rem', lineHeight: 1.1 }}>{stat.value}</Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontWeight: 700, fontSize: '0.38rem', letterSpacing: 0.5 }}>{stat.label}</Typography>
+              <Typography sx={{ color: stat.color, fontWeight: 900, fontSize: '0.72rem', lineHeight: 1.1 }}>{stat.value}</Typography>
+              <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontWeight: 700, fontSize: '0.44rem', letterSpacing: 0.35 }}>{stat.label}</Typography>
             </Box>
           ))}
 
@@ -96,14 +96,14 @@ export default function HomeHeader({ viewModel, formatMoney }) {
                   bgcolor: result === 'V' ? '#22c55e' : result === 'D' ? '#ef4444' : '#fbbf24',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)',
                 }}>
-                  <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: '0.38rem' }}>{result}</Typography>
+                  <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: '0.43rem' }}>{result}</Typography>
                 </Box>
               ))}
           </Box>
         </Box>
       </Box>
 
-      <Box sx={{ height: 10, bgcolor: HOME_THEME.bg, borderRadius: '40px 40px 0 0', position: 'relative', zIndex: 2 }} />
+      <Box sx={{ height: 10, bgcolor: theme.bg, borderRadius: '40px 40px 0 0', position: 'relative', zIndex: 2 }} />
     </Box>
   );
 }

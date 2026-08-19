@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import {
+  SERIE_C_2026_FIRST_PHASE_ROUNDS,
+  SERIE_C_2026_TOTAL_ROUNDS,
   SERIE_C_2027_FIRST_PHASE_ROUNDS,
   SERIE_C_2027_TOTAL_ROUNDS,
   advanceSerieCCompetitionAfterRound,
@@ -19,6 +21,12 @@ function initialized() {
   return { season:2027, serie:'C', club:{ teamId:'br-user', existingTeamId:'br-user' }, ...init, serieCCompetition:init.competition };
 }
 
+
+function initialized2026() {
+  const init = initializeSerieCCompetition({ userTeam:user, userCanonicalId:'br-user', cpuTeams:cpu.slice(0,19), season:2026 });
+  return { season:2026, serie:'C', club:{ teamId:'br-user', existingTeamId:'br-user' }, ...init, serieCCompetition:init.competition };
+}
+
 function playRoundForUser(state, index, userWins = true) {
   const fixtures = state.fixtures.map((round) => [...(round || [])]);
   fixtures[index] = (fixtures[index] || []).map((match, m) => {
@@ -30,6 +38,40 @@ function playRoundForUser(state, index, userWins = true) {
   });
   return advanceSerieCCompetitionAfterRound({ ...state, fixtures }, index);
 }
+
+test('Série C 2026 inicia com 20 clubes, 19 rodadas e 27 datas totais', () => {
+  const state = initialized2026();
+  assert.equal(state.teams.length, 20);
+  assert.equal(state.fixtures.length, SERIE_C_2026_TOTAL_ROUNDS);
+  assert.equal(state.fixtures.slice(0, SERIE_C_2026_FIRST_PHASE_ROUNDS).every((round) => round.length === 10), true);
+  assert.equal(state.serieCCompetition.format, '2026-20-single-quadrangular');
+});
+
+test('Série C 2026 forma G8 e dois quadrangulares após a 19ª rodada', () => {
+  let state = initialized2026();
+  for (let i = 0; i < 19; i += 1) state = playRoundForUser(state, i, true);
+  assert.equal(state.serieCCompetition.qualifiers.length, 8);
+  assert.equal(state.serieCCompetition.groups.B.length, 4);
+  assert.equal(state.serieCCompetition.groups.C.length, 4);
+  assert.equal(state.fixtures.slice(19,25).every((round) => round.length === 4), true);
+});
+
+test('Série C 2026 usa as datas 26 e 27 para a final em ida e volta', () => {
+  let state = initialized2026();
+  for (let i = 0; i < 19; i += 1) state = playRoundForUser(state, i, true);
+  for (let i = 19; i <= 24; i += 1) state = playRoundForUser(state, i, true);
+  assert.equal(state.serieCCompetition.phase, 'final');
+  assert.equal(state.fixtures[25].length, 1);
+  assert.equal(state.fixtures[26].length, 1);
+});
+
+test('simulação CPU da Série C 2026 consolida quatro acessos e dois rebaixamentos', () => {
+  const teams = [{ ...user, id:'cpu-user', teamId:null, canonicalTeamId:null, isPlayer:false }, ...cpu.slice(0,19)];
+  const out = simulateCpuSerieCOutcome(teams, 2026);
+  assert.equal(out.promotedCanonicalIds.length, 4);
+  assert.equal(out.relegatedCanonicalIds.length, 2);
+  assert.ok(out.championCanonicalId);
+});
 
 test('Série C 2027 inicia com 24 clubes e 23 rodadas de grupo único', () => {
   const state = initialized();
@@ -115,8 +157,8 @@ test('simulação CPU da Série C 2027 consolida quatro acessos e dois rebaixame
   assert.ok(out.championCanonicalId);
 });
 
-test('motor dedicado não é ativado fora de 2027', () => {
+test('motor dedicado não é ativado fora das temporadas suportadas', () => {
   assert.equal(initializeSerieCCompetition({ userTeam:user, userCanonicalId:'br-user', cpuTeams:cpu, season:2028 }), null);
 });
 
-console.log(`\nSérie C 2027: ${passed}/${passed} verificações aprovadas.`);
+console.log(`\nSérie C 2026/2027: ${passed}/${passed} verificações aprovadas.`);

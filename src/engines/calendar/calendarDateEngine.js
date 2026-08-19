@@ -31,6 +31,14 @@ const diffDays = (from, to) => {
 };
 
 const maxDate = (...dates) => dates.filter(Boolean).sort((a, b) => b - a)[0] || null;
+const minDate = (...dates) => dates.filter(Boolean).sort((a, b) => a - b)[0] || null;
+const clampDate = (date, minimum, maximum) => {
+  const value = date ? new Date(date) : null;
+  if (!value) return minimum ? new Date(minimum) : maximum ? new Date(maximum) : null;
+  if (minimum && value < minimum) return new Date(minimum);
+  if (maximum && value > maximum) return new Date(maximum);
+  return value;
+};
 
 const nextWeekday = (start, weekdays = []) => {
   const allowed = new Set(weekdays);
@@ -62,33 +70,72 @@ export function attachCanonicalDates(calendar = [], { season = 2026, serie = 'A'
   if (!source.length) return [];
   const normalizedSerie = String(serie || 'A').toUpperCase();
   const opening = getSeasonLeagueStartDate(season, normalizedSerie);
+
+  const bounds = source.map((entry) => {
+    const target = fromDateISO(entry?.targetDateISO);
+    const windowStart = fromDateISO(entry?.windowStartISO);
+    const windowEnd = fromDateISO(entry?.windowEndISO);
+    // Entradas legadas sem janela continuam usando o comportamento histórico.
+    // Competições com janela própria podem acontecer antes da abertura da liga.
+    const minimum = windowStart || (target && target < opening ? target : opening);
+    return { target, minimum, maximum:windowEnd || null };
+  });
+
+  // Passo 1: calcula a primeira data possível de cada compromisso considerando
+  // o descanso mínimo global entre jogos do clube.
+  const earliest = [];
+  for (let index = 0; index < source.length; index += 1) {
+    const previousFloor = index > 0 ? addDays(earliest[index - 1], MIN_MATCH_GAP_DAYS) : null;
+    earliest[index] = maxDate(bounds[index].minimum, previousFloor) || bounds[index].target || opening;
+  }
+
+  // Passo 2: calcula de trás para frente a última data possível. Isso evita o
+  // antigo efeito cascata que apenas empurrava jogos para depois do fim da Copa,
+  // do estadual ou da regional. Quando existe espaço, partidas anteriores são
+  // antecipadas dentro da própria janela em vez de estourar seu encerramento.
+  const latest = Array(source.length).fill(null);
+  for (let index = source.length - 1; index >= 0; index -= 1) {
+    const nextCeiling = index < source.length - 1 && latest[index + 1]
+      ? addDays(latest[index + 1], -MIN_MATCH_GAP_DAYS)
+      : null;
+    latest[index] = minDate(bounds[index].maximum, nextCeiling);
+  }
+
+  const boundedPlanIsFeasible = earliest.every((date, index) => !latest[index] || date <= latest[index]);
   let lastMatchDate = null;
   let lastLeagueDate = null;
 
   return source.map((entry, index) => {
-    const target = fromDateISO(entry?.targetDateISO);
-    // A Copa do Brasil pode começar antes da liga nacional. Na primeira entrada,
-    // a data-alvo oficial tem precedência quando antecede a abertura da Série.
-    const minimum = lastMatchDate
-      ? addDays(lastMatchDate, MIN_MATCH_GAP_DAYS)
-      : (target && target < opening ? target : opening);
-    const targetOrMinimum = maxDate(minimum, target);
+    const { target, minimum, maximum } = bounds[index];
+    const spacingFloor = lastMatchDate ? addDays(lastMatchDate, MIN_MATCH_GAP_DAYS) : minimum;
     let date;
-    if (entry?.type === 'league') {
-      // Calendários anuais já chegam com uma data-alvo distribuída dentro da
-      // janela da competição. O fallback preserva saves/consumidores legados.
-      date = target
-        ? targetOrMinimum
-        : (index === 0 && !lastMatchDate ? new Date(opening) : preferredLeagueDate(minimum, normalizedSerie, lastLeagueDate));
-      lastLeagueDate = new Date(date);
+
+    if (boundedPlanIsFeasible) {
+      const lower = maxDate(minimum, spacingFloor, earliest[index]);
+      const upper = latest[index] || maximum;
+      date = clampDate(target || lower, lower, upper);
     } else {
-      date = target ? targetOrMinimum : preferredCupDate(minimum);
+      // Fallback seguro para agendas matematicamente impossíveis: preserva o
+      // espaçamento mínimo e sinaliza o estouro em vez de criar jogos seguidos.
+      const targetOrMinimum = maxDate(spacingFloor, target);
+      if (entry?.type === 'league') {
+        date = target
+          ? targetOrMinimum
+          : (index === 0 && !lastMatchDate ? new Date(opening) : preferredLeagueDate(spacingFloor, normalizedSerie, lastLeagueDate));
+      } else {
+        date = target ? targetOrMinimum : preferredCupDate(spacingFloor);
+      }
     }
+
+    if (entry?.type === 'league') lastLeagueDate = new Date(date);
     lastMatchDate = new Date(date);
+    const overflow = Boolean(maximum && date > maximum);
+    const beforeWindow = Boolean(minimum && date < minimum);
     return {
       ...entry,
       dateISO:toDateISO(date),
       calendarDate:toDateISO(date),
+      windowOverflow:overflow || beforeWindow,
     };
   });
 }
@@ -107,6 +154,19 @@ export function validateCalendarSpacing(calendar = [], minGapDays = MIN_MATCH_GA
       if (gap < minGapDays) errors.push(`Slots ${previous.index + 1} e ${index + 1} separados por apenas ${gap} dia(s).`);
     }
     previous = { date, index };
+  });
+  return { ok:errors.length === 0, errors };
+}
+
+export function validateCalendarWindows(calendar = []) {
+  const errors = [];
+  (Array.isArray(calendar) ? calendar : []).forEach((entry, index) => {
+    const date = fromDateISO(entry?.dateISO || entry?.calendarDate);
+    const start = fromDateISO(entry?.windowStartISO);
+    const end = fromDateISO(entry?.windowEndISO);
+    if (!date) return;
+    if (start && date < start) errors.push(`Slot ${index + 1} antes da janela de ${entry?.windowLabel || entry?.targetSource || 'competição'}.`);
+    if (end && date > end) errors.push(`Slot ${index + 1} após a janela de ${entry?.windowLabel || entry?.targetSource || 'competição'}.`);
   });
   return { ok:errors.length === 0, errors };
 }
@@ -198,6 +258,7 @@ export default {
   getSeasonLeagueStartDate,
   attachCanonicalDates,
   validateCalendarSpacing,
+  validateCalendarWindows,
   getInitialCareerDate,
   getCareerCurrentDate,
   getCalendarSlotDate,

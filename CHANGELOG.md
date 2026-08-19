@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.0.0-beta.62] - 2026-08-19
+
+### Série C 2026 e calendário
+- Série C 2026 passa a usar motor dedicado com 20 clubes, 19 rodadas na primeira fase, G8, dois quadrangulares, quatro acessos, dois rebaixamentos e final em ida e volta, totalizando 27 datas.
+- Novas carreiras da Série C já nascem no formato correto; schema de save sobe para 15 e migra saves beta 61 ainda zerados, preservando carreiras já iniciadas no formato legado para não apagar resultados.
+- Agenda anual passa a carregar início/fim da janela de cada competição e usa planejamento de ida e volta para evitar o efeito cascata que empurrava estaduais/regionais/copas além da janela quando ainda existe espaço viável.
+- Mantido o intervalo global mínimo de três dias; agendas matematicamente impossíveis preservam o descanso e ficam marcadas internamente para auditoria de estouro de janela.
+
+### Mobile, identidade do clube e mensagens
+- Passo 2 da Nova Carreira foi compactado: dificuldade vem primeiro em grade 2×2, nome do save em seguida e metas abaixo, eliminando o grande vazio/rolagem desnecessária em celular.
+- Central troca a grade de três para duas colunas, com cards, ícones, fontes e espaçamentos maiores; cabeçalho, próximo jogo e navegação inferior também ganharam legibilidade.
+- Cores principais da Central, barra inferior, Mensagens e Competições passam a derivar da identidade do clube com ajuste de luminância para preservar contraste.
+- Leitor de mensagens reduz espaços vazios e adiciona navegação Anterior/Próxima com indicador da posição atual.
+
+### Competições
+- Tela Copas evolui para **Competições** e abre em uma visão geral com posição no Brasileiro, fase atual, estaduais/regionais/continentais ativos e atalhos para classificação e calendário.
+- Classificação da primeira fase de estadual/copa permanece acessível mesmo depois de entrar no mata-mata.
+- Cada competição exibe a sequência de fases e a chave/caminho do clube, com adversário atual, fases concluídas e eliminação quando aplicável.
+- Série C e Série D mostram a fase específica também no cabeçalho da classificação.
+
+### Regressões
+- Testes ampliados para impedir retorno da home a três colunas, recolocação da dificuldade abaixo da dobra, perda da navegação de mensagens, ausência da visão geral de competições e estouros evitáveis das janelas do calendário.
+- Suíte funcional: **1.046/1.046 verificações aprovadas em 37 grupos**.
+
 ## [1.0.0-beta.61] - 2026-08-19
 
 ### Nova Carreira e saves

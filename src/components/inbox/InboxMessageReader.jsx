@@ -20,7 +20,7 @@ function ActionButton({ label, color, outlined = false, onClick, textColor = '#0
   );
 }
 
-export default function InboxMessageReader({ message, isInTrash, livePlayer, formatMoney, theme, onBack, onRestore, onTrash, onTakeAction, onRejectAction }) {
+export default function InboxMessageReader({ message, isInTrash, livePlayer, formatMoney, theme, onBack, onPrevious, onNext, positionLabel, onRestore, onTrash, onTakeAction, onRejectAction }) {
   const action = message.actionData;
   const typeStyle = getMessageTypeStyle(message.type, theme);
   const sender = getMessageSender(message);
@@ -32,7 +32,7 @@ export default function InboxMessageReader({ message, isInTrash, livePlayer, for
     <Box sx={{ bgcolor: theme.bg, minHeight: '100dvh', pb: 5.5 }}>
       <Box sx={{ background: 'linear-gradient(180deg, #ffffff 0%, #f4f7f6 100%)', borderBottom: `1px solid ${theme.border}`, px: 1.5, pt: 3.8, pb: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-          <Box component="button" type="button" aria-label="Voltar para a lista de mensagens" onClick={onBack} sx={{ cursor: 'pointer', color: theme.teal, fontSize: '1.3rem', lineHeight: 1, px: 0.3, border: 0, bgcolor: 'transparent' }}>❮</Box>
+          <Box component="button" type="button" aria-label="Voltar para a lista de mensagens" onClick={onBack} sx={{ cursor: 'pointer', color: theme.primary, fontSize: '1.3rem', lineHeight: 1, px: 0.3, border: 0, bgcolor: 'transparent' }}>❮</Box>
           <Box>
             <Typography sx={{ color: theme.txt1, fontWeight: 900, fontSize: '0.9rem' }}>{isInTrash ? '🗑️ LIXEIRA' : '📬 MENSAGEM'}</Typography>
             <Typography sx={{ color: theme.txt3, fontSize: '0.56rem', fontWeight: 700 }}>{sender}</Typography>
@@ -43,16 +43,25 @@ export default function InboxMessageReader({ message, isInTrash, livePlayer, for
         </Box>
       </Box>
 
-      <Box sx={{ px: 1.5, pt: 1.5 }}>
+      <Box sx={{ px: 1.25, pt: 1 }}>
+        <Box sx={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', alignItems:'center', gap:.7, mb:.8 }}>
+          <Box component="button" type="button" disabled={!onPrevious} onClick={onPrevious || undefined} sx={{ border:`1px solid ${theme.border}`, bgcolor:theme.card, borderRadius:'9px', py:.65, px:.8, cursor:onPrevious ? 'pointer' : 'default', opacity:onPrevious ? 1 : .35, textAlign:'left', font:'inherit' }}>
+            <Typography sx={{ color:theme.primary, fontWeight:900, fontSize:'.68rem' }}>← ANTERIOR</Typography>
+          </Box>
+          <Typography sx={{ color:theme.txt3, fontSize:'.62rem', fontWeight:900, whiteSpace:'nowrap' }}>{positionLabel}</Typography>
+          <Box component="button" type="button" disabled={!onNext} onClick={onNext || undefined} sx={{ border:`1px solid ${theme.border}`, bgcolor:theme.card, borderRadius:'9px', py:.65, px:.8, cursor:onNext ? 'pointer' : 'default', opacity:onNext ? 1 : .35, textAlign:'right', font:'inherit' }}>
+            <Typography sx={{ color:theme.primary, fontWeight:900, fontSize:'.68rem' }}>PRÓXIMA →</Typography>
+          </Box>
+        </Box>
         <Box sx={{ bgcolor: theme.card, border: `1.5px solid ${typeStyle.color}40`, borderRadius: '12px 12px 0 0', overflow: 'hidden', borderBottom: `1px solid ${theme.border}` }}>
-          <Box sx={{ px: 1.8, py: 1.4, background: `linear-gradient(90deg, ${typeStyle.color}15 0%, transparent 100%)` }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.8 }}>
+          <Box sx={{ px: 1.35, py: 1.05, background: `linear-gradient(90deg, ${typeStyle.color}15 0%, transparent 100%)` }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.55 }}>
               <Box sx={{ bgcolor: typeStyle.bg, border: `1px solid ${typeStyle.color}40`, borderRadius: '5px', px: 0.8, py: 0.2 }}>
                 <Typography sx={{ color: typeStyle.color, fontWeight: 900, fontSize: '0.5rem', letterSpacing: 0.5 }}>{message.icon || '✉️'} {typeLabel || 'MENSAGEM'}</Typography>
               </Box>
               <Typography sx={{ color: theme.txt3, fontSize: '0.6rem', fontWeight: 700 }}>{getMessageDate(message)}</Typography>
             </Box>
-            <Typography sx={{ color: theme.txt1, fontWeight: 900, fontSize: '1.05rem', lineHeight: 1.25, mb: 0.5 }}>{message.subject}</Typography>
+            <Typography sx={{ color: theme.txt1, fontWeight: 900, fontSize: '1.02rem', lineHeight: 1.2, mb: 0.35 }}>{message.subject}</Typography>
             <Typography sx={{ color: theme.txt3, fontSize: '0.6rem', fontWeight: 700 }}>De: {sender}</Typography>
           </Box>
         </Box>
@@ -95,9 +104,9 @@ export default function InboxMessageReader({ message, isInTrash, livePlayer, for
           </Box>
         )}
 
-        <Box sx={{ bgcolor: theme.card, borderRadius: '0 0 12px 12px', border: `1.5px solid ${typeStyle.color}25`, borderTop: 'none', px: 1.8, py: 1.6, minHeight: 180 }}>
+        <Box sx={{ bgcolor: theme.card, borderRadius: '0 0 12px 12px', border: `1.5px solid ${typeStyle.color}25`, borderTop: 'none', px: 1.35, py: 1.15, minHeight: 0 }}>
           {String(message.body || '').split('\n').map((line, index) => (
-            <Typography key={`${index}-${line}`} sx={{ color: theme.txt1, fontSize: '0.85rem', lineHeight: 1.9, mb: line === '' ? 0.8 : 0, fontWeight: 400 }}>
+            <Typography key={`${index}-${line}`} sx={{ color: theme.txt1, fontSize: '0.86rem', lineHeight: 1.62, mb: line === '' ? 0.45 : 0, fontWeight: 400 }}>
               <RichText text={line || '\u00A0'} theme={theme} />
             </Typography>
           ))}

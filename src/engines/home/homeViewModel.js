@@ -219,7 +219,7 @@ export function buildHomeNavigationCards(gameData = {}, shared = null) {
       badge: squad.unavailable || null,
     },
     {
-      id: 'copas', emoji: '🏆', label: 'Copas', screen: 'copas', color: '#d97706',
+      id: 'copas', emoji: '🏆', label: 'Competições', screen: 'copas', color: '#d97706',
       sub: getHomeCupSummary(gameData),
     },
     {

@@ -9,8 +9,10 @@ import {
   getDaysUntilCalendarSlot,
   getInitialCareerDate,
   validateCalendarSpacing,
+  validateCalendarWindows,
 } from '../src/engines/calendar/calendarDateEngine.js';
 import {
+  buildAnnualCalendarTargets,
   getAnnualCalendarContext,
   getSeasonLeagueWindow,
   getSeasonCompetitionWindow,
@@ -126,7 +128,7 @@ test('janelas oficiais de 2026 refletem as datas-base nacionais', () => {
 
 test('calendário anual com Copa não empurra Série B/C para o ano seguinte', () => {
   const b = CalendarEngine.buildCalendar(38, { copaBrasil:{status:'active'}, sulAmericana:{status:'active'} }, 'B', { season:2026 });
-  const c = CalendarEngine.buildCalendar(38, { copaBrasil:{status:'active'} }, 'C', { season:2026 });
+  const c = CalendarEngine.buildCalendar(27, { copaBrasil:{status:'active'} }, 'C', { season:2026 });
   assert.equal(b.at(-1).dateISO.slice(0,4), '2026');
   assert.equal(c.at(-1).dateISO.slice(0,4), '2026');
   assert.ok(fromDateISO(b.at(-1).dateISO) <= fromDateISO('2026-12-06'));
@@ -144,7 +146,7 @@ test('Série A entra na Copa do Brasil perto da data-base oficial da 5ª fase', 
 });
 
 test('Séries C e D podem disputar Copa do Brasil antes da abertura da liga', () => {
-  const c = CalendarEngine.buildCalendar(38, { copaBrasil:{status:'active'} }, 'C', { season:2026 });
+  const c = CalendarEngine.buildCalendar(27, { copaBrasil:{status:'active'} }, 'C', { season:2026 });
   const d = CalendarEngine.buildCalendar(24, { copaBrasil:{status:'active'} }, 'D', { season:2026 });
   assert.equal(c[0].type, 'cup');
   assert.equal(d[0].type, 'cup');
@@ -164,6 +166,38 @@ test('temporadas futuras reutilizam a estrutura anual como projeção, não como
   const projected = getSeasonLeagueWindow(2027, 'A');
   assert.equal(projected.start, '2027-01-28');
   assert.equal(projected.official, false);
+});
+
+
+test('agenda densa preserva janelas de estadual, regional, copa e Série C quando há espaço', () => {
+  const cupEvents = [];
+  const addEvents = (cupKey, count) => {
+    for (let index = 0; index < count; index += 1) {
+      cupEvents.push({ cupKey, phase:`Fase ${index + 1}`, leg:'leg1' });
+    }
+  };
+  addEvents('paraibano', 12);
+  addEvents('copaBrasil', 8);
+  addEvents('copaNordeste', 10);
+  const targets = buildAnnualCalendarTargets({ leagueRounds:27, cupEvents, season:2026, serie:'C' });
+  const calendar = attachCanonicalDates(targets, { season:2026, serie:'C' });
+  assert.equal(validateCalendarSpacing(calendar).ok, true);
+  const windows = validateCalendarWindows(calendar);
+  assert.equal(windows.ok, true, windows.errors.join('; '));
+  assert.equal(calendar.some((entry) => entry.windowOverflow), false);
+});
+
+test('cada compromisso anual carrega a janela da própria competição para auditoria', () => {
+  const targets = buildAnnualCalendarTargets({
+    leagueRounds:27,
+    cupEvents:[{ cupKey:'paulista', phase:'Classificatória 1', leg:'leg1' }, { cupKey:'copaBrasil', phase:'1ª Fase', leg:'leg1' }],
+    season:2026,
+    serie:'C',
+  });
+  assert.equal(targets.every((entry) => Boolean(entry.windowStartISO && entry.windowEndISO && entry.windowLabel)), true);
+  const paulista = targets.find((entry) => entry.cupKey === 'paulista');
+  assert.equal(paulista.windowStartISO, '2026-01-11');
+  assert.equal(paulista.windowEndISO, '2026-03-08');
 });
 
 console.log(`\nCalendário civil: ${passed}/${passed} verificações aprovadas.`);

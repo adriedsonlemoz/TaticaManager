@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { HOME_THEME } from './homeTheme.js';
 
-export default function HomeLineupAlert({ lineup, onOpenLineup }) {
+export default function HomeLineupAlert({ lineup, onOpenLineup, theme = HOME_THEME }) {
   if (!lineup.needsAttention) return null;
 
   const title = lineup.invalidStarters.length > 0
@@ -17,7 +17,7 @@ export default function HomeLineupAlert({ lineup, onOpenLineup }) {
     }}>
       <Typography sx={{ fontSize: '1.05rem' }}>📋</Typography>
       <Box sx={{ flex: 1 }}>
-        <Typography sx={{ color: HOME_THEME.red, fontWeight: 900, fontSize: '0.78rem' }}>{title}</Typography>
+        <Typography sx={{ color: theme.red, fontWeight: 900, fontSize: '0.78rem' }}>{title}</Typography>
         <Typography sx={{ color: '#9ca3af', fontSize: '0.58rem', fontWeight: 700 }}>Toque para abrir a prancheta →</Typography>
       </Box>
     </Box>

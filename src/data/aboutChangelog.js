@@ -5,6 +5,22 @@ export const buildAboutChangelog = (C) => [
     v: APP_VERSION_LABEL,
     tag: 'ATUAL',
     color: C.green,
+    title: 'Série C 2026 · calendário · mobile · competições',
+    items: [
+      '⚽ Série C 2026 recebe formato dedicado de 20 clubes, 19 rodadas iniciais, quadrangulares, quatro acessos, dois rebaixamentos e 27 datas totais',
+      '🗓️ Calendário passa a proteger as janelas de cada competição e antecipar compromissos quando necessário, mantendo o descanso mínimo global',
+      '📱 Central usa dois cards por linha, com textos, ícones e áreas de toque maiores; dificuldade da Nova Carreira fica visível no topo do passo 2',
+      '🎨 Central, barra inferior, Mensagens e Competições adaptam a cor principal à identidade do clube com contraste protegido',
+      '📬 Mensagens ganham navegação Anterior/Próxima e menos espaços vazios entre cabeçalho, conteúdo e ações',
+      '🏆 Competições ganha visão geral, classificação nacional/estadual acessível e caminho de fases da Copa para o clube',
+      '💾 Schema 15 migra Série C 2026 ainda zerada e preserva saves já iniciados sem reescrever resultados',
+      '🧪 1.046/1.046 verificações aprovadas em 37 grupos',
+    ],
+  },
+  {
+    v: 'v1.0 beta.61',
+    tag: '',
+    color: C.teal,
     title: 'Carreiras reconstruídas · metas · uniformes',
     items: [
       '📁 Tela de Carreiras recebe cards maiores, botão Continuar destacado e detalhes sob demanda para melhorar a leitura no celular',

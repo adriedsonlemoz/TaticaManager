@@ -24,7 +24,7 @@ const createState = () => prepareSaveState(getInitialGameState('br-flamengo', 'M
 
 check('schema atual cria feed inicial para uma carreira nova', () => {
   const state = createState();
-  assert.equal(state.saveSchemaVersion, 14);
+  assert.equal(state.saveSchemaVersion, 15);
   assert.ok(Array.isArray(state.newsFeed));
   assert.ok(state.newsFeed.length >= 1);
   assert.match(state.newsFeed[0].title, /Flamengo/i);

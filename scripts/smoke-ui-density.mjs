@@ -16,6 +16,10 @@ const clubStep = read('src/components/setup/steps/SetupClubStep.jsx');
 const bootFooter = read('src/components/boot/BootFooter.jsx');
 const bottomNav = read('src/components/navigation/BottomNavigationBar.jsx');
 const home = read('src/components/MenuPrincipal.jsx');
+const homeGrid = read('src/components/home/HomeNavigationGrid.jsx');
+const careerStep = read('src/components/setup/steps/SetupCareerStep.jsx');
+const inboxReader = read('src/components/inbox/InboxMessageReader.jsx');
+const competitionScreen = read('src/components/ScreenCopas.jsx');
 
 const srcFiles = [];
 const walk = (dir) => {
@@ -72,8 +76,39 @@ test('telas principais não reservam dez ou doze rem de espaço vazio sob o cont
 });
 
 test('navegação inferior preserva ícone e rótulo mesmo em densidade compacta', () => {
-  assert.match(bottomNav, /fontSize:\s*'1\.05rem'/);
+  assert.match(bottomNav, /fontSize:\s*'1\.12rem'/);
   assert.match(bottomNav, /item\.label/);
+});
+
+
+test('home mobile usa dois cards por linha com conteúdo ampliado', () => {
+  assert.match(homeGrid, /gridTemplateColumns:\s*'repeat\(2,minmax\(0,1fr\)\)'/);
+  assert.doesNotMatch(homeGrid, /repeat\(3/);
+  assert.match(homeGrid, /minHeight:\s*84/);
+  assert.match(homeGrid, /fontSize:\s*'0\.88rem'/);
+});
+
+test('dificuldade vem antes do nome e das metas na criação da carreira', () => {
+  const difficultyIndex = careerStep.indexOf('DIFICULDADE');
+  const nameIndex = careerStep.indexOf('NOME DA CARREIRA');
+  const objectiveIndex = careerStep.indexOf('META DA TEMPORADA');
+  assert.ok(difficultyIndex >= 0 && nameIndex > difficultyIndex && objectiveIndex > nameIndex);
+  assert.match(careerStep, /minHeight:58/);
+  assert.match(careerStep, /overflowY:'auto'/);
+});
+
+test('leitor de mensagens navega entre anterior e próxima sem altura vazia artificial', () => {
+  assert.match(inboxReader, /← ANTERIOR/);
+  assert.match(inboxReader, /PRÓXIMA →/);
+  assert.match(inboxReader, /positionLabel/);
+  assert.doesNotMatch(inboxReader, /minHeight:\s*180/);
+});
+
+test('área de competições abre em visão geral com atalhos para classificação e calendário', () => {
+  assert.match(competitionScreen, /useState\('overview'\)/);
+  assert.match(competitionScreen, /<CompetitionOverview/);
+  assert.match(competitionScreen, /onOpenLeague=\{\(\) => setScreen\('table'\)\}/);
+  assert.match(competitionScreen, /onOpenCalendar=\{\(\) => setScreen\('matches'\)\}/);
 });
 
 console.log(`\nDensidade responsiva: ${passed}/${passed} verificações aprovadas.`);

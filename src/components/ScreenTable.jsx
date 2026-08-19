@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import { THEME } from '../theme.js';
+import { getClubAccentTheme } from '../utils/clubTheme.js';
 import LeagueTableHeader from './table/LeagueTableHeader.jsx';
 import StandingsView from './table/StandingsView.jsx';
 import TopScorersView from './table/TopScorersView.jsx';
@@ -11,6 +12,7 @@ const ScreenTable = ({ gameData, buyPlayer, formatMoney, showToast }) => {
   const [currentTab, setCurrentTab] = React.useState(0);
   const [selectedScorer, setSelectedScorer] = React.useState(null);
   const viewModel = React.useMemo(() => buildTableViewModel(gameData), [gameData]);
+  const tableTheme = React.useMemo(() => getClubAccentTheme(THEME, gameData?.club?.name), [gameData?.club?.name]);
 
   const handleBuyScorer = React.useCallback((scorer) => {
     if (!buyPlayer) {
@@ -22,7 +24,7 @@ const ScreenTable = ({ gameData, buyPlayer, formatMoney, showToast }) => {
   }, [buyPlayer, showToast]);
 
   return (
-    <Box sx={{ bgcolor: THEME.bg, minHeight: '100dvh', pb: 5.5, display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ bgcolor: tableTheme.bg, minHeight: '100dvh', pb: 5.5, display: 'flex', flexDirection: 'column', background: `linear-gradient(180deg, ${tableTheme.clubTint || tableTheme.bgCardAlt}, ${tableTheme.bg} 22%)` }}>
       <LeagueTableHeader
         serie={viewModel.serie}
         currentRound={viewModel.currentRound}
@@ -30,6 +32,7 @@ const ScreenTable = ({ gameData, buyPlayer, formatMoney, showToast }) => {
         phaseLabel={viewModel.phaseLabel}
         currentTab={currentTab}
         onTabChange={setCurrentTab}
+        theme={tableTheme}
       />
 
       {currentTab === 0 ? (

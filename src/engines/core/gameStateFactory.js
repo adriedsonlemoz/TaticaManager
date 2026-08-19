@@ -6,6 +6,7 @@ import { getTeamStadiumData } from '../../data/teamStadiumData.js';
 import { generatePlayer, generateSquad } from './playerFactory.js';
 import { generateFixtures, generateInitialTable } from './leagueEngine.js';
 import { initializeSerieDCompetition } from '../serieD/serieDCompetition.js';
+import { initializeSerieCCompetition } from '../serieC/serieCCompetition.js';
 
 // Nova carreira usa apenas clubes canônicos. Finanças personalizadas ficam reservadas
 // para uma futura criação de clubes próprios exclusivamente na Série D.
@@ -55,10 +56,14 @@ const getInitialGameState = (teamRef, managerName, legacySerieOrProfile = {}, ma
     C: serie === 'C' ? activeCpuPool : poolC,
     D: serie === 'D' ? activeCpuPool : poolD,
   };
+  const serieCSeason = serie === 'C'
+    ? initializeSerieCCompetition({ userTeam, userCanonicalId:existingTeamId, cpuTeams:activeCpuPool, season:2026 })
+    : null;
   const serieDSeason = serie === 'D'
     ? initializeSerieDCompetition({ userTeam, userCanonicalId:existingTeamId, cpuTeams:activeCpuPool, season:2026 })
     : null;
-  const allTeams = serieDSeason?.teams || preliminaryTeams;
+  const dedicatedSeason = serieCSeason || serieDSeason;
+  const allTeams = dedicatedSeason?.teams || preliminaryTeams;
   const activeCpuIds = new Set(Object.values(leagues).flat().map((team) => String(team.id)));
   const allSelectable = getCareerSelectableClubs2026();
   const pyramidReserve = [poolA, poolB, poolC, poolD].flat()
@@ -113,13 +118,13 @@ const getInitialGameState = (teamRef, managerName, legacySerieOrProfile = {}, ma
     players:userPlayers,
     teams:allTeams,
     teamRosters,
-    table:serieDSeason?.table || generateInitialTable(allTeams),
-    fixtures:serieDSeason?.fixtures || generateFixtures(allTeams),
+    table:dedicatedSeason?.table || generateInitialTable(allTeams),
+    fixtures:dedicatedSeason?.fixtures || generateFixtures(allTeams),
     leagues,
     pyramidReserve,
     leaguePyramidVersion:2,
     serieDCompetition:serieDSeason?.competition || null,
-    serieCCompetition:null,
+    serieCCompetition:serieCSeason?.competition || null,
     serieCLegacyFormat:false,
     market:Array.from({ length:15 }, () => {
       const player = generatePlayer(null, 'Livre', mktOvr);

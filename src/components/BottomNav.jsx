@@ -3,6 +3,7 @@ import BottomNavigationBar from './navigation/BottomNavigationBar.jsx';
 import TeamNavigationDialog from './navigation/TeamNavigationDialog.jsx';
 import ClubNavigationDialog from './navigation/ClubNavigationDialog.jsx';
 import OptionsNavigationDialog from './navigation/OptionsNavigationDialog.jsx';
+import { getClubAccent } from '../utils/clubTheme.js';
 import {
   NAV_MENU,
   buildBottomNavItems,
@@ -13,6 +14,7 @@ import {
 const BottomNav = ({ screen, setScreen, simulating, saveGame, gameData }) => {
   const [openMenu, setOpenMenu] = React.useState(null);
   const viewModel = React.useMemo(() => buildBottomNavViewModel(gameData), [gameData]);
+  const activeColor = React.useMemo(() => getClubAccent(gameData?.club?.name), [gameData?.club?.name]);
   const items = React.useMemo(() => buildBottomNavItems({
     screen,
     openMenu,
@@ -61,7 +63,7 @@ const BottomNav = ({ screen, setScreen, simulating, saveGame, gameData }) => {
 
   return (
     <>
-      <BottomNavigationBar items={items} onItemClick={handleItemClick} />
+      <BottomNavigationBar items={items} onItemClick={handleItemClick} activeColor={activeColor} />
       <TeamNavigationDialog
         open={openMenu === NAV_MENU.TEAM}
         onClose={closeMenu}

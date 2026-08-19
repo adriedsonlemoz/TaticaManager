@@ -6,6 +6,7 @@ import CupTieCard from './CupTieCard.jsx';
 import CupGroupTable from './CupGroupTable.jsx';
 import CupGroupMatches from './CupGroupMatches.jsx';
 import CupHistory from './CupHistory.jsx';
+import CupPhasePath from './CupPhasePath.jsx';
 
 const CupCard = ({ cup, label, color, formatMoney }) => {
   const C = THEME;
@@ -19,6 +20,7 @@ const CupCard = ({ cup, label, color, formatMoney }) => {
 
   const currentTie = cup.currentTie || cup.knockoutTie || null;
   const isGroup = cup.phase === 'group';
+  const hasClassification = Array.isArray(cup.group) && cup.group.length > 0;
 
   return (
     <Box sx={{ mb: 1.5 }}>
@@ -41,8 +43,9 @@ const CupCard = ({ cup, label, color, formatMoney }) => {
         </Box>
       </Box>
 
+      <CupPhasePath cup={cup} color={color} />
       {currentTie && <CupTieCard tie={currentTie} cupColor={color} label={label} formatMoney={formatMoney} />}
-      {isGroup && <CupGroupTable group={cup.group || []} color={color} qualifyCount={cup.qualifyCount || 2} tableLabel={cup.tableLabel} qualificationNote={cup.qualificationNote} />}
+      {hasClassification && <CupGroupTable group={cup.group || []} color={color} qualifyCount={cup.qualifyCount || 2} tableLabel={isGroup ? cup.tableLabel : (cup.tableLabel ? `${cup.tableLabel} · 1ª FASE` : 'CLASSIFICAÇÃO DA 1ª FASE')} qualificationNote={cup.qualificationNote} />}
       {isGroup && <CupGroupMatches matches={cup.groupMatches || []} color={color} />}
       <CupHistory history={cup.history || []} />
     </Box>

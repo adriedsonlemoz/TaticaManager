@@ -7,9 +7,43 @@ import {
 } from '../core/leagueEngine.js';
 
 export const SERIE_C_COMPETITION_VERSION = 1;
+export const SERIE_C_2026_FIRST_PHASE_ROUNDS = 19;
+export const SERIE_C_2026_QUADRANGULAR_ROUNDS = 6;
+export const SERIE_C_2026_TOTAL_ROUNDS = 27;
 export const SERIE_C_2027_FIRST_PHASE_ROUNDS = 23;
 export const SERIE_C_2027_QUADRANGULAR_ROUNDS = 6;
 export const SERIE_C_2027_TOTAL_ROUNDS = 31;
+
+export const SERIE_C_FORMATS = Object.freeze({
+  2026: Object.freeze({
+    season:2026,
+    teamCount:20,
+    firstPhaseRounds:SERIE_C_2026_FIRST_PHASE_ROUNDS,
+    quadrangularRounds:SERIE_C_2026_QUADRANGULAR_ROUNDS,
+    totalRounds:SERIE_C_2026_TOTAL_ROUNDS,
+    format:'2026-20-single-quadrangular',
+  }),
+  2027: Object.freeze({
+    season:2027,
+    teamCount:24,
+    firstPhaseRounds:SERIE_C_2027_FIRST_PHASE_ROUNDS,
+    quadrangularRounds:SERIE_C_2027_QUADRANGULAR_ROUNDS,
+    totalRounds:SERIE_C_2027_TOTAL_ROUNDS,
+    format:'2027-24-single-quadrangular',
+  }),
+});
+
+export const getSerieCFormat = (season = 2026) => SERIE_C_FORMATS[Number(season)] || null;
+const phaseIndexes = (season) => {
+  const format = getSerieCFormat(season);
+  if (!format) return null;
+  const firstEnd = format.firstPhaseRounds - 1;
+  const quadrangularStart = format.firstPhaseRounds;
+  const quadrangularEnd = quadrangularStart + format.quadrangularRounds - 1;
+  const finalStart = quadrangularEnd + 1;
+  const finalEnd = finalStart + 1;
+  return { ...format, firstEnd, quadrangularStart, quadrangularEnd, finalStart, finalEnd };
+};
 
 const idOf = (team) => team == null ? null : String(typeof team === 'object' ? team.id : team);
 const canonicalIdOf = (team) => team?.id === 'user'
@@ -39,8 +73,8 @@ function autoplayRange(fixtures, start, end, seed = '') {
   for (let idx = start; idx <= end; idx += 1) next[idx] = autoplayRound(next[idx] || [], `${seed}|r${idx}`);
   return next;
 }
-function mergeGroupRounds(groupA = [], groupB = []) {
-  return Array.from({ length:SERIE_C_2027_QUADRANGULAR_ROUNDS }, (_, index) => [
+function mergeGroupRounds(groupA = [], groupB = [], roundCount = 6) {
+  return Array.from({ length:roundCount }, (_, index) => [
     ...(groupA[index] || []).map((match) => ({ ...match, serieCGroup:'B' })),
     ...(groupB[index] || []).map((match) => ({ ...match, serieCGroup:'C' })),
   ]);
@@ -50,17 +84,18 @@ function rowsToTeams(rows = [], teams = []) {
   const byId = teamMap(teams);
   return rows.map((row) => cloneTeam(byId.get(idOf(row)) || row));
 }
-function rebuildGroupTable(teams, fixtures, start = 23, end = 28, groupKey = null) {
+function rebuildGroupTable(teams, fixtures, start, end, groupKey = null) {
   const rounds = fixtures.slice(start, end + 1).map((round) => (
     groupKey ? (round || []).filter((match) => match.serieCGroup === groupKey) : (round || [])
   ));
   return rebuildLeagueTable(generateInitialTable(teams), rounds);
 }
-function firstPhaseTable(teams, fixtures) {
-  return rebuildLeagueTable(generateInitialTable(teams), fixtures.slice(0, SERIE_C_2027_FIRST_PHASE_ROUNDS));
+function firstPhaseTable(teams, fixtures, roundCount) {
+  return rebuildLeagueTable(generateInitialTable(teams), fixtures.slice(0, roundCount));
 }
 function buildQuadrangular(qualifierRows, teams) {
   const ordered = rowsToTeams(qualifierRows, teams);
+  // Regulamento: Grupo B = 1º, 4º, 5º e 8º; Grupo C = 2º, 3º, 6º e 7º.
   const groupB = [ordered[0], ordered[3], ordered[4], ordered[7]].filter(Boolean);
   const groupC = [ordered[1], ordered[2], ordered[5], ordered[6]].filter(Boolean);
   return { B:groupB, C:groupC };
@@ -80,8 +115,9 @@ function buildFinalRounds(winnerB, winnerC) {
     [{ tieId:'serie-c-final', home:cloneTeam(winnerC), away:cloneTeam(winnerB), played:false, result:null }],
   ];
 }
-function decideFinal(fixtures, seed = '') {
-  const leg1 = fixtures?.[29]?.[0]; const leg2 = fixtures?.[30]?.[0];
+function decideFinal(fixtures, indexes, seed = '') {
+  const leg1 = fixtures?.[indexes.finalStart]?.[0];
+  const leg2 = fixtures?.[indexes.finalEnd]?.[0];
   const a = parseLeagueResult(leg1?.result); const b = parseLeagueResult(leg2?.result);
   if (!a || !b || !leg1?.home || !leg1?.away) return null;
   const homeAgg = a.homeGoals + b.awayGoals;
@@ -92,17 +128,19 @@ function decideFinal(fixtures, seed = '') {
 }
 
 function finishCpuStages(competition, fixtures) {
-  let nextFixtures = autoplayRange(fixtures, 23, 28, `${competition.season}|serie-c-quadrangular`);
+  const indexes = phaseIndexes(competition.season);
+  if (!indexes) return { fixtures, groupTables:null, promotedCanonicalIds:[], championCanonicalId:null };
+  let nextFixtures = autoplayRange(fixtures, indexes.quadrangularStart, indexes.quadrangularEnd, `${competition.season}|serie-c-quadrangular`);
   const tables = {
-    B:rebuildGroupTable(competition.groups.B, nextFixtures, 23, 28, 'B'),
-    C:rebuildGroupTable(competition.groups.C, nextFixtures, 23, 28, 'C'),
+    B:rebuildGroupTable(competition.groups.B, nextFixtures, indexes.quadrangularStart, indexes.quadrangularEnd, 'B'),
+    C:rebuildGroupTable(competition.groups.C, nextFixtures, indexes.quadrangularStart, indexes.quadrangularEnd, 'C'),
   };
   const promoted = [...tables.B.slice(0,2), ...tables.C.slice(0,2)];
   const winners = [tables.B[0], tables.C[0]].map((row, idx) => rowsToTeams([row], competition.groups[idx === 0 ? 'B' : 'C'])[0]);
   const finals = buildFinalRounds(winners[0], winners[1]);
-  nextFixtures[29] = finals[0]; nextFixtures[30] = finals[1];
-  nextFixtures = autoplayRange(nextFixtures, 29, 30, `${competition.season}|serie-c-final`);
-  const champion = decideFinal(nextFixtures, `${competition.season}|serie-c-final`);
+  nextFixtures[indexes.finalStart] = finals[0]; nextFixtures[indexes.finalEnd] = finals[1];
+  nextFixtures = autoplayRange(nextFixtures, indexes.finalStart, indexes.finalEnd, `${competition.season}|serie-c-final`);
+  const champion = decideFinal(nextFixtures, indexes, `${competition.season}|serie-c-final`);
   return {
     fixtures:nextFixtures,
     groupTables:tables,
@@ -111,14 +149,16 @@ function finishCpuStages(competition, fixtures) {
   };
 }
 
-export function initializeSerieCCompetition({ userTeam, userCanonicalId, cpuTeams = [], season = 2027 } = {}) {
-  if (Number(season) !== 2027) return null;
+export function initializeSerieCCompetition({ userTeam, userCanonicalId, cpuTeams = [], season = 2026 } = {}) {
+  const format = getSerieCFormat(season);
+  if (!format) return null;
   const cleanCpu = (Array.isArray(cpuTeams) ? cpuTeams : []).filter((team) => team && idOf(team) !== 'user' && idOf(team) !== String(userCanonicalId || ''));
   const participant = { ...userTeam, id:'user', teamId:userCanonicalId || userTeam?.teamId || null, canonicalTeamId:userCanonicalId || userTeam?.teamId || null, isPlayer:true };
-  const teams = [participant, ...cleanCpu].slice(0, 24);
-  if (teams.length !== 24) return null;
+  const teams = [participant, ...cleanCpu].slice(0, format.teamCount);
+  if (teams.length !== format.teamCount) return null;
   const firstFixtures = generateSingleRoundFixtures(teams);
-  const fixtures = [...firstFixtures, ...Array.from({ length:SERIE_C_2027_TOTAL_ROUNDS - firstFixtures.length }, emptyRound)];
+  if (firstFixtures.length !== format.firstPhaseRounds) return null;
+  const fixtures = [...firstFixtures, ...Array.from({ length:format.totalRounds - firstFixtures.length }, emptyRound)];
   const table = generateInitialTable(teams);
   return {
     teams,
@@ -126,8 +166,12 @@ export function initializeSerieCCompetition({ userTeam, userCanonicalId, cpuTeam
     fixtures,
     competition:{
       version:SERIE_C_COMPETITION_VERSION,
-      format:'2027-24-single-quadrangular',
-      season:2027,
+      format:format.format,
+      season:format.season,
+      teamCount:format.teamCount,
+      firstPhaseRounds:format.firstPhaseRounds,
+      quadrangularRounds:format.quadrangularRounds,
+      totalRounds:format.totalRounds,
       phase:'first',
       phaseLabel:'1ª Fase · Grupo Único',
       firstPhaseTable:table,
@@ -147,16 +191,17 @@ export function initializeSerieCCompetition({ userTeam, userCanonicalId, cpuTeam
 
 export function advanceSerieCCompetitionAfterRound(state = {}, justPlayedLeagueIdx = null) {
   const comp = state?.serieCCompetition;
-  if (state?.serie !== 'C' || !comp || comp.version !== SERIE_C_COMPETITION_VERSION || Number(comp.season) !== 2027) return state;
+  const indexes = phaseIndexes(comp?.season);
+  if (state?.serie !== 'C' || !comp || comp.version !== SERIE_C_COMPETITION_VERSION || !indexes) return state;
   const idx = Number(justPlayedLeagueIdx);
   if (!Number.isInteger(idx) || idx < 0) return state;
   let fixtures = (state.fixtures || []).map((round) => [...(round || [])]);
   let competition = { ...comp };
 
-  if (idx <= 22) {
-    const firstTable = firstPhaseTable(state.teams || [], fixtures);
+  if (idx <= indexes.firstEnd) {
+    const firstTable = firstPhaseTable(state.teams || [], fixtures, indexes.firstPhaseRounds);
     competition.firstPhaseTable = firstTable;
-    if (idx < 22) return { ...state, table:firstTable, serieCCompetition:competition };
+    if (idx < indexes.firstEnd) return { ...state, table:firstTable, serieCCompetition:competition };
 
     const qualifiers = firstTable.slice(0, 8);
     const relegated = firstTable.slice(-2);
@@ -172,8 +217,8 @@ export function advanceSerieCCompetitionAfterRound(state = {}, justPlayedLeagueI
       phaseLabel:userGroup ? `2ª Fase · Grupo ${userGroup}` : 'Eliminado na 1ª Fase',
       userStatus:userGroup ? 'active' : 'eliminated-first',
     };
-    const groupRounds = mergeGroupRounds(generateFixtures(groups.B), generateFixtures(groups.C));
-    groupRounds.forEach((round, offset) => { fixtures[23 + offset] = round; });
+    const groupRounds = mergeGroupRounds(generateFixtures(groups.B), generateFixtures(groups.C), indexes.quadrangularRounds);
+    groupRounds.forEach((round, offset) => { fixtures[indexes.quadrangularStart + offset] = round; });
     if (!userGroup) {
       const done = finishCpuStages(competition, fixtures);
       competition = {
@@ -184,21 +229,19 @@ export function advanceSerieCCompetitionAfterRound(state = {}, justPlayedLeagueI
       };
       return { ...state, table:firstTable, fixtures:done.fixtures, serieCCompetition:competition };
     }
-    const groupTables = {
-      B:generateInitialTable(groups.B), C:generateInitialTable(groups.C),
-    };
+    const groupTables = { B:generateInitialTable(groups.B), C:generateInitialTable(groups.C) };
     competition.groupTables = groupTables;
     return { ...state, table:groupTables[userGroup], fixtures, serieCCompetition:competition };
   }
 
-  if (idx >= 23 && idx <= 28 && competition.groups) {
+  if (idx >= indexes.quadrangularStart && idx <= indexes.quadrangularEnd && competition.groups) {
     const groupTables = {
-      B:rebuildGroupTable(competition.groups.B, fixtures, 23, 28, 'B'),
-      C:rebuildGroupTable(competition.groups.C, fixtures, 23, 28, 'C'),
+      B:rebuildGroupTable(competition.groups.B, fixtures, indexes.quadrangularStart, indexes.quadrangularEnd, 'B'),
+      C:rebuildGroupTable(competition.groups.C, fixtures, indexes.quadrangularStart, indexes.quadrangularEnd, 'C'),
     };
     competition.groupTables = groupTables;
     const userTable = groupTables[competition.userGroup] || state.table;
-    if (idx < 28) return { ...state, table:userTable, serieCCompetition:competition };
+    if (idx < indexes.quadrangularEnd) return { ...state, table:userTable, serieCCompetition:competition };
 
     const promotedRows = [...groupTables.B.slice(0,2), ...groupTables.C.slice(0,2)];
     competition.promotedCanonicalIds = canonicalIds(promotedRows, [...(competition.groups.B || []), ...(competition.groups.C || [])]);
@@ -207,11 +250,11 @@ export function advanceSerieCCompetitionAfterRound(state = {}, justPlayedLeagueI
     const winnerB = rowsToTeams([groupTables.B[0]], competition.groups.B)[0];
     const winnerC = rowsToTeams([groupTables.C[0]], competition.groups.C)[0];
     const finalRounds = buildFinalRounds(winnerB, winnerC);
-    fixtures[29] = finalRounds[0]; fixtures[30] = finalRounds[1];
+    fixtures[indexes.finalStart] = finalRounds[0]; fixtures[indexes.finalEnd] = finalRounds[1];
     const userInFinal = idOf(winnerB) === 'user' || idOf(winnerC) === 'user';
     if (!userInFinal) {
-      fixtures = autoplayRange(fixtures, 29, 30, `${competition.season}|serie-c-final`);
-      competition.championCanonicalId = canonicalIdOf(decideFinal(fixtures, `${competition.season}|serie-c-final`)) || null;
+      fixtures = autoplayRange(fixtures, indexes.finalStart, indexes.finalEnd, `${competition.season}|serie-c-final`);
+      competition.championCanonicalId = canonicalIdOf(decideFinal(fixtures, indexes, `${competition.season}|serie-c-final`)) || null;
       competition.phase = 'finished'; competition.phaseLabel = 'Encerrada';
       competition.userStatus = competition.userPromoted ? 'promoted' : 'eliminated-second';
       return { ...state, table:userTable, fixtures, serieCCompetition:competition };
@@ -220,8 +263,8 @@ export function advanceSerieCCompetitionAfterRound(state = {}, justPlayedLeagueI
     return { ...state, table:userTable, fixtures, serieCCompetition:competition };
   }
 
-  if (idx === 30 && competition.phase === 'final') {
-    const champion = decideFinal(fixtures, `${competition.season}|serie-c-final`);
+  if (idx === indexes.finalEnd && competition.phase === 'final') {
+    const champion = decideFinal(fixtures, indexes, `${competition.season}|serie-c-final`);
     competition.championCanonicalId = canonicalIdOf(champion) || null;
     competition.userChampion = idOf(champion) === 'user';
     competition.userPromoted = true;
@@ -234,11 +277,12 @@ export function advanceSerieCCompetitionAfterRound(state = {}, justPlayedLeagueI
 
 export function getSerieCPhaseLabel(state = {}, leagueIdx = null) {
   const comp = state?.serieCCompetition;
-  if (state?.serie !== 'C' || !comp) return null;
+  const indexes = phaseIndexes(comp?.season);
+  if (state?.serie !== 'C' || !comp || !indexes) return null;
   const idx = leagueIdx == null ? Number(state.leagueRound) || 0 : Number(leagueIdx);
-  if (idx <= 22) return '1ª Fase · Grupo Único';
-  if (idx <= 28) return comp.userGroup ? `2ª Fase · Grupo ${comp.userGroup}` : '2ª Fase';
-  if (idx <= 30) return 'Final';
+  if (idx <= indexes.firstEnd) return '1ª Fase · Grupo Único';
+  if (idx <= indexes.quadrangularEnd) return comp.userGroup ? `2ª Fase · Grupo ${comp.userGroup}` : '2ª Fase';
+  if (idx <= indexes.finalEnd) return 'Final';
   return comp.phaseLabel || 'Série C';
 }
 
@@ -270,14 +314,15 @@ export function getSerieCUserOutcome(state = {}) {
   };
 }
 
-export function simulateCpuSerieCOutcome(cpuTeams = [], season = 2027) {
-  if (Number(season) !== 2027 || !Array.isArray(cpuTeams) || cpuTeams.length !== 24) return null;
+export function simulateCpuSerieCOutcome(cpuTeams = [], season = 2026) {
+  const indexes = phaseIndexes(season);
+  if (!indexes || !Array.isArray(cpuTeams) || cpuTeams.length !== indexes.teamCount) return null;
   let fixtures = generateSingleRoundFixtures(cpuTeams);
-  fixtures = autoplayRange(fixtures, 0, 22, `${season}|serie-c-first`);
-  const firstTable = firstPhaseTable(cpuTeams, fixtures);
+  fixtures = autoplayRange(fixtures, 0, indexes.firstEnd, `${season}|serie-c-first`);
+  const firstTable = firstPhaseTable(cpuTeams, fixtures, indexes.firstPhaseRounds);
   const groups = buildQuadrangular(firstTable.slice(0,8), cpuTeams);
-  const expanded = [...fixtures, ...Array.from({ length:8 }, emptyRound)];
-  mergeGroupRounds(generateFixtures(groups.B), generateFixtures(groups.C)).forEach((round, offset) => { expanded[23 + offset] = round; });
+  const expanded = [...fixtures, ...Array.from({ length:indexes.totalRounds - fixtures.length }, emptyRound)];
+  mergeGroupRounds(generateFixtures(groups.B), generateFixtures(groups.C), indexes.quadrangularRounds).forEach((round, offset) => { expanded[indexes.quadrangularStart + offset] = round; });
   const comp = { season, groups };
   const done = finishCpuStages(comp, expanded);
   return {
@@ -295,4 +340,5 @@ export default {
   getSerieCUserOutcome,
   isSerieCLeagueSlotInactive,
   simulateCpuSerieCOutcome,
+  getSerieCFormat,
 };

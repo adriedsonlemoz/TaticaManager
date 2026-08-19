@@ -13,7 +13,7 @@ import { initCopaBrasil } from '../cups/copaBrasilEngine.js';
 import { CalendarEngine } from '../CalendarEngine.js';
 import { reconcileNewsFeed } from '../news/newsEngine.js';
 
-export const CURRENT_SAVE_SCHEMA_VERSION = 14;
+export const CURRENT_SAVE_SCHEMA_VERSION = 15;
 export const SAVE_SCHEMA_FIELD = 'saveSchemaVersion';
 
 const SERIES_KEYS = Object.freeze(['A', 'B', 'C', 'D']);
@@ -471,6 +471,56 @@ function migrateV13ToV14(input = {}) {
 }
 
 
+// Schema 15 corrige a Série C de 2026: 20 clubes, 19 rodadas na 1ª fase,
+// quadrangulares e final (27 datas). Saves beta.61 ainda zerados são migrados
+// para o formato oficial sem perda; temporadas já em andamento permanecem no
+// formato legado para não reescrever partidas que o usuário já disputou.
+function migrateV14ToV15(input = {}) {
+  const normalized = reconcileLeaguePyramid(input);
+  if (normalized.serie !== 'C' || Number(normalized.season) !== 2026 || normalized.serieCCompetition) {
+    return { ...normalized, saveSchemaVersion:15 };
+  }
+
+  const hasPlayed = (normalized.fixtures || []).flat().some((match) => match?.played === true);
+  const alreadyStarted = (Number(normalized.round) || 0) > 0 || (Number(normalized.leagueRound) || 0) > 0 || hasPlayed;
+  if (alreadyStarted) {
+    return { ...normalized, serieCLegacyFormat:true, saveSchemaVersion:15 };
+  }
+
+  const userTeam = (normalized.teams || []).find((team) => team?.id === 'user') || {
+    id:'user',
+    teamId:normalized.club?.existingTeamId || normalized.club?.teamId || null,
+    name:normalized.club?.name || 'Meu Clube',
+    strength:normalized.club?.strength || 60,
+    isPlayer:true,
+  };
+  const initialized = initializeSerieCCompetition({
+    userTeam,
+    userCanonicalId:normalized.club?.existingTeamId || normalized.club?.teamId || null,
+    cpuTeams:normalized.leagues?.C || [],
+    season:2026,
+  });
+  if (!initialized) return { ...normalized, serieCLegacyFormat:true, saveSchemaVersion:15 };
+
+  const base = {
+    ...normalized,
+    teams:initialized.teams,
+    table:initialized.table,
+    fixtures:initialized.fixtures,
+    serieCCompetition:initialized.competition,
+    serieCLegacyFormat:false,
+    round:0,
+    leagueRound:0,
+  };
+  return {
+    ...base,
+    ...rebuildUnstartedCalendar(base, base.cups || {}),
+    calendarModel:'annual-v2-bounded-windows',
+    saveSchemaVersion:15,
+  };
+}
+
+
 const MIGRATIONS = Object.freeze({
   0: migrateV0ToV1,
   1: migrateV1ToV2,
@@ -486,6 +536,7 @@ const MIGRATIONS = Object.freeze({
   11: migrateV11ToV12,
   12: migrateV12ToV13,
   13: migrateV13ToV14,
+  14: migrateV14ToV15,
 });
 
 function normalizeCurrentSchema(input = {}) {

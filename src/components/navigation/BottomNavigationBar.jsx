@@ -4,7 +4,7 @@ import { THEME } from '../../theme.js';
 
 const C = THEME;
 
-export default function BottomNavigationBar({ items, onItemClick }) {
+export default function BottomNavigationBar({ items, onItemClick, activeColor = C.act }) {
   return (
     <Paper elevation={0} component="nav" aria-label="Navegação principal" sx={{
       position: 'fixed', bottom: 0, left: 0, right: 0,
@@ -36,9 +36,9 @@ export default function BottomNavigationBar({ items, onItemClick }) {
           {item.active && (
             <Box sx={{
               position: 'absolute', top: 0, left: '14%', right: '14%',
-              height: 2.5, bgcolor: C.act,
+              height: 2.5, bgcolor: activeColor,
               borderRadius: '0 0 3px 3px',
-              boxShadow: `0 0 8px ${C.act}`,
+              boxShadow: `0 0 8px ${activeColor}`,
             }} />
           )}
 
@@ -55,16 +55,16 @@ export default function BottomNavigationBar({ items, onItemClick }) {
           )}
 
           <span className="material-icons" aria-hidden="true" style={{
-            fontSize: '1.05rem',
-            color: item.active ? C.act : C.inact,
-            filter: item.active ? `drop-shadow(0 0 5px ${C.act}80)` : 'none',
+            fontSize: '1.12rem',
+            color: item.active ? activeColor : C.inact,
+            filter: item.active ? `drop-shadow(0 0 5px ${activeColor}80)` : 'none',
             transition: 'color 0.15s',
           }}>
             {item.icon}
           </span>
           <Typography sx={{
-            color: item.active ? C.act : C.inact,
-            fontSize: '0.34rem', fontWeight: 900,
+            color: item.active ? activeColor : C.inact,
+            fontSize: '0.4rem', fontWeight: 900,
             letterSpacing: 0.1, textTransform: 'uppercase', lineHeight: 1,
           }}>
             {item.label}

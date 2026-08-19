@@ -131,11 +131,15 @@ const targetTimestamp = (entry) => parseISO(entry?.targetDateISO)?.getTime() || 
 
 export function buildAnnualCalendarTargets({ leagueRounds = 0, cupEvents = [], season = 2026, serie = 'A' } = {}) {
   const leagueTargets = buildLeagueTargetDates(leagueRounds, { season, serie });
+  const leagueWindow = getSeasonLeagueWindow(season, serie);
   const leagueEntries = leagueTargets.map((targetDateISO, leagueIdx) => ({
     type:'league',
     leagueIdx,
     targetDateISO,
     targetSource:'league-window',
+    windowStartISO:leagueWindow?.start || null,
+    windowEndISO:leagueWindow?.end || null,
+    windowLabel:leagueWindow?.label || `Série ${serie}`,
   }));
 
   const byCompetition = new Map();
@@ -148,11 +152,15 @@ export function buildAnnualCalendarTargets({ leagueRounds = 0, cupEvents = [], s
   const cupEntries = [];
   for (const [cupKey, events] of byCompetition.entries()) {
     const targets = buildCompetitionTargetDates(events, cupKey, { season, serie });
+    const competitionWindow = getSeasonCompetitionWindow(season, cupKey);
     events.forEach((event, index) => cupEntries.push({
       type:'cup',
       ...event,
       targetDateISO:targets[index],
       targetSource:`${cupKey}-window`,
+      windowStartISO:competitionWindow?.start || null,
+      windowEndISO:competitionWindow?.end || null,
+      windowLabel:competitionWindow?.label || cupKey,
     }));
   }
 

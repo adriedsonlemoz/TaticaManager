@@ -7,47 +7,47 @@ import { HOME_THEME, getSerieColor } from './homeTheme.js';
 const teamLabel = (team) => team?.name || 'Adversário';
 const standingLabel = (summary) => summary?.position > 0 ? `${summary.position}º · ${summary.points || 0}pts` : '—';
 
-function TeamSide({ team, summary, color }) {
+function TeamSide({ team, summary, color, theme = HOME_THEME }) {
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
       <Box sx={{
-        width: 44, height: 44, borderRadius: '14px', bgcolor: `${color}12`, border: `1.5px solid ${color}25`,
+        width: 48, height: 48, borderRadius: '14px', bgcolor: `${color}12`, border: `1.5px solid ${color}25`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         {team?.name
-          ? React.createElement(TeamIcon, { name: team.name, size: 32 })
+          ? React.createElement(TeamIcon, { name: team.name, size: 34 })
           : <Typography sx={{ fontSize: '1.5rem' }}>⚽</Typography>}
       </Box>
       <Typography sx={{
-        color: HOME_THEME.ink, fontWeight: 900, fontSize: '0.62rem', textAlign: 'center', lineHeight: 1.1,
+        color: theme.ink, fontWeight: 900, fontSize: '0.72rem', textAlign: 'center', lineHeight: 1.1,
         maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
         {teamLabel(team)}
       </Typography>
-      <Typography sx={{ color: HOME_THEME.ink3, fontSize: '0.48rem', fontWeight: 700 }}>
+      <Typography sx={{ color: theme.ink3, fontSize: '0.56rem', fontWeight: 700 }}>
         {standingLabel(summary)}
       </Typography>
     </Box>
   );
 }
 
-export default function HomeNextMatchCard({ viewModel, onNavigate }) {
+export default function HomeNextMatchCard({ viewModel, onNavigate, theme = HOME_THEME }) {
   const { season, nextMatch, recentForm } = viewModel;
   const serieColor = getSerieColor(viewModel.clubSummary.serie);
 
   if (!season.seasonOver && nextMatch?.type === 'idle') {
     return (
       <Box sx={{ px: 1.25, mb: 0.9 }}>
-        <HomeSectionTitle>PRÓXIMA ETAPA</HomeSectionTitle>
+        <HomeSectionTitle theme={theme}>PRÓXIMA ETAPA</HomeSectionTitle>
         <Box component="button" type="button" onClick={() => onNavigate('next_match')} sx={{
-          width:'100%', bgcolor:HOME_THEME.card, border:'1.5px solid #fde68a', borderRadius:'14px',
+          width:'100%', bgcolor:theme.card, border:'1.5px solid #fde68a', borderRadius:'14px',
           px:1.2, py:0.9, display:'flex', alignItems:'center', gap:1.2, cursor:'pointer', textAlign:'left',
-          boxShadow:HOME_THEME.shadow, font:'inherit',
+          boxShadow:theme.shadow, font:'inherit',
         }}>
           <Typography sx={{ fontSize:'1.5rem' }}>⏭️</Typography>
           <Box sx={{ flex:1 }}>
             <Typography sx={{ color:'#92400e', fontWeight:900, fontSize:'0.82rem' }}>Avançar calendário</Typography>
-            <Typography sx={{ color:HOME_THEME.ink3, fontSize:'0.56rem', fontWeight:700 }}>
+            <Typography sx={{ color:theme.ink3, fontSize:'0.56rem', fontWeight:700 }}>
               {nextMatch.skippedSlots} data(s) sem partida · descanso e recuperação do elenco
             </Typography>
           </Box>
@@ -59,23 +59,23 @@ export default function HomeNextMatchCard({ viewModel, onNavigate }) {
 
   return (
     <Box sx={{ px: 1.25, mb: 0.9 }}>
-      <HomeSectionTitle>PRÓXIMA PARTIDA</HomeSectionTitle>
+      <HomeSectionTitle theme={theme}>PRÓXIMA PARTIDA</HomeSectionTitle>
 
       {season.seasonOver ? (
         <Box component="button" type="button" onClick={() => onNavigate('table')} sx={{
-          width: '100%', bgcolor: HOME_THEME.card, border: `1.5px solid ${HOME_THEME.border}`, borderRadius: '14px',
+          width: '100%', bgcolor: theme.card, border: `1.5px solid ${theme.border}`, borderRadius: '14px',
           px: 1.2, py: 0.9, display: 'flex', alignItems: 'center', gap: 1.2, cursor: 'pointer', textAlign: 'left',
-          boxShadow: HOME_THEME.shadow, font: 'inherit',
+          boxShadow: theme.shadow, font: 'inherit',
         }}>
           <Typography sx={{ fontSize: '1.5rem' }}>🏁</Typography>
           <Box>
-            <Typography sx={{ color: HOME_THEME.grass, fontWeight: 900, fontSize: '0.9rem' }}>Temporada Encerrada!</Typography>
-            <Typography sx={{ color: HOME_THEME.ink3, fontSize: '0.6rem', fontWeight: 700 }}>Ver tabela final →</Typography>
+            <Typography sx={{ color: theme.grass, fontWeight: 900, fontSize: '0.9rem' }}>Temporada Encerrada!</Typography>
+            <Typography sx={{ color: theme.ink3, fontSize: '0.6rem', fontWeight: 700 }}>Ver tabela final →</Typography>
           </Box>
         </Box>
       ) : nextMatch ? (
         <Box component="button" type="button" onClick={() => onNavigate('next_match')} sx={{
-          width: '100%', p: 0, bgcolor: HOME_THEME.card, border: `2px solid ${serieColor}40`, borderRadius: '12px',
+          width: '100%', p: 0, bgcolor: theme.card, border: `2px solid ${serieColor}40`, borderRadius: '12px',
           overflow: 'hidden', cursor: 'pointer', boxShadow: `0 4px 24px ${serieColor}15`, font: 'inherit', textAlign: 'initial',
           '&:active': { transform: 'scale(0.98)' }, transition: 'transform .15s',
         }}>
@@ -83,23 +83,23 @@ export default function HomeNextMatchCard({ viewModel, onNavigate }) {
             background: `linear-gradient(90deg, ${serieColor}, ${serieColor}cc)`, px: 1.5, py: 0.55,
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1,
           }}>
-            <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: '0.6rem', letterSpacing: 0.5, textAlign: 'left' }}>
+            <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: '0.68rem', letterSpacing: 0.35, textAlign: 'left' }}>
               {nextMatch.competitionLabel}
             </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.5rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+            <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.58rem', fontWeight: 750, whiteSpace: 'nowrap' }}>
               {nextMatch.isUserHome ? '🏠 Mandante' : '✈️ Visitante'}
             </Typography>
           </Box>
 
           {nextMatch.restDaysBeforeMatch > 0 ? (
             <Box sx={{ px:1.5, py:0.55, bgcolor:'#ecfeff', borderBottom:'1px solid #a5f3fc' }}>
-              <Typography sx={{ color:'#0e7490', fontSize:'0.5rem', fontWeight:900 }}>
+              <Typography sx={{ color:'#0e7490', fontSize:'0.58rem', fontWeight:900 }}>
                 🛌 Hoje: {nextMatch.currentDateISO || 'descanso'} · {nextMatch.restDaysBeforeMatch} dia(s) até a partida
               </Typography>
             </Box>
           ) : nextMatch.skippedSlots > 0 ? (
             <Box sx={{ px: 1.5, py: 0.45, bgcolor: '#fffbeb', borderBottom: '1px solid #fde68a' }}>
-              <Typography sx={{ color: '#92400e', fontSize: '0.48rem', fontWeight: 800 }}>
+              <Typography sx={{ color: '#92400e', fontSize: '0.56rem', fontWeight: 800 }}>
                 ⏭️ Compromisso sem jogo do seu clube nesta data — avance o calendário.
               </Typography>
             </Box>
@@ -110,14 +110,15 @@ export default function HomeNextMatchCard({ viewModel, onNavigate }) {
               team={nextMatch.displayHome}
               summary={nextMatch.displayHome?.isPlayer ? nextMatch.userSummary : nextMatch.opponentSummary}
               color={serieColor}
+              theme={theme}
             />
 
             <Box sx={{ textAlign: 'center', flexShrink: 0 }}>
-              <Box sx={{ bgcolor: HOME_THEME.cardAlt, border: `1.5px solid ${HOME_THEME.border}`, borderRadius: '9px', px: 0.9, py: 0.45 }}>
-                <Typography sx={{ color: HOME_THEME.grass, fontWeight: 900, fontSize: '1rem', letterSpacing: 3, fontFamily: '"Cinzel",serif' }}>VS</Typography>
+              <Box sx={{ bgcolor: theme.cardAlt, border: `1.5px solid ${theme.border}`, borderRadius: '9px', px: 0.9, py: 0.45 }}>
+                <Typography sx={{ color: theme.grass, fontWeight: 900, fontSize: '1rem', letterSpacing: 3, fontFamily: '"Cinzel",serif' }}>VS</Typography>
               </Box>
               {nextMatch.matchInfo?.fullStr && (
-                <Typography sx={{ color: HOME_THEME.ink3, fontSize: '0.44rem', fontWeight: 700, mt: 0.5 }}>
+                <Typography sx={{ color: theme.ink3, fontSize: '0.52rem', fontWeight: 700, mt: 0.5 }}>
                   {nextMatch.matchInfo.fullStr}
                 </Typography>
               )}
@@ -126,7 +127,8 @@ export default function HomeNextMatchCard({ viewModel, onNavigate }) {
             <TeamSide
               team={nextMatch.displayAway}
               summary={nextMatch.displayAway?.isPlayer ? nextMatch.userSummary : nextMatch.opponentSummary}
-              color={HOME_THEME.ink3}
+              color={theme.ink3}
+              theme={theme}
             />
           </Box>
 
@@ -134,23 +136,23 @@ export default function HomeNextMatchCard({ viewModel, onNavigate }) {
             borderTop: `1px solid ${serieColor}20`, px: 1.2, py: 0.55,
             background: `linear-gradient(90deg, ${serieColor}08, transparent)`, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
-            <Typography sx={{ color: serieColor, fontWeight: 900, fontSize: '0.72rem', fontFamily: '"Cinzel",serif' }}>
+            <Typography sx={{ color: serieColor, fontWeight: 900, fontSize: '0.78rem', fontFamily: '"Cinzel",serif' }}>
               {nextMatch.restDaysBeforeMatch > 0 ? '🛌 AVANÇAR 1 DIA' : nextMatch.skippedSlots > 0 ? '⏭️ AVANÇAR DATA' : `▶ ${nextMatch.type === 'cup' ? 'JOGAR COPA' : 'IR PARA A PARTIDA'}`}
             </Typography>
             <Box sx={{ display: 'flex', gap: 0.4 }} aria-label={`Forma recente: ${recentForm.join(', ') || 'sem partidas'}`}>
               {recentForm.slice(0, 5).map((result, index) => (
-                <Box key={`${result}-${index}`} sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: result === 'V' ? HOME_THEME.grass : result === 'D' ? HOME_THEME.red : HOME_THEME.yellow }} />
+                <Box key={`${result}-${index}`} sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: result === 'V' ? theme.grass : result === 'D' ? theme.red : theme.yellow }} />
               ))}
             </Box>
           </Box>
         </Box>
       ) : (
         <Box sx={{
-          bgcolor: HOME_THEME.card, border: `1.5px solid ${HOME_THEME.border}`, borderRadius: '14px', px: 1.2, py: 0.9,
-          boxShadow: HOME_THEME.shadow,
+          bgcolor: theme.card, border: `1.5px solid ${theme.border}`, borderRadius: '14px', px: 1.2, py: 0.9,
+          boxShadow: theme.shadow,
         }}>
-          <Typography sx={{ color: HOME_THEME.ink2, fontWeight: 900, fontSize: '0.75rem' }}>Nenhuma partida pendente encontrada.</Typography>
-          <Typography sx={{ color: HOME_THEME.ink3, fontSize: '0.55rem', fontWeight: 700, mt: 0.2 }}>Consulte o calendário para revisar a temporada.</Typography>
+          <Typography sx={{ color: theme.ink2, fontWeight: 900, fontSize: '0.82rem' }}>Nenhuma partida pendente encontrada.</Typography>
+          <Typography sx={{ color: theme.ink3, fontSize: '0.62rem', fontWeight: 700, mt: 0.2 }}>Consulte o calendário para revisar a temporada.</Typography>
         </Box>
       )}
     </Box>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { THEME } from '../theme.js';
+import { getClubAccentTheme } from '../utils/clubTheme.js';
 import { CpuAI } from '../engines/engine_cpu_ai.js';
 import InboxMailbox from './inbox/InboxMailbox.jsx';
 import InboxMessageReader from './inbox/InboxMessageReader.jsx';
@@ -25,6 +26,7 @@ const ScreenInbox = ({ gameData, setGameData, setScreen, formatMoney, showToast 
   const [selected, setSelected] = React.useState(null);
   const [confirmDialog, setConfirmDialog] = React.useState(null);
   const [search, setSearch] = React.useState('');
+  const inboxTheme = React.useMemo(() => getClubAccentTheme(THEME, gameData?.club?.name), [gameData?.club?.name]);
 
   const readIds = React.useMemo(() => new Set(gameData.readMsgIds || []), [gameData.readMsgIds]);
   const trashIds = React.useMemo(() => new Set(gameData.trashMsgIds || []), [gameData.trashMsgIds]);
@@ -157,6 +159,9 @@ const ScreenInbox = ({ gameData, setGameData, setScreen, formatMoney, showToast 
   }, [formatMoney, gameData, handleTrash, setGameData, setScreen, showToast]);
 
   if (selected) {
+    const selectedIndex = visibleMessages.findIndex((message) => String(message.id) === String(selected.id));
+    const previousMessage = selectedIndex > 0 ? visibleMessages[selectedIndex - 1] : null;
+    const nextMessage = selectedIndex >= 0 && selectedIndex < visibleMessages.length - 1 ? visibleMessages[selectedIndex + 1] : null;
     const action = selected.actionData;
     const livePlayer = action?.type === 'sell'
       ? gameData.players.find(player => String(player.id) === String(action.player?.id))
@@ -168,8 +173,11 @@ const ScreenInbox = ({ gameData, setGameData, setScreen, formatMoney, showToast 
         isInTrash={trashIds.has(selected.id)}
         livePlayer={livePlayer}
         formatMoney={formatMoney}
-        theme={THEME}
+        theme={inboxTheme}
         onBack={() => setSelected(null)}
+        onPrevious={previousMessage ? () => handleOpenMessage(previousMessage) : null}
+        onNext={nextMessage ? () => handleOpenMessage(nextMessage) : null}
+        positionLabel={selectedIndex >= 0 ? `${selectedIndex + 1} de ${visibleMessages.length}` : ''}
         onRestore={handleRestore}
         onTrash={handleTrash}
         onTakeAction={handleTakeAction}
@@ -189,7 +197,7 @@ const ScreenInbox = ({ gameData, setGameData, setScreen, formatMoney, showToast 
       typeCounts={typeCounts}
       readIds={readIds}
       confirmDialog={confirmDialog}
-      theme={THEME}
+      theme={inboxTheme}
       onTabChange={(nextTab) => { setTab(nextTab); setSearch(''); }}
       onSearchChange={setSearch}
       onOpenMessage={handleOpenMessage}
