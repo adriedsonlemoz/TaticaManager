@@ -10,7 +10,7 @@ const cloneMatch = (match) => ({
   events: Array.isArray(match.events) ? [...match.events] : match.events,
 });
 
-export function simulateLeagueRound({ gameData, leagueIdx, tactics, starters }) {
+export function simulateLeagueRound({ gameData, leagueIdx, tactics, starters, rng = Math.random }) {
   const sourceMatches = gameData.fixtures?.[leagueIdx] || [];
   if (!sourceMatches.length) return { empty: true, leagueIdx };
 
@@ -46,7 +46,7 @@ export function simulateLeagueRound({ gameData, leagueIdx, tactics, starters }) 
       match.away = match.away ? { ...match.away, isPlayer: awayIsUser } : match.away;
     }
 
-    const result = simulateMatch(gameData, match, tactics, starters, gameData.players || []);
+    const result = simulateMatch(gameData, match, tactics, starters, gameData.players || [], { rng });
     match.played = true;
     match.result = `${result.homeGoals} - ${result.awayGoals}`;
     match.events = result.events;
@@ -60,7 +60,7 @@ export function simulateLeagueRound({ gameData, leagueIdx, tactics, starters }) 
       let attendance = 0;
       if (FinanceEngine?.calculateMatchFinances) {
         const financeGameData = { ...gameData, leagueRound: leagueIdx + 1 };
-        const finances = FinanceEngine.calculateMatchFinances(match.home, match.away, financeGameData);
+        const finances = FinanceEngine.calculateMatchFinances(match.home, match.away, financeGameData, { rng });
         attendance = finances.attendance;
         ticketIncome = finances.ticketRevenue;
       }

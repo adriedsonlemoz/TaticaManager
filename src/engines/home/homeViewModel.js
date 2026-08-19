@@ -5,7 +5,6 @@ import { getLineupValidation } from '../lineup/lineupRules.js';
 import { buildBottomNavViewModel } from '../navigation/bottomNavViewModel.js';
 import { getRecentLeagueForm } from '../nextmatch/nextMatchViewModel.js';
 import { resolveMatchInfo } from '../../utils/matchDateUtils.js';
-import { APP_NAME, APP_VERSION_LABEL } from '../../config/appMeta.js';
 import { getUpcomingRound } from '../core/playerStatus.js';
 import { getInactiveCupSkipCount } from '../calendar/idleCalendarAdvance.js';
 import { getSerieDPhaseLabel } from '../serieD/serieDCompetition.js';
@@ -195,6 +194,11 @@ export function buildHomeNavigationCards(gameData = {}, shared = null) {
       sub: clubSummary.position > 0 ? `${clubSummary.position}º lugar · ${clubSummary.points} pts` : 'Ver tabela',
     },
     {
+      id:'news', emoji:'📰', label:'Notícias', screen:'news', color:'#7c3aed',
+      sub:gameData.newsFeed?.[0]?.title || 'Mercado, resultados e bastidores',
+      badge:null,
+    },
+    {
       id: 'inbox', emoji: '📬', label: 'Mensagens', screen: 'inbox', color: '#0891b2',
       sub: navigation.unreadCount > 0 ? `${navigation.unreadCount} nova(s)` : 'Tudo lido',
       badge: navigation.unreadCount || null,
@@ -245,10 +249,6 @@ export function buildHomeNavigationCards(gameData = {}, shared = null) {
       id: 'finances', emoji: '💰', label: 'Finanças', screen: 'finances',
       color: financial.status === 'critico' ? '#dc2626' : '#16a34a',
       sub: financial.label,
-    },
-    {
-      id: 'about', emoji: 'ℹ️', label: 'Sobre', screen: 'about', color: '#4b7a5c',
-      sub: `${APP_VERSION_LABEL} · ${APP_NAME}`,
     },
   ];
 }

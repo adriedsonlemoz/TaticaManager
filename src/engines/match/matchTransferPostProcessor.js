@@ -13,14 +13,18 @@ export function processCpuTransfers(gameData, { leagueIdx = null, rng = Math.ran
     : released;
 
   if (!activity || !CpuAI?.processCpuToCpuTransfers) {
-    return { ...activity, freeAgents: released.freeAgents || [] };
+    return { ...activity, freeAgents: released.freeAgents || [], activities:activity?.activities || [] };
   }
   if (CpuAI?.isTransferWindowOpen && !CpuAI.isTransferWindowOpen(gameData?.currentDateISO ? gameData : leagueRoundPlayed)) {
-    return { ...activity, freeAgents: released.freeAgents || [] };
+    return { ...activity, freeAgents: released.freeAgents || [], activities:activity?.activities || [] };
   }
 
   const trades = CpuAI.processCpuToCpuTransfers(activity.leagues, activity.teamRosters, leagueRoundPlayed, rng, gameData);
-  return { ...trades, freeAgents: released.freeAgents || [] };
+  return {
+    ...trades,
+    freeAgents: released.freeAgents || [],
+    activities:[...(activity.activities || []), ...(trades.activities || [])],
+  };
 }
 
 export function refreshTransferMarket(gameData, {

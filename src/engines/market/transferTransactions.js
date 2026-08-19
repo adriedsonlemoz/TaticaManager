@@ -1,6 +1,7 @@
 import { appendFinancialEntry } from '../finances/financeLedger.js';
 import { applyCpuPurchaseFinance, applyCpuSaleFinance, canCpuBuyPlayer, canCpuReceivePlayer, syncTeamWithRoster } from '../cpu/cpuRoster.js';
 import { evaluateTransferPurchase } from './transferRules.js';
+import { appendNewsItems, buildUserTransferNews } from '../news/newsEngine.js';
 import {
   getPlayerOwnership,
   playerIdKey,
@@ -148,6 +149,13 @@ export function applyUserPurchase(state, candidate, explicitPrice = undefined) {
     financialHistory: appendFinancialEntry(state.financialHistory, transaction, transactionMeta(state)),
     transfersFromTeam,
   };
+  nextState.newsFeed = appendNewsItems(state.newsFeed, [buildUserTransferNews(nextState, {
+    direction:'in',
+    player:playerForUser,
+    price,
+    otherTeamName:ownership.teamName,
+    otherTeamId:ownership.teamId,
+  })]);
   return { state: nextState, ok: true, code: 'ok', player: playerForUser, price };
 }
 
@@ -216,32 +224,34 @@ export function applyUserSale(state, playerOrId, salePrice, { buyerTeamId = null
     return !(message?.actionData?.type === 'sell' && samePlayerId(message.actionData?.player, player));
   });
 
-  return {
-    state: {
-      ...state,
-      players,
-      teamRosters,
-      teams,
-      leagues,
-      inbox,
-      market: (state.market || []).filter((candidate) => playerIdKey(candidate) !== key),
-      watchlist: (state.watchlist || []).filter((candidate) => playerIdKey(candidate) !== key),
-      club: {
-        ...(state.club || {}),
-        money: (Number(state.club?.money) || 0) + price,
-        ...(state.club?.transferBudget !== null
-          && state.club?.transferBudget !== undefined
-          && Number.isFinite(Number(state.club.transferBudget))
-          ? { transferBudget: Math.max(0, Number(state.club.transferBudget)) + price }
-          : {}),
-        wage: players.reduce((sum, candidate) => sum + (Number(candidate.wage) || 0), 0),
-      },
-      financialHistory: appendFinancialEntry(state.financialHistory, transaction, transactionMeta(state)),
-      transfersFromTeam,
+  const nextState = {
+    ...state,
+    players,
+    teamRosters,
+    teams,
+    leagues,
+    inbox,
+    market: (state.market || []).filter((candidate) => playerIdKey(candidate) !== key),
+    watchlist: (state.watchlist || []).filter((candidate) => playerIdKey(candidate) !== key),
+    club: {
+      ...(state.club || {}),
+      money: (Number(state.club?.money) || 0) + price,
+      ...(state.club?.transferBudget !== null
+        && state.club?.transferBudget !== undefined
+        && Number.isFinite(Number(state.club.transferBudget))
+        ? { transferBudget: Math.max(0, Number(state.club.transferBudget)) + price }
+        : {}),
+      wage: players.reduce((sum, candidate) => sum + (Number(candidate.wage) || 0), 0),
     },
-    ok: true,
-    code: 'ok',
+    financialHistory: appendFinancialEntry(state.financialHistory, transaction, transactionMeta(state)),
+    transfersFromTeam,
+  };
+  nextState.newsFeed = appendNewsItems(state.newsFeed, [buildUserTransferNews(nextState, {
+    direction:'out',
     player,
     price,
-  };
+    otherTeamName:buyerTeamName || buyer?.name || 'outro clube',
+    otherTeamId:buyerTeamId || buyer?.id || null,
+  })]);
+  return { state: nextState, ok:true, code:'ok', player, price };
 }

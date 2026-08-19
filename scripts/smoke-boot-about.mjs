@@ -88,11 +88,11 @@ check(() => {
   const changelog = buildAboutChangelog(theme);
   assert.equal(changelog[0].v, APP_VERSION_LABEL);
   assert.equal(changelog[0].tag, 'ATUAL');
-  assert.equal(changelog[1].v, 'v1.0 beta.57');
-  assert.ok(changelog[0].title.includes('estaduais'));
-  assert.ok(changelog[0].title.includes('bugs'));
-  assert.ok(changelog[0].items.some((item) => item.includes('Schema 12')));
-  assert.ok(changelog[0].items.some((item) => item.includes('oito estaduais')));
+  assert.equal(changelog[1].v, 'v1.0 beta.58');
+  assert.ok(changelog[0].title.includes('Notícias'));
+  assert.ok(changelog[0].title.includes('schema 13'));
+  assert.ok(changelog[0].items.some((item) => item.includes('Schema 13')));
+  assert.ok(changelog[0].items.some((item) => item.includes('Central de Notícias')));
 });
 
 check(() => assert.equal(PIX_KEY, 'suporte@brasfootweb.com'));

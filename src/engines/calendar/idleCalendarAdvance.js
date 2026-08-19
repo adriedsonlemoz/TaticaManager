@@ -92,7 +92,7 @@ function recoverPlayerAcrossIdleSlot(player, { rng = Math.random } = {}) {
   }
 
   const energy = FatigueEngine?.calculateNewEnergy
-    ? FatigueEngine.calculateNewEnergy(player, { minutes: 0 })
+    ? FatigueEngine.calculateNewEnergy(player, { minutes: 0, rng })
     : Math.min(100, Math.max(0, (Number(player.energy) || 100) + (hadInjury ? 20 : 12)));
 
   return {

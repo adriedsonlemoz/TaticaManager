@@ -81,13 +81,18 @@ export function recruitCpuTeam(team = {}, teamRosters = {}, round = 1, serie = '
 export function processTransferActivity(leagues = {}, teamRosters = {}, round = 1, rng = Math.random, transferContext = null) {
   const updatedRosters = { ...(teamRosters || {}) };
   if (!isTransferWindowOpen(transferContext || round)) {
-    return { leagues, teamRosters: updatedRosters };
+    return { leagues, teamRosters: updatedRosters, activities:[] };
   }
 
+  const activities = [];
   const processPool = (pool, serie) => (pool || []).map((team) => {
     if (team?.isPlayer || team?.id === 'user') return team;
     const result = recruitCpuTeam(team, updatedRosters, round, serie, rng, transferContext);
     updatedRosters[team.id] = result.roster;
+    (result.recruits || []).forEach((player) => activities.push({
+      type:'cpu-signing', serie, toTeamId:team.id, toTeamName:team.name,
+      playerId:player.id, playerName:player.name, overall:Number(player.overall) || 0, price:0,
+    }));
     return result.team;
   });
 
@@ -99,5 +104,6 @@ export function processTransferActivity(leagues = {}, teamRosters = {}, round = 
       D: processPool(leagues?.D, 'D'),
     },
     teamRosters: updatedRosters,
+    activities,
   };
 }

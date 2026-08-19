@@ -77,6 +77,7 @@ export function processMatchPlayers({ gameData, userMatchData, allRawEvents = []
       isCupMatch: Boolean(userMatchData?.isCupMatch),
       currentRound: rounds.calendarRoundPlayed,
       matchMinutes,
+      rng,
     },
   );
 

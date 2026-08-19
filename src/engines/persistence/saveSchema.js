@@ -11,14 +11,15 @@ import { initRegionalCompetition } from '../cups/regionalEngine.js';
 import { initStateCompetition } from '../cups/stateEngine.js';
 import { initCopaBrasil } from '../cups/copaBrasilEngine.js';
 import { CalendarEngine } from '../CalendarEngine.js';
+import { reconcileNewsFeed } from '../news/newsEngine.js';
 
-export const CURRENT_SAVE_SCHEMA_VERSION = 12;
+export const CURRENT_SAVE_SCHEMA_VERSION = 13;
 export const SAVE_SCHEMA_FIELD = 'saveSchemaVersion';
 
 const SERIES_KEYS = Object.freeze(['A', 'B', 'C', 'D']);
 const ARRAY_FIELDS = Object.freeze([
   'players', 'teams', 'table', 'fixtures', 'market', 'inbox', 'financialHistory',
-  'careerHistory', 'academy', 'academyReady', 'watchlist', 'pyramidReserve',
+  'careerHistory', 'academy', 'academyReady', 'watchlist', 'pyramidReserve', 'newsFeed',
 ]);
 const OBJECT_FIELDS = Object.freeze([
   'club', 'teamRosters', 'leagues', 'scorers', 'h2hHistory', 'transfersFromTeam',
@@ -419,6 +420,20 @@ function migrateV11ToV12(input = {}) {
   };
 }
 
+// Schema 13 introduz a Central de Notícias persistente. Saves antigos recebem
+// um backfill conservador com resultados/transferências já comprovados no estado;
+// eventos futuros passam a ser gravados canonicamente sem duplicação por ID.
+function migrateV12ToV13(input = {}) {
+  const normalized = reconcileLeaguePyramid(input);
+  return {
+    ...normalized,
+    newsFeed:reconcileNewsFeed(normalized),
+    newsFeedModel:'career-news-v1',
+    saveSchemaVersion:13,
+  };
+}
+
+
 const MIGRATIONS = Object.freeze({
   0: migrateV0ToV1,
   1: migrateV1ToV2,
@@ -432,6 +447,7 @@ const MIGRATIONS = Object.freeze({
   9: migrateV9ToV10,
   10: migrateV10ToV11,
   11: migrateV11ToV12,
+  12: migrateV12ToV13,
 });
 
 function normalizeCurrentSchema(input = {}) {
@@ -452,9 +468,12 @@ function normalizeCurrentSchema(input = {}) {
     ? attachCanonicalDates(league.calendar, { season:league.season, serie:league.serie })
     : league.calendar;
   const inferredDate = league.currentDateISO || league.currentDate || calendarDateForProgress(calendar, league.round);
+  const newsFeed = reconcileNewsFeed({ ...league, calendar, currentDateISO:inferredDate || null });
   return {
     ...league,
     calendar,
+    newsFeed,
+    newsFeedModel:'career-news-v1',
     calendarModel: league.calendarModel || (Array.isArray(calendar) && calendar.some((entry) => entry?.targetSource) ? 'annual-v1' : 'legacy-dated-v1'),
     currentDateISO:inferredDate || null,
     currentDate:inferredDate || null,

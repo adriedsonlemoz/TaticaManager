@@ -112,7 +112,7 @@ assert.equal(cards.length, 12);
 assert.equal(byId.academy.badge, 1, 'Base deve incluir academyReady');
 assert.match(byId.academy.sub, /1 pronto/);
 assert.equal(byId.inbox.badge, 1, 'Inbox deve respeitar IDs de leitura/lixeira');
-assert.equal(byId.matches.sub, 'Rod. 1/3', 'Calendário deve usar quantidade total de slots');
+assert.equal(byId.matches.sub, 'Rod. 0/1', 'Calendário deve mostrar a rodada real da Liga, sem contar slots de Copa');
 
 const formState = {
   ...baseState,
@@ -125,7 +125,8 @@ const formState = {
 };
 const vm = buildHomeViewModel(formState);
 assert.deepEqual(vm.recentForm, ['E','V'], 'forma deve ser derivada das partidas de Liga jogadas, ignorando índice de Copa');
-assert.equal(vm.clubSummary.roundTotal, 3);
+assert.equal(vm.clubSummary.round, 2);
+assert.equal(vm.clubSummary.roundTotal, 2);
 assert.equal(vm.headerStats.points, 7);
 
-console.log('home smoke tests: 28/28 OK');
+console.log('home smoke tests: 29/29 OK');

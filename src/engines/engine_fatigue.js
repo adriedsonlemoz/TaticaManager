@@ -33,7 +33,8 @@ export const FatigueEngine = {
 
   // ── Calcular nova energia após rodada (#26, #29, #30, #44) ───
   calculateNewEnergy: (player, opts = {}) => {
-    const { difficultyMult = 1.0, isCupMatch = false } = opts;
+    const { difficultyMult = 1.0, isCupMatch = false, rng = Math.random } = opts;
+    const random = typeof rng === 'function' ? rng : Math.random;
     const explicitMinutes = Number(opts?.minutes);
     const playedMinutes = Number.isFinite(explicitMinutes)
       ? Math.max(0, Math.min(120, explicitMinutes))
@@ -51,7 +52,7 @@ export const FatigueEngine = {
 
     if (playedMinutes > 0) {
       const loss = Math.floor(
-        Math.random() * (C.LOSS_STARTER_MAX - C.LOSS_STARTER_MIN + 1)
+        random() * (C.LOSS_STARTER_MAX - C.LOSS_STARTER_MIN + 1)
       ) + C.LOSS_STARTER_MIN;
 
       // Multiplicadores

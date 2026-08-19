@@ -19,6 +19,7 @@ import ScreenInbox from '../ScreenInbox.jsx';
 import ScreenAcademy from '../ScreenAcademy.jsx';
 import ScreenGameOver from '../ScreenGameOver.jsx';
 import ScreenSeasonEnd from '../ScreenSeasonEnd.jsx';
+import ScreenNews from '../ScreenNews.jsx';
 
 export default function GameScreenRouter({ controller }) {
   const {
@@ -48,6 +49,7 @@ export default function GameScreenRouter({ controller }) {
     case 'academy': return <ScreenAcademy {...sharedProps} />;
     case 'inbox': return <ScreenInbox {...sharedProps} />;
     case 'career': return <ScreenCareer {...sharedProps} />;
+    case 'news': return <ScreenNews {...sharedProps} />;
     case 'about': return <ScreenAbout />;
     case 'game_over':
       return <ScreenGameOver gameData={gameData} setScreen={handleNav} setGameData={setGameData} persistence={persistence} />;

@@ -1,6 +1,6 @@
 {
   "name": "tatica-manager",
-  "version": "1.0.0-beta.58",
+  "version": "1.0.0-beta.59",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -17,7 +17,7 @@
     "test:medical": "node scripts/smoke-medical.mjs",
     "test:squad": "node scripts/smoke-squad.mjs",
     "test:field": "node scripts/smoke-field.mjs",
-    "test:smoke": "npm run test:nextmatch && npm run test:table && npm run test:league-season && npm run test:inbox && npm run test:career && npm run test:academy && npm run test:match-engine && npm run test:cpu-ai && npm run test:match-simulator && npm run test:navigation && npm run test:home && npm run test:medical && npm run test:squad && npm run test:field && npm run test:boot-about && npm run test:market && npm run test:continental && npm run test:match-post && npm run test:season-end && npm run test:matches-app && npm run test:finances && npm run test:match-live && npm run test:match-commit && npm run test:save-schema && npm run test:club-identity && npm run test:pyramid && npm run test:serie-d && npm run test:new-career && npm run test:calendar-dates && npm run test:serie-c && npm run test:ui-density && npm run test:regionals && npm run test:state && npm run test:android-ci && npm run test:runtime-errors",
+    "test:smoke": "npm run test:nextmatch && npm run test:table && npm run test:league-season && npm run test:inbox && npm run test:career && npm run test:academy && npm run test:match-engine && npm run test:cpu-ai && npm run test:match-simulator && npm run test:navigation && npm run test:home && npm run test:medical && npm run test:squad && npm run test:field && npm run test:boot-about && npm run test:market && npm run test:continental && npm run test:match-post && npm run test:season-end && npm run test:matches-app && npm run test:finances && npm run test:match-live && npm run test:match-commit && npm run test:save-schema && npm run test:club-identity && npm run test:pyramid && npm run test:serie-d && npm run test:new-career && npm run test:calendar-dates && npm run test:serie-c && npm run test:ui-density && npm run test:regionals && npm run test:state && npm run test:android-ci && npm run test:runtime-errors && npm run test:news && npm run test:current-bugs",
     "test:boot-about": "node scripts/smoke-boot-about.mjs",
     "test:market": "node scripts/smoke-market.mjs",
     "test:match-post": "node scripts/smoke-match-post.mjs",
@@ -41,7 +41,9 @@
     "test:regionals": "node scripts/smoke-regionals.mjs",
     "test:state": "node scripts/smoke-state-championships.mjs",
     "test:android-ci": "node scripts/smoke-android-ci.mjs",
-    "test:runtime-errors": "node scripts/smoke-runtime-errors.mjs"
+    "test:runtime-errors": "node scripts/smoke-runtime-errors.mjs",
+    "test:news": "node scripts/smoke-news.mjs",
+    "test:current-bugs": "node scripts/smoke-current-bugs.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",

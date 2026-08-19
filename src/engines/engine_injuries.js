@@ -18,7 +18,8 @@ export const InjuryEngine = {
    *   - 'fatigue': jogador exausto (energy < 35) — aumenta chance e tende a lesoes medias
    *   - 'falta':   sofreu cartao amarelo — aumenta chance e pode puxar lesao mais grave
    */
-  rollForInjury: (energy, gameDataOrMult, minutes, context) => {
+  rollForInjury: (energy, gameDataOrMult, minutes, context, rng = Math.random) => {
+    const random = typeof rng === 'function' ? rng : Math.random;
     let baseChance = 0.005;
     if (energy < 70) baseChance = 0.05;
     if (energy < 35) baseChance = 0.15;
@@ -34,8 +35,8 @@ export const InjuryEngine = {
 
     baseChance *= mult;
 
-    if (Math.random() < baseChance) {
-      const roll = Math.random();
+    if (random() < baseChance) {
+      const roll = random();
       let selectedType = InjuryEngine.TYPES[0];
 
       // FIX 4.2: context influencia gravidade do roll
@@ -52,7 +53,7 @@ export const InjuryEngine = {
         if (roll > 0.95) selectedType = InjuryEngine.TYPES[2];
       }
 
-      const duration = Math.floor(Math.random() * (selectedType.maxRounds - selectedType.minRounds + 1))
+      const duration = Math.floor(random() * (selectedType.maxRounds - selectedType.minRounds + 1))
         + selectedType.minRounds;
 
       return {

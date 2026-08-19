@@ -68,7 +68,8 @@ assert.equal(club.position, 2);
 assert.equal(club.positionLabel, '2º');
 assert.equal(club.goalDifference, 4);
 assert.equal(club.goalDifferenceLabel, '+4');
-assert.equal(club.roundTotal, 44, 'progresso deve usar o calendário completo quando disponível');
+assert.equal(club.round, 4, 'Rod. deve representar somente rodadas da Liga, sem contar slots de Copa');
+assert.equal(club.roundTotal, 38, 'progresso da Liga deve usar o total de fixtures da competição');
 assert.equal(club.managerInitials, 'JD');
 
 const vm = buildBottomNavViewModel(state);
@@ -91,4 +92,4 @@ assert.equal(navItems.find(item => item.menu === NAV_MENU.TEAM).badge, 2);
 assert.equal(getBackupFilename(state), 'tatica_manager_Sao_Teste_FC.json');
 assert.equal(getBackupFilename({}), 'tatica_manager_save.json');
 
-console.log('navigation smoke tests: 24/24 OK');
+console.log('navigation smoke tests: 25/25 OK');

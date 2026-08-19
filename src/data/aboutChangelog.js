@@ -5,6 +5,21 @@ export const buildAboutChangelog = (C) => [
     v: APP_VERSION_LABEL,
     tag: 'ATUAL',
     color: C.green,
+    title: 'Central de Notícias · determinismo · schema 13',
+    items: [
+      '📰 Nova Central de Notícias persistente reúne transferências, resultados, Copas, títulos, lesões, suspensões e desfechos de temporada a partir dos eventos reais do save',
+      '🔎 Feed possui busca e filtros por categoria, IDs determinísticos, deduplicação e limite de histórico para evitar spam ou crescimento indefinido',
+      '💾 Schema 13 reconcilia o feed e faz backfill conservador de resultados e transferências já comprovados em saves antigos, sem inventar acontecimentos',
+      '🎲 Liga, Copas, público, fadiga e lesões passam a respeitar a mesma fonte RNG injetada, eliminando divergências invisíveis em replay/testes determinísticos',
+      '📊 Indicadores “Rod.” da Home e do menu do clube passam a representar somente a rodada real da Liga, sem contar estadual, Copa ou continental como rodada do campeonato',
+      '🧭 Home recebe acesso direto a Notícias e o menu Clube também expõe a Central; Sobre continua disponível em Opções sem ocupar card redundante',
+      '🧪 Suíte beta 59 fecha com 1.014 verificações em 37 grupos antes da auditoria mecânica final',
+    ],
+  },
+  {
+    v: 'v1.0 beta.58',
+    tag: '',
+    color: C.teal,
     title: '6 novos estaduais · auditoria de bugs · schema 12',
     items: [
       '🏟️ Paulista, Mineiro, Paranaense, Catarinense, Baiano e Pernambucano 2026 entram no ciclo da carreira; somados a Carioca/Gauchão, são oito estaduais suportados',

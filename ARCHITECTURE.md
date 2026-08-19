@@ -11,6 +11,7 @@ React UI
  │   ├─ core/
  │   ├─ match/
  │   ├─ market/
+ │   ├─ news/
  │   ├─ nextmatch/
  │   ├─ cups_engine (fachada)
  │   ├─ cups/
@@ -35,6 +36,14 @@ React UI
 - `teamMetrics.js`: forma recente e força disponível de clubes CPU.
 
 A API pública de `engine.js` foi preservada para evitar mudanças em massa nos consumidores existentes.
+
+## Central de Notícias
+- `src/engines/news/newsEngine.js`: cria/reconcilia notícias a partir de eventos canônicos da carreira, gera IDs estáveis, deduplica e limita o histórico persistido.
+- `src/engines/news/newsViewModel.js`: filtros, busca, categorias, datas e apresentação do feed.
+- `src/components/ScreenNews.jsx` + `src/components/news/NewsCard.jsx`: interface compacta da Central.
+
+A Central não mantém um simulador paralelo de acontecimentos. Transferências, resultados, Copas, lesões/suspensões e desfechos anuais produzem notícias no mesmo commit que altera o estado correspondente. O schema 13 permite reconstrução conservadora de saves antigos somente a partir de evidências já persistidas.
+
 
 ## IA dos clubes CPU
 - `src/engines/engine_cpu_ai.js`: fachada pública compatível; consumidores antigos continuam importando `CpuAI` pelo mesmo caminho.
@@ -366,7 +375,7 @@ O banco físico continua em `BrasfootDB`/Dexie v1 para não perder carreiras exi
 
 No domínio do elenco, `players` é a fonte canônica do usuário. `teamRosters.user` é apenas um espelho compartilhado com engines que também operam clubes CPU e deve ser atualizado na mesma mutação de estado; `syncUserRosterState()` centraliza essa regra e recalcula `club.wage`. Para clubes CPU, `teamRosters[teamId]` é o roster canônico e `teams[].squad`/`leagues[serie][].squad` permanecem espelhos de compatibilidade reconciliados na fronteira de persistência.
 
-O schema 3 também normaliza Inbox/IDs, contadores de transferências, propriedade dos atletas e classificação. Isso substitui o modelo anterior em que cada tela tentava reparar apenas o pedaço de save que consumia. A cadeia evoluiu até o schema 12. O schema 9 introduz `calendarModel` e anualiza apenas carreiras ainda sem partidas; o schema 10 introduz regionais/Copa do Brasil 2026 sem reescrever temporadas iniciadas; o schema 11 injeta a primeira camada estadual somente em saves zerados; e o schema 12 amplia para oito estaduais e garante reconstrução imediata da agenda quando uma competição é adicionada a um save ainda não iniciado, evitando estado intermediário com `calendar=null`.
+O schema 3 também normaliza Inbox/IDs, contadores de transferências, propriedade dos atletas e classificação. Isso substitui o modelo anterior em que cada tela tentava reparar apenas o pedaço de save que consumia. A cadeia evoluiu até o schema 13. O schema 9 introduz `calendarModel` e anualiza apenas carreiras ainda sem partidas; o schema 10 introduz regionais/Copa do Brasil 2026 sem reescrever temporadas iniciadas; o schema 11 injeta a primeira camada estadual somente em saves zerados; o schema 12 amplia para oito estaduais e garante reconstrução imediata da agenda quando uma competição é adicionada a um save ainda não iniciado, evitando estado intermediário com `calendar=null`; e o schema 13 introduz `newsFeed`/`career-news-v1`, com reconciliação idempotente e backfill conservador de acontecimentos comprovados.
 
 ## Compatibilidade
 O banco Dexie legado e o `appId` do Capacitor foram preservados no rename. Saves antigos são migrados pelo conteúdo, enquanto saves de schema mais novo são bloqueados explicitamente para evitar downgrade destrutivo.

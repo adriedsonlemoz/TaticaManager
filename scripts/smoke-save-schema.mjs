@@ -38,22 +38,23 @@ const legacy = (overrides = {}) => ({
   ...overrides,
 });
 
-check(() => assert.equal(CURRENT_SAVE_SCHEMA_VERSION, 12));
+check(() => assert.equal(CURRENT_SAVE_SCHEMA_VERSION, 13));
 check(() => assert.equal(getSaveSchemaVersion(legacy()), 0));
 check(() => assert.equal(isSaveSchemaSupported({ saveSchemaVersion:8 }), true));
 check(() => assert.equal(isSaveSchemaSupported({ saveSchemaVersion:10 }), true));
 check(() => {
   assert.equal(isSaveSchemaSupported({ saveSchemaVersion:11 }), true);
   assert.equal(isSaveSchemaSupported({ saveSchemaVersion:12 }), true);
+  assert.equal(isSaveSchemaSupported({ saveSchemaVersion:13 }), true);
 });
-check(() => assert.equal(isSaveSchemaSupported({ saveSchemaVersion:13 }), false));
+check(() => assert.equal(isSaveSchemaSupported({ saveSchemaVersion:14 }), false));
 
 check(() => {
   const result = migrateSaveState(legacy());
-  assert.deepEqual(result.appliedMigrations, ['0->1','1->2','2->3','3->4','4->5','5->6','6->7','7->8','8->9','9->10','10->11','11->12']);
+  assert.deepEqual(result.appliedMigrations, ['0->1','1->2','2->3','3->4','4->5','5->6','6->7','7->8','8->9','9->10','10->11','11->12','12->13']);
   assert.equal(result.fromVersion, 0);
-  assert.equal(result.toVersion, 12);
-  assert.equal(result.state.saveSchemaVersion, 12);
+  assert.equal(result.toVersion, 13);
+  assert.equal(result.state.saveSchemaVersion, 13);
   assert.equal(result.state.saveAppVersion, APP_VERSION);
 });
 
@@ -163,7 +164,7 @@ check(() => {
   };
   assert.equal(beta50.leagues.A.length, 20);
   const migrated = prepareSaveState(beta50);
-  assert.equal(migrated.saveSchemaVersion, 12);
+  assert.equal(migrated.saveSchemaVersion, 13);
   assert.equal(migrated.club.teamId, null, 'clube personalizado legado permanece sem teamId canônico');
   assert.equal(migrated.leagues.A.length, 19);
   assert.equal(migrated.leagues.D.length, 96);
@@ -192,7 +193,7 @@ check(() => {
     calendar:null,
   };
   const migrated = prepareSaveState(beta52);
-  assert.equal(migrated.saveSchemaVersion, 12);
+  assert.equal(migrated.saveSchemaVersion, 13);
   assert.equal(migrated.serieDLegacyFormat, false);
   assert.equal(migrated.serieDCompetition?.format, '2026-96x16');
   assert.equal(Object.keys(migrated.serieDCompetition?.groups || {}).length, 16);
@@ -246,7 +247,7 @@ check(() => {
     round:0,
     leagueRound:0,
   });
-  assert.equal(migrated.saveSchemaVersion, 12);
+  assert.equal(migrated.saveSchemaVersion, 13);
   assert.match(migrated.calendar[0].dateISO, /^2026-\d{2}-\d{2}$/);
   assert.match(migrated.calendar[1].dateISO, /^2026-\d{2}-\d{2}$/);
   assert.ok(migrated.currentDateISO);
@@ -264,7 +265,7 @@ check(() => {
     round:0,
     leagueRound:0,
   });
-  assert.equal(migrated.saveSchemaVersion, 12);
+  assert.equal(migrated.saveSchemaVersion, 13);
   assert.equal(migrated.serieCLegacyFormat, false);
   assert.equal(migrated.serieCCompetition?.format, '2027-24-single-quadrangular');
   assert.equal(migrated.teams.length, 24);
@@ -302,7 +303,7 @@ check(() => {
     leagueRound:0,
   };
   const migrated = prepareSaveState(beta54);
-  assert.equal(migrated.saveSchemaVersion, 12);
+  assert.equal(migrated.saveSchemaVersion, 13);
   assert.equal(migrated.calendarModel, 'annual-v1');
   assert.equal(migrated.calendar.some((entry) => entry?.targetSource), true);
   assert.ok(migrated.currentDateISO);

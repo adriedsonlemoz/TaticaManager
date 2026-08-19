@@ -10,6 +10,7 @@ import { tagLegacyFinancialHistory } from '../finances/financeLedger.js';
 import { reconcileClubIdentity } from '../persistence/clubIdentity.js';
 import { getSerieDUserOutcome, initializeSerieDCompetition } from '../serieD/serieDCompetition.js';
 import { getSerieCUserOutcome, initializeSerieCCompetition } from '../serieC/serieCCompetition.js';
+import { appendNewsItems, buildSeasonOutcomeNews } from '../news/newsEngine.js';
 
 const MARKET_OVR = Object.freeze({ A: 70, B: 63, C: 57, D: 50 });
 
@@ -136,6 +137,7 @@ const generateNextSeason = (prevState, rng = Math.random) => {
     calendarModel:'annual-v1',
     difficultyMultipliers: difficulty.multipliers,
     seasonResult,
+    newsFeed:appendNewsItems(sourceState.newsFeed, [buildSeasonOutcomeNews(sourceState, seasonResult)]),
     financialHistory: taggedFinancialHistory,
     leagues: teams.pools,
     serieDCompetition: serieDSeason?.competition || null,

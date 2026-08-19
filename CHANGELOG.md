@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.0.0-beta.59] - 2026-08-18
+
+### Central de Notícias
+- Criado `src/engines/news/newsEngine.js` como domínio canônico do feed, com IDs determinísticos, deduplicação, limite de 240 entradas e reconciliação de saves.
+- Criados `newsViewModel.js`, `ScreenNews.jsx` e `NewsCard.jsx`, com busca, filtros por categoria e apresentação compacta.
+- Compras/vendas do usuário, transferências CPU relevantes, resultados de Liga/Copas, classificação/títulos, lesões, suspensões e encerramento da temporada passam a alimentar a Central a partir do estado real da carreira.
+- Home e menu Clube passam a abrir a Central de Notícias; o card redundante Sobre permanece acessível pelo menu Opções.
+
+### Bugs atuais corrigidos
+- Liga e Copas passam o mesmo `rng` para simulador, público/finanças, fadiga e lesões, eliminando estados físicos ou receitas diferentes em uma simulação reproduzida com a mesma fonte aleatória.
+- `FatigueEngine`, `InjuryEngine` e o pós-processamento de jogadores deixam de escapar para `Math.random()` quando existe RNG injetado.
+- O indicador `Rod.` da Home/menu Clube deixa de contar slots de Copa/estadual/continental e passa a mostrar exclusivamente `leagueRound/fixtures.length`.
+
+### Saves e regressões
+- Schema de save elevado para **13**; saves antigos recebem backfill conservador apenas de resultados/transferências que já podem ser comprovados pelo próprio estado persistido.
+- Adicionadas suítes `smoke-news.mjs` e `smoke-current-bugs.mjs`; regressões de Home/Navegação passam a impedir que Copas inflem o número da rodada da Liga.
+- Suíte funcional fecha em **1.014/1.014 verificações aprovadas em 37 grupos** antes da auditoria mecânica final.
+
 ## [1.0.0-beta.58] - 2026-08-18
 
 ### Seis novos campeonatos estaduais

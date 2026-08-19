@@ -8,6 +8,7 @@ import { processMatchPlayers, preparePostMatchPlayers } from './matchPlayerPostP
 import { buildManagerProfile, isUserMatchTeam, updateHeadToHead } from './matchStateUtils.js';
 import { simulateMatch } from './matchSimulator.js';
 import { stampPlayedCalendarDate } from '../calendar/calendarDateEngine.js';
+import { appendNewsItems, buildCupEventNews, buildMatchResultNews, buildSquadStatusNews } from '../news/newsEngine.js';
 
 export function simulateCupRound({ gameData, calendarEntry, tactics, starters, rng = Math.random }) {
   const info = CalendarEngine.getCupMatchForCalendarSlot(gameData.cups, calendarEntry);
@@ -38,11 +39,11 @@ export function simulateCupRound({ gameData, calendarEntry, tactics, starters, r
     })(),
   };
 
-  const result = simulateMatch(gameData, match, tactics, starters, gameData.players || []);
+  const result = simulateMatch(gameData, match, tactics, starters, gameData.players || [], { rng });
   let ticketIncome = 0;
-  let attendance = Math.floor(Math.random() * 15000) + 5000;
+  let attendance = Math.floor(rng() * 15000) + 5000;
   if (FinanceEngine?.calculateMatchFinances) {
-    const finances = FinanceEngine.calculateMatchFinances(match.home, match.away, gameData);
+    const finances = FinanceEngine.calculateMatchFinances(match.home, match.away, gameData, { rng });
     attendance = finances.attendance;
     ticketIncome = finances.ticketRevenue;
   }
@@ -214,7 +215,7 @@ export function buildCupPostMatchState(gameData, cupRound, { liveSubstitutions =
   const loyaltyDelta = diff > 0 ? (diff >= 3 ? 2 : 1) : diff < 0 ? (diff <= -3 ? -2 : -1) : 0;
 
   const datedGameData = stampPlayedCalendarDate(gameData, gameData.round);
-  return syncUserRosterState({
+  const nextState = syncUserRosterState({
     ...datedGameData,
     round: (gameData.round || 0) + 1,
     cups: cupRound.cups,
@@ -247,4 +248,10 @@ export function buildCupPostMatchState(gameData, cupRound, { liveSubstitutions =
       competition: 'cup',
     }),
   }, players);
+  nextState.newsFeed = appendNewsItems(gameData.newsFeed, [
+    buildMatchResultNews(gameData, userMatchData, userMatchData.cupLabel || 'Copa', gameData.round),
+    ...buildCupEventNews(gameData, cupRound.cupEvents || [], gameData.round),
+    ...buildSquadStatusNews(gameData.players || [], players, gameData),
+  ]);
+  return nextState;
 }

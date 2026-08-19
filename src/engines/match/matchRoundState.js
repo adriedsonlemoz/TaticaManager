@@ -11,6 +11,7 @@ import { processCpuTransfers, refreshTransferMarket } from './matchTransferPostP
 import { advanceSerieDCompetitionAfterRound } from '../serieD/serieDCompetition.js';
 import { advanceSerieCCompetitionAfterRound } from '../serieC/serieCCompetition.js';
 import { stampPlayedCalendarDate } from '../calendar/calendarDateEngine.js';
+import { appendNewsItems, buildCpuTransferNews, buildMatchResultNews, buildSquadStatusNews } from '../news/newsEngine.js';
 import {
   advanceStadium,
   buildManagerProfile,
@@ -142,6 +143,12 @@ export function completeLeagueRound({ gameData, leagueRound, calculateMorale, li
     }),
     scorers,
   }, finalPlayers);
+
+  nextState.newsFeed = appendNewsItems(gameData.newsFeed, [
+    buildMatchResultNews(gameData, leagueRound.userMatchData, `Série ${gameData.serie || 'A'}`, gameData.round),
+    ...buildCpuTransferNews(gameData, cpuTrades?.activities || []),
+    ...buildSquadStatusNews(gameData.players || [], finalPlayers, gameData),
+  ]);
 
   const serieDState = advanceSerieDCompetitionAfterRound(nextState, leagueRound.leagueIdx);
   const competitionState = advanceSerieCCompetitionAfterRound(serieDState, leagueRound.leagueIdx);

@@ -27,6 +27,7 @@ export function processFatigueAndInjuries(players, events, opts = {}) {
     isCupMatch = false,
     currentRound = 0,
     matchMinutes = {},
+    rng = Math.random,
   } = opts;
 
   return players.map((player) => {
@@ -38,7 +39,7 @@ export function processFatigueAndInjuries(players, events, opts = {}) {
     let injury = player.injury;
     if (injury) {
       const recovered = InjuryEngine?.processRecovery
-        ? InjuryEngine.processRecovery(injury)
+        ? InjuryEngine.processRecovery(injury, rng)
         : (injury.roundsLeft > 1 ? { ...injury, roundsLeft: injury.roundsLeft - 1 } : null);
 
       if (!recovered && InjuryEngine?.rollRecaida) {
@@ -49,7 +50,7 @@ export function processFatigueAndInjuries(players, events, opts = {}) {
     }
 
     const energy = FatigueEngine?.calculateNewEnergy
-      ? FatigueEngine.calculateNewEnergy(player, { difficultyMult, isCupMatch, minutes: playedMinutes })
+      ? FatigueEngine.calculateNewEnergy(player, { difficultyMult, isCupMatch, minutes: playedMinutes, rng })
       : Math.min(100, Math.max(0, (player.energy ?? 100) + (player.isStarting ? -15 : 12)));
 
     if (!injury && playedMinutes > 0) {
@@ -60,7 +61,7 @@ export function processFatigueAndInjuries(players, events, opts = {}) {
       ));
       const context = energy < 35 ? 'fatigue' : tookFoul ? 'falta' : 'normal';
       const rolledInjury = InjuryEngine?.rollForInjury
-        ? InjuryEngine.rollForInjury(energy, injuryChanceMult, minutes, context)
+        ? InjuryEngine.rollForInjury(energy, injuryChanceMult, minutes, context, rng)
         : null;
 
       if (rolledInjury) {

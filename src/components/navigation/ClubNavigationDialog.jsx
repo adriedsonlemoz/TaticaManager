@@ -137,15 +137,16 @@ export default function ClubNavigationDialog({ open, onClose, onNavigate, club, 
 
         <Box sx={{ display: 'flex', borderTop: `1px solid ${C.border}` }}>
           {[
+            { label: '📰 Notícias', screen: 'news' },
             { label: '🏅 Carreira', screen: 'career' },
             { label: '📊 Tabela', screen: 'table' },
             { label: 'ℹ️ Sobre', screen: 'about' },
-          ].map((button, index) => (
+          ].map((button, index, buttons) => (
             <Box
               key={button.screen} component="button" type="button" onClick={() => onNavigate(button.screen)}
               sx={{
                 flex: 1, border: 0, bgcolor: 'transparent', py: 1, textAlign: 'center', cursor: 'pointer',
-                borderRight: index < 2 ? `1px solid ${C.border}` : 'none', '&:active': { bgcolor: `${C.act}0a` },
+                borderRight: index < buttons.length - 1 ? `1px solid ${C.border}` : 'none', '&:active': { bgcolor: `${C.act}0a` },
               }}
             >
               <Typography sx={{ color: C.act, fontWeight: 900, fontSize: '0.62rem' }}>{button.label}</Typography>

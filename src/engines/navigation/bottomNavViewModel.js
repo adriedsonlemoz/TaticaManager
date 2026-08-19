@@ -83,15 +83,18 @@ export function getClubNavigationSummary(gameData = {}) {
   const club = gameData.club || {};
   const managerProfile = club.managerProfile || {};
   const goalDifference = number(tableRow.gf) - number(tableRow.ga);
-  const calendarTotal = Array.isArray(gameData.calendar) && gameData.calendar.length
-    ? gameData.calendar.length
-    : (gameData.fixtures?.length || 38);
+  const leagueRound = Number.isFinite(Number(gameData.leagueRound))
+    ? Math.max(0, Math.trunc(Number(gameData.leagueRound)))
+    : (Array.isArray(gameData.calendar)
+      ? gameData.calendar.slice(0, Math.max(0, number(gameData.round))).filter((entry) => entry?.type === 'league').length
+      : number(gameData.round));
+  const leagueTotal = Math.max(0, Number(gameData.fixtures?.length) || 0) || 38;
 
   return {
     name: club.name || 'Meu Clube',
     serie: gameData.serie || '—',
-    round: number(gameData.round),
-    roundTotal: calendarTotal,
+    round: leagueRound,
+    roundTotal: leagueTotal,
     position,
     positionLabel: position > 0 ? `${position}º` : '—',
     points: number(tableRow.pts),

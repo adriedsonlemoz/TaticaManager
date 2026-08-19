@@ -105,14 +105,15 @@ export function releaseExpiredCpuPlayers(leagues = {}, teamRosters = {}) {
 
 export function processCpuToCpuTransfers(leagues = {}, teamRosters = {}, round = 1, rng = Math.random, transferContext = null) {
   if (!isTransferWindowOpen(transferContext || round) || Number(round) % CPU_TRADE_INTERVAL !== 0) {
-    return { leagues, teamRosters };
+    return { leagues, teamRosters, activities:[] };
   }
 
   const updatedRosters = { ...(teamRosters || {}) };
   const teamEntries = collectCpuTeams(leagues);
   const teamById = new Map(teamEntries.map(({ team }) => [team.id, { ...team }]));
+  const activities = [];
 
-  teamEntries.forEach(({ team: buyerOriginal }) => {
+  teamEntries.forEach(({ team: buyerOriginal, serie:buyerSerie }) => {
     if (rng() > CPU_TRADE_CHANCE) return;
     const buyer = teamById.get(buyerOriginal.id) || buyerOriginal;
     const buyerRoster = [...resolveTeamRoster(buyer, updatedRosters)];
@@ -149,10 +150,16 @@ export function processCpuToCpuTransfers(leagues = {}, teamRosters = {}, round =
     updatedRosters[buyer.id] = nextBuyerRoster;
     teamById.set(seller.id, syncTeamWithRoster(applyCpuSaleFinance(seller, price), nextSellerRoster));
     teamById.set(buyer.id, syncTeamWithRoster(applyCpuPurchaseFinance(buyer, price), nextBuyerRoster));
+    activities.push({
+      type:'cpu-transfer', serie:buyerSerie, fromTeamId:seller.id, fromTeamName:seller.name,
+      toTeamId:buyer.id, toTeamName:buyer.name, playerId:target.id, playerName:target.name,
+      overall:Number(target.overall) || 0, price,
+    });
   });
 
   return {
     leagues: syncLeagueTeams(leagues, teamById, updatedRosters),
     teamRosters: updatedRosters,
+    activities,
   };
 }
